@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Plotoria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/function-plot@1.25.0/dist/function-plot.js"></script>
+  <script src="https://unpkg.com/nerdamer@1.1.13/nerdamer.core.js"></script>
+  <script src="https://unpkg.com/nerdamer@1.1.13/Algebra.js"></script>
+  <script src="https://unpkg.com/nerdamer@1.1.13/Calculus.js"></script>
+  <script src="https://unpkg.com/nerdamer@1.1.13/Solve.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Plotoria</h1>
+      <span class="subtitle">Graphikrechner</span>
+    </header>
+
+    <main>
+      <div id="graph-panel">
+        <div id="graph-container"></div>
+        <div id="coord-display" class="coord-display"></div>
+        <div class="graph-overlay">
+          <button id="reset-view" title="Zurücksetzen">
+            <i class="fas fa-home"></i>
+          </button>
+          <button id="btn-add" title="Funktion hinzufügen">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button id="svg-export" title="SVG exportieren">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="algebra-panel">
+        <div class="panel-scroll">
+          <div class="section-label">Funktion eingeben</div>
+          <div class="input-row">
+            <div class="input-field">
+              <input type="text" id="func-input"
+                     placeholder='z.B. f(x) = x^2  oder  \sin(x)'
+                     autocomplete="off" spellcheck="false">
+            </div>
+            <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzufügen">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+
+          <div class="section-label">Funktionen</div>
+          <div class="func-list" id="func-list"></div>
+          <div class="empty-state" id="empty-state">
+            Noch keine Funktionen<br>
+            <small>Gib oben einen Term ein und drücke Enter</small>
+          </div>
+
+          <div class="section-label">Export / Import</div>
+          <div class="tool-group">
+            <button class="btn btn-outline btn-small" id="tikz-export">
+              <i class="fas fa-code"></i> TikZ
+            </button>
+            <button class="btn btn-outline btn-small" id="svg-export-top">
+              <i class="fas fa-image"></i> SVG
+            </button>
+          </div>
+
+          <button class="btn btn-outline btn-small" id="tikz-toggle" style="margin-top:6px">
+            <i class="fas fa-upload"></i> TikZ importieren
+          </button>
+          <div class="toggle-area">
+            <div class="input-field">
+              <textarea id="tikz-area" placeholder="TikZ-Code hier einf\u00fcgen ..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-small" id="tikz-import">
+              <i class="fas fa-play"></i> Importieren
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/math-parser.js"></script>
+  <script src="js/tikz.js"></script>
+  <script src="js/plotoria.js"></script>
+</body>
+</html>
