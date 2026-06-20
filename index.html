@@ -8,9 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
-
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://unpkg.com/function-plot@1.25.0/dist/function-plot.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/nerdamer.core.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/Algebra.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/Calculus.js"></script>
@@ -25,14 +23,11 @@
 
     <main>
       <div id="graph-panel">
-        <div id="graph-container"></div>
+        <svg id="graph-container" width="100%" height="100%"></svg>
         <div id="coord-display" class="coord-display"></div>
         <div class="graph-overlay">
-          <button id="reset-view" title="Zurücksetzen">
+          <button id="reset-view" title="Zur\u00fccksetzen">
             <i class="fas fa-home"></i>
-          </button>
-          <button id="btn-add" title="Funktion hinzufügen">
-            <i class="fas fa-plus"></i>
           </button>
           <button id="svg-export" title="SVG exportieren">
             <i class="fas fa-download"></i>
@@ -46,10 +41,10 @@
           <div class="input-row">
             <div class="input-field">
               <input type="text" id="func-input"
-                     placeholder='z.B. f(x) = x^2  oder  \sin(x)'
+                     placeholder='z.B. x^2  oder  f(x) = sin(x)'
                      autocomplete="off" spellcheck="false">
             </div>
-            <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzufügen">
+            <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzuf\u00fcgen">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -58,7 +53,7 @@
           <div class="func-list" id="func-list"></div>
           <div class="empty-state" id="empty-state">
             Noch keine Funktionen<br>
-            <small>Gib oben einen Term ein und drücke Enter</small>
+            <small>Gib oben einen Term ein und dr\u00fccke Enter</small>
           </div>
 
           <div class="section-label">Export / Import</div>
