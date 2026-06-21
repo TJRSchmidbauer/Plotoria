@@ -1,7 +1,8 @@
 const TikZ = {
-  generate(functions, xMin, xMax, yMin, yMax) {
+  generate(functions, xMin, xMax, yMin, yMax, title) {
     let tikz = '\\begin{tikzpicture}\n';
     tikz += '  \\begin{axis}[\n';
+    tikz += `    title={${title || 'Plotoria'}},\n`;
     tikz += `    xmin=${xMin}, xmax=${xMax},\n`;
     tikz += `    ymin=${yMin}, ymax=${yMax},\n`;
     tikz += '    grid=both,\n';
@@ -24,13 +25,14 @@ const TikZ = {
       const domain = `${xMin}:${xMax}`;
       const samples = 300;
 
-      let texFn = fn.displayExpr || fn.expression;
+      let texFn = fn.disp || fn.expr;
       texFn = texFn.replace(/\^/g, '^');
       texFn = texFn.replace(/\bpi\b/g, '\\pi');
 
       tikz += `    \\addplot[color=${color}, domain=${domain}, samples=${samples}, line width=1.2pt] {${texFn}};\n`;
     });
 
+    tikz += '  \\node[anchor=south east, font=\\tiny, gray!70] at (rel axis cs:1,0) {Plotoria von Tobias Schmidbauer};\n';
     tikz += '  \\end{axis}\n';
     tikz += '\\end{tikzpicture}';
     return tikz;

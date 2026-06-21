@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Plotoria</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -18,7 +18,8 @@
   <div id="app">
     <header>
       <h1>Plotoria</h1>
-      <span class="subtitle">Graphikrechner</span>
+      <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
+      <span class="header-author">Tobias Schmidbauer</span>
     </header>
 
     <main>
@@ -26,8 +27,17 @@
         <svg id="graph-container" width="100%" height="100%"></svg>
         <div id="coord-display" class="coord-display"></div>
         <div class="graph-overlay">
-          <button id="reset-view" title="Zur\u00fccksetzen">
+          <button id="reset-view" title="Zurücksetzen">
             <i class="fas fa-home"></i>
+          </button>
+          <button id="select-rect" title="Bereich auswählen">
+            <i class="fas fa-crop-alt"></i>
+          </button>
+          <button id="tangent-btn" title="Tangente">
+            <i class="fas fa-chart-line"></i>
+          </button>
+          <button id="close-integral" title="Integral schließen" class="integral-close-btn" style="display:none">
+            <i class="fas fa-times"></i>
           </button>
           <button id="svg-export" title="SVG exportieren">
             <i class="fas fa-download"></i>
@@ -36,46 +46,144 @@
       </div>
 
       <div id="algebra-panel">
-        <div class="panel-scroll">
-          <div class="section-label">Funktion eingeben</div>
-          <div class="input-row">
-            <div class="input-field">
-              <input type="text" id="func-input"
-                     placeholder='z.B. x^2  oder  f(x) = sin(x)'
-                     autocomplete="off" spellcheck="false">
+        <div class="tab-bar">
+          <button class="tab active" data-tab="algebra">Algebra</button>
+          <button class="tab" data-tab="view">Ansicht</button>
+          <button class="tab" data-tab="export">Export</button>
+        </div>
+        <div class="tab-content">
+          <div class="tab-pane active" id="tab-algebra">
+            <div class="panel-scroll">
+              <div class="section-label">Funktion eingeben</div>
+              <div class="input-row">
+                <div class="input-field">
+                  <input type="text" id="func-input"
+                         placeholder='z.B. x^2  oder  f(x) = sin(x)'
+                         autocomplete="off" spellcheck="false">
+                </div>
+                <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzufügen">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+
+              <div id="param-section" class="param-section">
+                <div class="section-label">Parameter</div>
+                <div id="param-list" class="param-list"></div>
+                <div class="param-add-row">
+                  <input type="text" id="param-name-input" placeholder="z.B. a" class="param-name-inp" maxlength="1">
+                  <input type="number" id="param-value-input" value="1" step="0.1" class="param-val-inp">
+                  <button class="btn btn-outline btn-small" id="add-param">+</button>
+                </div>
+              </div>
+
+              <div class="section-label">
+                <span>Funktionen</span>
+                <label class="smart-toggle">
+                  <input type="checkbox" id="smart-labels">
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  <span class="toggle-text">Smart Labels</span>
+                </label>
+              </div>
+              <div class="func-list" id="func-list"></div>
+              <div class="empty-state" id="empty-state">
+                Noch keine Funktionen<br>
+                <small>Gib oben einen Term ein und drücke Enter</small>
+              </div>
             </div>
-            <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzuf\u00fcgen">
-              <i class="fas fa-plus"></i>
-            </button>
           </div>
 
-          <div class="section-label">Funktionen</div>
-          <div class="func-list" id="func-list"></div>
-          <div class="empty-state" id="empty-state">
-            Noch keine Funktionen<br>
-            <small>Gib oben einen Term ein und dr\u00fccke Enter</small>
-          </div>
+          <div class="tab-pane" id="tab-view">
+            <div class="panel-scroll">
+              <div class="section-label">Fenster</div>
+              <div class="setting-row">
+                <label>x-Achse</label>
+                <div class="interval-inputs">
+                  <input type="number" id="set-xmin" value="-4" step="1">
+                  <span>bis</span>
+                  <input type="number" id="set-xmax" value="5" step="1">
+                </div>
+              </div>
+              <div class="setting-row">
+                <label>y-Achse</label>
+                <div class="interval-inputs">
+                  <input type="number" id="set-ymin" value="-10" step="1">
+                  <span>bis</span>
+                  <input type="number" id="set-ymax" value="10" step="1">
+                </div>
+              </div>
+              <div class="setting-row">
+                <label>Proportional</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="set-proportional">
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+              <div class="setting-row">
+                <label>x-Achse</label>
+                <input type="text" id="set-xlabel" value="x" class="setting-text">
+              </div>
+              <div class="setting-row">
+                <label>y-Achse</label>
+                <input type="text" id="set-ylabel" value="y" class="setting-text">
+              </div>
 
-          <div class="section-label">Export / Import</div>
-          <div class="tool-group">
-            <button class="btn btn-outline btn-small" id="tikz-export">
-              <i class="fas fa-code"></i> TikZ
-            </button>
-            <button class="btn btn-outline btn-small" id="svg-export-top">
-              <i class="fas fa-image"></i> SVG
-            </button>
-          </div>
-
-          <button class="btn btn-outline btn-small" id="tikz-toggle" style="margin-top:6px">
-            <i class="fas fa-upload"></i> TikZ importieren
-          </button>
-          <div class="toggle-area">
-            <div class="input-field">
-              <textarea id="tikz-area" placeholder="TikZ-Code hier einf\u00fcgen ..."></textarea>
+              <div class="section-label">Darstellung</div>
+              <div class="setting-row">
+                <label>Farbthema</label>
+                <select id="theme-select" style="flex:1;padding:5px 6px;border:0.5px solid var(--separator);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer">
+                  <option value="standard">Standard</option>
+                  <option value="projektor">Projektor (Kontrast)</option>
+                  <option value="dunkel">Dunkel</option>
+                </select>
+              </div>
+              <div class="setting-row">
+                <label>Achsendicke</label>
+                <input type="range" id="set-axis-width" min="1" max="5" step="0.5" value="2">
+              </div>
+              <div class="setting-row">
+                <label>Achsenfarbe</label>
+                <input type="color" id="set-axis-color" value="#222222">
+              </div>
+              <div class="setting-row">
+                <label>Rasterdicke</label>
+                <input type="range" id="set-grid-width" min="0.5" max="4" step="0.5" value="1">
+              </div>
+              <div class="setting-row">
+                <label>Schriftgröße</label>
+                <input type="range" id="set-font-size" min="10" max="28" step="1" value="16">
+              </div>
+              <div class="setting-row">
+                <label>Rasterschritt</label>
+                <input type="number" id="set-grid-step" value="1" step="0.5" min="0.5">
+              </div>
+              <div class="setting-row">
+                <label>Rasterfarbe</label>
+                <input type="color" id="set-grid-color" value="#D2D2D2">
+              </div>
+              <button class="btn btn-primary btn-small" id="apply-view" style="margin-top:12px">Übernehmen</button>
             </div>
-            <button class="btn btn-primary btn-small" id="tikz-import">
-              <i class="fas fa-play"></i> Importieren
-            </button>
+          </div>
+
+          <div class="tab-pane" id="tab-export">
+            <div class="panel-scroll">
+              <div class="section-label">Export</div>
+              <div class="tool-group">
+                <button class="btn btn-outline btn-small" id="tikz-export">
+                  <i class="fas fa-code"></i> TikZ
+                </button>
+                <button class="btn btn-outline btn-small" id="svg-export-top">
+                  <i class="fas fa-image"></i> SVG
+                </button>
+              </div>
+
+              <div class="section-label" style="margin-top:16px">TikZ importieren</div>
+              <div class="input-field">
+                <textarea id="tikz-area" placeholder="TikZ-Code hier einfügen ..."></textarea>
+              </div>
+              <button class="btn btn-primary btn-small" id="tikz-import" style="margin-top:4px">
+                <i class="fas fa-play"></i> Importieren
+              </button>
+            </div>
           </div>
         </div>
       </div>

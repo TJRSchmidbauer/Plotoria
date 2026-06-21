@@ -105,23 +105,39 @@ const MathParser = {
 
   isDerivativeNotation(input) {
     const t = input.trim();
-    return /^f\s*'\s*$/.test(t) || /^f\s*''\s*$/.test(t);
+    return /^([a-zA-Z])\s*'+$/.test(t);
   },
 
-  derivativeOf(fnText) {
-    const match = fnText.match(/^([a-zA-Z])\s*\(([^)]*)\)\s*=\s*(.*)/);
-    if (!match) return null;
-
-    const name = match[1];
-    const param = match[2].trim();
-    const expr = match[3].trim();
-
+  derivativeOf(fn) {
+    const fMatch = fn.orig.match(/^([a-zA-Z])\s*\(([^)]*)\)\s*=\s*(.*)/);
+    if (fMatch) {
+      const param = fMatch[2].trim();
+      const expr = fMatch[3].trim();
+      try {
+        const plain = this.latexToPlain(expr);
+        return nerdamer.diff(plain, param).toString();
+      } catch (e) {
+        return null;
+      }
+    }
     try {
-      const plain = this.latexToPlain(expr);
-      const deriv = nerdamer.diff(plain, param).toString();
-      return `${name}'(${param}) = ${deriv}`;
+      const plain = this.latexToPlain(fn.expr);
+      return nerdamer.diff(plain, 'x').toString();
     } catch (e) {
       return null;
     }
+  },
+
+  extractName(raw) {
+    const m = raw.match(/^([a-zA-Z])\s*\(/);
+    return m ? m[1] : null;
+  },
+
+  nextLetter(used) {
+    const letters = ['f','g','h','i','k','l','m','o','p','q','r','s','t','u','w','x','z'];
+    for (const l of letters) {
+      if (!used.includes(l)) return l;
+    }
+    return 'f';
   }
 };
