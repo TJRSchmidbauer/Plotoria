@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Plotoria</title>
+  <title>Plotoria – Moderner Funktionsplotter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/nerdamer.core.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/Algebra.js"></script>
@@ -17,29 +19,58 @@
 <body>
   <div id="app">
     <header>
-      <h1>Plotoria</h1>
-      <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
-      <span class="header-author">Tobias Schmidbauer</span>
+      <div class="header-left">
+        <h1>Plotoria</h1>
+        <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-undo" class="header-btn" title="Rückgängig (Strg+Z)"><i class="fas fa-undo"></i></button>
+        <button id="btn-redo" class="header-btn" title="Wiederholen (Strg+Y)"><i class="fas fa-redo"></i></button>
+        
+        <button id="btn-angle-mode" class="header-badge-btn" title="Umschalten zwischen RAD (Bogenmaß) und DEG (Gradmaß)">
+          <span id="angle-mode-text">RAD</span>
+        </button>
+
+        <div class="preset-dropdown-wrapper">
+          <select id="preset-select" class="header-select" title="Beispiel-Funktionen laden">
+            <option value="" disabled selected>✨ Beispiele...</option>
+            <option value="x^3 - 2*x">Polynom 3. Grades</option>
+            <option value="sin(x)">Sinuskurve</option>
+            <option value="exp(-x^2)">Gaußsche Glockenkurve</option>
+            <option value="1/x">Gebrochen-Rational (1/x)</option>
+            <option value="a*x^2 + b*x + c">Parabel mit Parametern</option>
+          </select>
+        </div>
+
+        <button id="btn-share" class="header-btn" title="Link zum Teilen generieren"><i class="fas fa-share-alt"></i></button>
+        <button id="btn-help" class="header-btn" title="Tastaturkürzel & Hilfe (?)"><i class="fas fa-question-circle"></i></button>
+        <span class="header-author">Tobias Schmidbauer</span>
+      </div>
     </header>
 
     <main>
       <div id="graph-panel">
         <svg id="graph-container" width="100%" height="100%"></svg>
         <div id="coord-display" class="coord-display"></div>
+        
         <div class="graph-overlay">
-          <button id="reset-view" title="Zurücksetzen">
+          <button id="reset-view" title="Ansicht zurücksetzen (Home)">
             <i class="fas fa-home"></i>
           </button>
-          <button id="select-rect" title="Bereich auswählen">
+          <button id="select-rect" title="Bereich heranzoomen (Rechteck-Auswahl)">
             <i class="fas fa-crop-alt"></i>
           </button>
-          <button id="tangent-btn" title="Tangente">
+          <button id="tangent-btn" title="Tangente & Normale setzen">
             <i class="fas fa-chart-line"></i>
           </button>
-          <button id="close-integral" title="Integral schließen" class="integral-close-btn" style="display:none">
+          <button id="close-integral" title="Integral ausblenden" class="integral-close-btn" style="display:none">
             <i class="fas fa-times"></i>
           </button>
-          <button id="svg-export" title="SVG exportieren">
+          <button id="copy-clipboard" title="Graph in Zwischenablage kopieren">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button id="svg-export" title="Als Vektorgrafik (SVG) herunterladen">
             <i class="fas fa-download"></i>
           </button>
         </div>
@@ -48,10 +79,13 @@
       <div id="algebra-panel">
         <div class="tab-bar">
           <button class="tab active" data-tab="algebra">Algebra</button>
+          <button class="tab" data-tab="table">Tabelle</button>
           <button class="tab" data-tab="view">Ansicht</button>
           <button class="tab" data-tab="export">Export</button>
         </div>
+        
         <div class="tab-content">
+          <!-- TAB ALGEBRA -->
           <div class="tab-pane active" id="tab-algebra">
             <div class="panel-scroll">
               <div class="section-label">Funktion eingeben</div>
@@ -66,8 +100,14 @@
                 </button>
               </div>
 
+              <!-- PARAMETER SECTION -->
               <div id="param-section" class="param-section">
-                <div class="section-label">Parameter</div>
+                <div class="section-label">
+                  <span>Parameter</span>
+                  <button id="btn-play-params" class="btn-text-action" title="Parameter automatisch animieren">
+                    <i class="fas fa-play"></i> Animieren
+                  </button>
+                </div>
                 <div id="param-list" class="param-list"></div>
                 <div class="param-add-row">
                   <input type="text" id="param-name-input" placeholder="z.B. a" class="param-name-inp" maxlength="1">
@@ -76,12 +116,13 @@
                 </div>
               </div>
 
+              <!-- FUNCTION LIST SECTION -->
               <div class="section-label">
                 <span>Funktionen</span>
-                <label class="smart-toggle">
-                  <input type="checkbox" id="smart-labels">
+                <label class="smart-toggle" title="Zeige Nullstellen N, Y-Abschnitt Sy, Extrema Max/Min, Wendepunkte W & Schnittpunkte S">
+                  <input type="checkbox" id="smart-labels" checked>
                   <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  <span class="toggle-text">Smart Labels</span>
+                  <span class="toggle-text">Kurvendiskussion (Smart Labels)</span>
                 </label>
               </div>
               <div class="func-list" id="func-list"></div>
@@ -92,6 +133,39 @@
             </div>
           </div>
 
+          <!-- TAB TABELLE (WERTETABELLE) -->
+          <div class="tab-pane" id="tab-table">
+            <div class="panel-scroll">
+              <div class="section-label">Wertetabelle Einstellungen</div>
+              <div class="setting-row">
+                <label>Intervall</label>
+                <div class="interval-inputs">
+                  <input type="number" id="tbl-start" value="-5" step="1">
+                  <span>bis</span>
+                  <input type="number" id="tbl-end" value="5" step="1">
+                </div>
+              </div>
+              <div class="setting-row">
+                <label>Schrittweite (Δx)</label>
+                <input type="number" id="tbl-step" value="1" step="0.1" min="0.01" class="setting-text">
+              </div>
+              <div class="tool-group" style="margin-top:10px; margin-bottom:16px;">
+                <button class="btn btn-primary btn-small" id="tbl-generate" style="flex:1">
+                  <i class="fas fa-sync"></i> Aktualisieren
+                </button>
+                <button class="btn btn-outline btn-small" id="tbl-export-csv" style="flex:1">
+                  <i class="fas fa-file-csv"></i> CSV Export
+                </button>
+              </div>
+
+              <div class="section-label">Ergebnis</div>
+              <div class="table-container" id="table-container">
+                <div class="empty-state">Keine aktiven Funktionen für Wertetabelle.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB ANSICHT -->
           <div class="tab-pane" id="tab-view">
             <div class="panel-scroll">
               <div class="section-label">Fenster</div>
@@ -119,21 +193,21 @@
                 </label>
               </div>
               <div class="setting-row">
-                <label>x-Achse</label>
+                <label>x-Beschriftung</label>
                 <input type="text" id="set-xlabel" value="x" class="setting-text">
               </div>
               <div class="setting-row">
-                <label>y-Achse</label>
+                <label>y-Beschriftung</label>
                 <input type="text" id="set-ylabel" value="y" class="setting-text">
               </div>
 
               <div class="section-label">Darstellung</div>
               <div class="setting-row">
                 <label>Farbthema</label>
-                <select id="theme-select" style="flex:1;padding:5px 6px;border:0.5px solid var(--separator);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer">
-                  <option value="standard">Standard</option>
-                  <option value="projektor">Projektor (Kontrast)</option>
-                  <option value="dunkel">Dunkel</option>
+                <select id="theme-select" class="setting-select">
+                  <option value="standard">Standard (Apple Light)</option>
+                  <option value="projektor">Projektor (Smartboard/Beamer Kontrast)</option>
+                  <option value="dunkel">Dunkel (Dark Mode)</option>
                 </select>
               </div>
               <div class="setting-row">
@@ -164,23 +238,30 @@
             </div>
           </div>
 
+          <!-- TAB EXPORT -->
           <div class="tab-pane" id="tab-export">
             <div class="panel-scroll">
-              <div class="section-label">Export</div>
-              <div class="tool-group">
-                <button class="btn btn-outline btn-small" id="tikz-export">
-                  <i class="fas fa-code"></i> TikZ
+              <div class="section-label">Bild & Grafik Export</div>
+              <div class="export-grid">
+                <button class="btn btn-outline" id="png-export-top">
+                  <i class="fas fa-file-image"></i> PNG Bild
                 </button>
-                <button class="btn btn-outline btn-small" id="svg-export-top">
-                  <i class="fas fa-image"></i> SVG
+                <button class="btn btn-outline" id="clipboard-copy-top">
+                  <i class="fas fa-paste"></i> In Zwischenablage
+                </button>
+                <button class="btn btn-outline" id="svg-export-top">
+                  <i class="fas fa-vector-square"></i> SVG Vektor
+                </button>
+                <button class="btn btn-outline" id="tikz-export">
+                  <i class="fas fa-code"></i> TikZ (LaTeX)
                 </button>
               </div>
 
-              <div class="section-label" style="margin-top:16px">TikZ importieren</div>
+              <div class="section-label" style="margin-top:20px">TikZ importieren</div>
               <div class="input-field">
-                <textarea id="tikz-area" placeholder="TikZ-Code hier einfügen ..."></textarea>
+                <textarea id="tikz-area" placeholder="TikZ-Code hier einfügen..."></textarea>
               </div>
-              <button class="btn btn-primary btn-small" id="tikz-import" style="margin-top:4px">
+              <button class="btn btn-primary btn-small" id="tikz-import" style="margin-top:8px">
                 <i class="fas fa-play"></i> Importieren
               </button>
             </div>
@@ -190,8 +271,46 @@
     </main>
   </div>
 
+  <!-- SHORTCUTS HELP MODAL -->
+  <div id="shortcuts-modal" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fas fa-keyboard"></i> Tastaturkürzel</h3>
+        <button class="modal-close" id="close-shortcuts"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <ul class="shortcuts-list">
+          <li><kbd>Enter</kbd> <span>Funktion hinzufügen / Eingabe bestätigen</span></li>
+          <li><kbd>Strg</kbd> + <kbd>Z</kbd> <span>Aktion rückgängig machen</span></li>
+          <li><kbd>Strg</kbd> + <kbd>Y</kbd> <span>Aktion wiederholen</span></li>
+          <li><kbd>+</kbd> / <kbd>-</kbd> <span>Stufenlos Zoomen</span></li>
+          <li><kbd>Home</kbd> <span>Ansicht zurücksetzen</span></li>
+          <li><kbd>Esc</kbd> <span>Aktiven Modus (Auswahl / Tangente) beenden</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARE LINK MODAL -->
+  <div id="share-modal" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fas fa-share-alt"></i> Graph Teilen</h3>
+        <button class="modal-close" id="close-share"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Nutze diesen Link, um deinen Graphen inkl. aller Funktionen und Fenster-Einstellungen zu teilen:</p>
+        <div class="input-row" style="margin-top:12px">
+          <input type="text" id="share-url-input" readonly class="setting-text">
+          <button class="btn btn-primary" id="copy-share-url"><i class="fas fa-copy"></i> Kopieren</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/math-parser.js"></script>
   <script src="js/tikz.js"></script>
   <script src="js/plotoria.js"></script>
 </body>
 </html>
+

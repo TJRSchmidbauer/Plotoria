@@ -1,4 +1,6 @@
 const MathParser = {
+  angleMode: 'RAD', // 'RAD' or 'DEG'
+
   latexToPlain(expr) {
     let s = expr.trim();
     if (!s) return '';
@@ -109,20 +111,20 @@ const MathParser = {
   },
 
   derivativeOf(fn) {
-    const fMatch = fn.orig.match(/^([a-zA-Z])\s*\(([^)]*)\)\s*=\s*(.*)/);
-    if (fMatch) {
-      const param = fMatch[2].trim();
-      const expr = fMatch[3].trim();
-      try {
-        const plain = this.latexToPlain(expr);
-        return nerdamer.diff(plain, param).toString();
-      } catch (e) {
-        return null;
-      }
-    }
+    const exprStr = typeof fn === 'string' ? fn : (fn.expr || fn.orig || '');
     try {
-      const plain = this.latexToPlain(fn.expr);
+      const plain = this.latexToPlain(exprStr);
       return nerdamer.diff(plain, 'x').toString();
+    } catch (e) {
+      return null;
+    }
+  },
+
+  secondDerivativeOf(fn) {
+    const der = this.derivativeOf(fn);
+    if (!der) return null;
+    try {
+      return nerdamer.diff(der, 'x').toString();
     } catch (e) {
       return null;
     }
@@ -139,5 +141,22 @@ const MathParser = {
       if (!used.includes(l)) return l;
     }
     return 'f';
+  },
+
+  // Fast compilation into native JS Function for 60 FPS plotting
+  compile(expr) {
+    try {
+      const compiledFn = nerdamer.buildFunction(expr.replace(/\bpi\b/g, '(' + Math.PI + ')'), ['x']);
+      return (x, params = {}) => {
+        let val = x;
+        if (this.angleMode === 'DEG') {
+          // In DEG mode, scale x for trig functions if evaluated directly
+        }
+        return compiledFn(val);
+      };
+    } catch (e) {
+      return null;
+    }
   }
 };
+

@@ -8,7 +8,15 @@
     xMin: -4, xMax: 5, yMin: -10, yMax: 10,
     pad: { l: 55, r: 35, t: 35, b: 55 },
     style: { gridWidth: 1, gridColor: '#D2D2D2', axisWidth: 2, axisColor: '#222', fontSize: 14, labelSize: 18, xLabel: 'x', yLabel: 'y', gridStep: 1 },
-    integral: null, params: {}, paramRanges: {}, smartLabels: false, selectionMode: false, selectionRect: null, proportional: true, graphTitle: '', tangent: null, tangentMode: false,
+    integral: null, params: {}, paramRanges: {}, smartLabels: true, selectionMode: false, selectionRect: null, proportional: true, graphTitle: '', tangent: null, tangentMode: false,
+    
+    // New Feature States
+    angleMode: 'RAD',
+    historyStack: [],
+    redoStack: [],
+    paramAnimTimer: null,
+    isParamAnimRunning: false,
+    compiledCache: {},
 
     init() {
       this.svg = d3.select('#graph-container');
@@ -16,7 +24,7 @@
       this.xs = d3.scaleLinear();
       this.ys = d3.scaleLinear();
 
-      this.zoom = d3.zoom().scaleExtent([0.05, 200]).filter(() => !this.selectionMode && !this.tangentMode).on('zoom', (e) => {
+      this.zoom = d3.zoom().scaleExtent([0.05, 200]).filter((e) => !this.selectionMode && !this.tangentMode).on('zoom', (e) => {
         this.curT = e.transform;
         this.xs = this.curT.rescaleX(this.baseX);
         this.ys = this.curT.rescaleY(this.baseY);
@@ -41,8 +49,34 @@
         smart: $('smart-labels'),
         pList: $('param-list'), pAdd: $('add-param'), pName: $('param-name-input'), pVal: $('param-value-input'),
         hTitle: $('header-title'),
+        
+        // New UI Elements
+        angleBtn: $('btn-angle-mode'),
+        angleTxt: $('angle-mode-text'),
+        btnUndo: $('btn-undo'),
+        btnRedo: $('btn-redo'),
+        btnShare: $('btn-share'),
+        btnHelp: $('btn-help'),
+        btnPlayParams: $('btn-play-params'),
+        presetSelect: $('preset-select'),
+        pngExportTop: $('png-export-top'),
+        clipboardCopyTop: $('clipboard-copy-top'),
+        copyClipboard: $('copy-clipboard'),
+        tblStart: $('tbl-start'),
+        tblEnd: $('tbl-end'),
+        tblStep: $('tbl-step'),
+        tblGenerate: $('tbl-generate'),
+        tblExportCsv: $('tbl-export-csv'),
+        tblContainer: $('table-container'),
+        shortcutsModal: $('shortcuts-modal'),
+        closeShortcuts: $('close-shortcuts'),
+        shareModal: $('share-modal'),
+        closeShare: $('close-share'),
+        shareUrlInput: $('share-url-input'),
+        copyShareUrl: $('copy-share-url'),
       };
 
+      // Main Listeners
       this.els.atp.addEventListener('click', () => this.addFunc());
       this.els.inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addFunc(); } });
       this.els.tim.addEventListener('click', () => this.importTikZ());
@@ -61,6 +95,23 @@
       this.els.pName.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addParam(); } });
       this.els.hTitle.addEventListener('input', () => { this.graphTitle = this.els.hTitle.value.trim(); this.repaint(); });
 
+      // New Feature Listeners
+      if (this.els.angleBtn) this.els.angleBtn.addEventListener('click', () => this.toggleAngleMode());
+      if (this.els.btnUndo) this.els.btnUndo.addEventListener('click', () => this.undo());
+      if (this.els.btnRedo) this.els.btnRedo.addEventListener('click', () => this.redo());
+      if (this.els.btnShare) this.els.btnShare.addEventListener('click', () => this.openShareModal());
+      if (this.els.btnHelp) this.els.btnHelp.addEventListener('click', () => this.openShortcutsModal());
+      if (this.els.btnPlayParams) this.els.btnPlayParams.addEventListener('click', () => this.toggleParamAnimation());
+      if (this.els.presetSelect) this.els.presetSelect.addEventListener('change', (e) => { this.addFunc(e.target.value); e.target.selectedIndex = 0; });
+      if (this.els.pngExportTop) this.els.pngExportTop.addEventListener('click', () => this.exportPNG());
+      if (this.els.clipboardCopyTop) this.els.clipboardCopyTop.addEventListener('click', () => this.copyGraphToClipboard());
+      if (this.els.copyClipboard) this.els.copyClipboard.addEventListener('click', () => this.copyGraphToClipboard());
+      if (this.els.tblGenerate) this.els.tblGenerate.addEventListener('click', () => this.generateTable());
+      if (this.els.tblExportCsv) this.els.tblExportCsv.addEventListener('click', () => this.exportTableCSV());
+      if (this.els.closeShortcuts) this.els.closeShortcuts.addEventListener('click', () => this.closeShortcutsModal());
+      if (this.els.closeShare) this.els.closeShare.addEventListener('click', () => this.closeShareModal());
+      if (this.els.copyShareUrl) this.els.copyShareUrl.addEventListener('click', () => { this._copy(this.els.shareUrlInput.value); });
+
       this.svg.on('mousemove', (e) => {
         this.selectionMode ? this._selMove(e) : this.mousemove(e);
       });
@@ -77,6 +128,24 @@
 
       document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => this.switchTab(tab)));
 
+      // Keyboard Shortcuts
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); this.undo(); }
+        else if (e.ctrlKey && e.key === 'y') { e.preventDefault(); this.redo(); }
+        else if (e.key === 'Escape') {
+          if (this.selectionMode) this.toggleSelection();
+          if (this.tangentMode) this.toggleTangent();
+          if (this.integral) this._hideIntegral();
+          this.closeShortcutsModal();
+          this.closeShareModal();
+        } else if (e.key === 'Home') {
+          this.resetView();
+        } else if (e.key === '?') {
+          this.openShortcutsModal();
+        }
+      });
+
       window.addEventListener('resize', () => {
         clearTimeout(this._rt);
         this._rt = setTimeout(() => this.resize(), 80);
@@ -84,18 +153,106 @@
 
       this.els.prop.checked = true;
       this.els.hTitle.value = this.graphTitle;
-      setTimeout(() => { this.resize(); this.sync(); this.syncParams(); this.repaint(); this.els.inp.focus(); }, 50);
+      
+      // Load initial state from URL or LocalStorage
+      setTimeout(() => {
+        this.resize();
+        if (!this.loadStateFromURL()) {
+          this.loadStateFromLocalStorage();
+        }
+        if (!this.fns.length) {
+          this.addFunc('x^2');
+        }
+        this.sync();
+        this.syncParams();
+        this.repaint();
+        this.els.inp.focus();
+      }, 50);
     },
 
+    // ── UNDO / REDO HISTORY ──
+    pushHistory() {
+      if (this.isRestoringHistory) return;
+      const snapshot = JSON.stringify({
+        fns: this.fns,
+        params: this.params,
+        xMin: this.xMin, xMax: this.xMax, yMin: this.yMin, yMax: this.yMax,
+        angleMode: this.angleMode,
+      });
+      this.historyStack.push(snapshot);
+      if (this.historyStack.length > 30) this.historyStack.shift();
+      this.redoStack = [];
+      this.saveStateToLocalStorage();
+    },
+
+    undo() {
+      if (!this.historyStack.length) return;
+      const currentSnapshot = JSON.stringify({
+        fns: this.fns,
+        params: this.params,
+        xMin: this.xMin, xMax: this.xMax, yMin: this.yMin, yMax: this.yMax,
+        angleMode: this.angleMode,
+      });
+      this.redoStack.push(currentSnapshot);
+      const prevSnapshot = JSON.parse(this.historyStack.pop());
+      this._restoreSnapshot(prevSnapshot);
+      this._toast('Rückgängig gemacht');
+    },
+
+    redo() {
+      if (!this.redoStack.length) return;
+      const currentSnapshot = JSON.stringify({
+        fns: this.fns,
+        params: this.params,
+        xMin: this.xMin, xMax: this.xMax, yMin: this.yMin, yMax: this.yMax,
+        angleMode: this.angleMode,
+      });
+      this.historyStack.push(currentSnapshot);
+      const nextSnapshot = JSON.parse(this.redoStack.pop());
+      this._restoreSnapshot(nextSnapshot);
+      this._toast('Wiederholt');
+    },
+
+    _restoreSnapshot(s) {
+      this.isRestoringHistory = true;
+      this.fns = s.fns || [];
+      this.params = s.params || {};
+      this.xMin = s.xMin; this.xMax = s.xMax; this.yMin = s.yMin; this.yMax = s.yMax;
+      this.angleMode = s.angleMode || 'RAD';
+      MathParser.angleMode = this.angleMode;
+      if (this.els.angleTxt) this.els.angleTxt.textContent = this.angleMode;
+      this.compiledCache = {};
+      this.buildScales();
+      this.sync();
+      this.syncParams();
+      this.repaint();
+      this.isRestoringHistory = false;
+    },
+
+    // ── ANGLE MODE (RAD / DEG) ──
+    toggleAngleMode() {
+      this.angleMode = this.angleMode === 'RAD' ? 'DEG' : 'RAD';
+      MathParser.angleMode = this.angleMode;
+      if (this.els.angleTxt) this.els.angleTxt.textContent = this.angleMode;
+      this.compiledCache = {};
+      this.repaint();
+      this._toast('Winkelmodus: ' + this.angleMode);
+    },
+
+    // ── TAB SWITCHING ──
     switchTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       const pane = document.getElementById('tab-' + tab.dataset.tab);
       if (pane) pane.classList.add('active');
+      if (tab.dataset.tab === 'table') {
+        this.generateTable();
+      }
     },
 
     applyView() {
+      this.pushHistory();
       this.style.gridWidth = parseFloat(this.els.gridW.value);
       this.style.gridColor = this.els.gridC.value;
       this.style.axisWidth = parseFloat(this.els.axisW.value);
@@ -290,11 +447,33 @@
         .text('Plotoria von Tobias Schmidbauer');
     },
 
-    // ── function evaluation with params ──
+    // ── FAST COMPILED FUNCTION EVALUATION ──
     _evalExpr(expr, x, fn) {
-      const s = expr.replace(/\bpi\b/g, '(' + Math.PI + ')');
+      let evalX = x;
+      if (this.angleMode === 'DEG') {
+        evalX = x * Math.PI / 180;
+      }
+      const cacheKey = expr + '__' + JSON.stringify(this.params);
+      let compiled = this.compiledCache[cacheKey];
+      if (!compiled) {
+        try {
+          const s = expr.replace(/\bpi\b/g, '(' + Math.PI + ')');
+          compiled = nerdamer.buildFunction(s, ['x', ...Object.keys(this.params)]);
+          this.compiledCache[cacheKey] = compiled;
+        } catch (e) {
+          compiled = null;
+        }
+      }
+      if (compiled) {
+        try {
+          const paramValues = Object.keys(this.params).map(k => this.params[k]);
+          const y = compiled(evalX, ...paramValues);
+          return isFinite(y) ? y : NaN;
+        } catch (e) { return NaN; }
+      }
+      // Fallback
       try {
-        const r = nerdamer(s, { x, ...this.params }).evaluate();
+        const r = nerdamer(expr.replace(/\bpi\b/g, '(' + Math.PI + ')'), { x: evalX, ...this.params }).evaluate();
         const t = r.text();
         if (t === 'infinity' || t === '-infinity' || t === 'nan' || t === 'NaN') return NaN;
         const y = parseFloat(t);
@@ -309,7 +488,7 @@
       const g = this.root.append('g');
 
       vis.forEach(fn => {
-        const N = 500;
+        const N = 600;
         const x0 = xs.domain()[0], x1 = xs.domain()[1];
         const pts = [];
 
@@ -330,9 +509,13 @@
     _flush(pts, col, g, fn) {
       if (pts.length < 2) { pts.length = 0; return; }
       const ln = d3.line().x(d => d[0]).y(d => d[1]);
-      g.append('path').attr('d', ln(pts)).attr('fill', 'none')
-        .attr('stroke', col).attr('stroke-width', fn ? fn.strokeWidth || 4 : 4)
+      const path = g.append('path').attr('d', ln(pts)).attr('fill', 'none')
+        .attr('stroke', col).attr('stroke-width', fn ? fn.strokeWidth || 3.5 : 3.5)
         .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round');
+      
+      if (fn && fn.lineStyle === 'dashed') path.attr('stroke-dasharray', '8,5');
+      if (fn && fn.lineStyle === 'dotted') path.attr('stroke-dasharray', '2,4');
+
       if (fn) {
         const last = pts[pts.length - 1];
         if (fn.labelX == null) {
@@ -368,7 +551,7 @@
       pts.length = 0;
     },
 
-    // ── smart labels ──
+    // ── SMART LABELS & KURVENDISKUSSION ──
     paintSmartLabels() {
       const vis = this.fns.filter(f => f.vis);
       if (!vis.length) return;
@@ -381,7 +564,7 @@
         const N = 400;
         const stepR = (xDom[1] - xDom[0]) / N;
 
-        // zeros
+        // 1. Zeros (Nullstellen)
         for (let i = 0; i < N; i++) {
           const a = xDom[0] + i * stepR;
           const b = a + stepR;
@@ -391,54 +574,77 @@
             if (root !== null && root >= xDom[0] && root <= xDom[1]) {
               const px = this.xs(root), py = this.ys(0);
               if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3).attr('fill', fn.col);
+                g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
                 g.append('text').attr('x', px + 5).attr('y', py - 4)
-                  .attr('font-size', 9).attr('fill', fn.col).attr('font-weight', '500')
+                  .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
                   .text('N(' + this.fmt(root) + '|0)');
               }
             }
           }
         }
 
-        // y-intercept
+        // 2. y-intercept (Y-Achsenabschnitt)
         const y0 = f(0);
         if (isFinite(y0) && Math.abs(y0) < 1e5) {
           const px = this.xs(0), py = this.ys(y0);
           if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-            g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3).attr('fill', fn.col);
+            g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
             g.append('text').attr('x', px + 5).attr('y', py - 4)
-              .attr('font-size', 9).attr('fill', fn.col).attr('font-weight', '500')
+              .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
               .text('S_y(0|' + this.fmt(y0) + ')');
           }
         }
 
-        // extrema (where derivative = 0)
+        // 3. Extrema (Hoch- und Tiefpunkte)
         try {
-          const derExpr = nerdamer.diff(fn.expr.replace(/\bpi\b/g, '(' + Math.PI + ')'), 'x').toString();
-          const der = (x) => {
-            try {
-              const r = nerdamer(derExpr, { x, ...this.params }).evaluate();
-              const t = r.text();
-              if (t === 'infinity' || t === '-infinity' || t === 'nan' || t === 'NaN') return NaN;
-              return parseFloat(t);
-            } catch (e) { return NaN; }
-          };
-          for (let i = 0; i < N; i++) {
-            const a = xDom[0] + i * stepR;
-            const b = a + stepR;
-            const da = der(a), db = der(b);
-            if (isFinite(da) && isFinite(db) && da * db < 0) {
-              const ex = this._bisect(der, a, b, tol);
-              if (ex !== null && ex >= xDom[0] && ex <= xDom[1]) {
-                const ey = f(ex);
-                if (isFinite(ey)) {
-                  const px = this.xs(ex), py = this.ys(ey);
-                  if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                    const label = ey > 0 ? 'Max' : 'Min';
-                    g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3).attr('fill', fn.col);
-                    g.append('text').attr('x', px + 5).attr('y', py - 4)
-                      .attr('font-size', 9).attr('fill', fn.col).attr('font-weight', '500')
-                      .text(label + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')');
+          const derExpr = MathParser.derivativeOf(fn);
+          if (derExpr) {
+            const der = (x) => this._evalExpr(derExpr, x, fn);
+            for (let i = 0; i < N; i++) {
+              const a = xDom[0] + i * stepR;
+              const b = a + stepR;
+              const da = der(a), db = der(b);
+              if (isFinite(da) && isFinite(db) && da * db < 0) {
+                const ex = this._bisect(der, a, b, tol);
+                if (ex !== null && ex >= xDom[0] && ex <= xDom[1]) {
+                  const ey = f(ex);
+                  if (isFinite(ey)) {
+                    const px = this.xs(ex), py = this.ys(ey);
+                    if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
+                      const label = der(ex - 0.01) > 0 ? 'Max' : 'Min';
+                      g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
+                      g.append('text').attr('x', px + 5).attr('y', py - 4)
+                        .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
+                        .text(label + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')');
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {}
+
+        // 4. Inflection Points (Wendepunkte: f''(x) = 0)
+        try {
+          const secDerExpr = MathParser.secondDerivativeOf(fn);
+          if (secDerExpr) {
+            const secDer = (x) => this._evalExpr(secDerExpr, x, fn);
+            for (let i = 0; i < N; i++) {
+              const a = xDom[0] + i * stepR;
+              const b = a + stepR;
+              const sda = secDer(a), sdb = secDer(b);
+              if (isFinite(sda) && isFinite(sdb) && sda * sdb < 0) {
+                const wx = this._bisect(secDer, a, b, tol);
+                if (wx !== null && wx >= xDom[0] && wx <= xDom[1]) {
+                  const wy = f(wx);
+                  if (isFinite(wy)) {
+                    const px = this.xs(wx), py = this.ys(wy);
+                    if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
+                      g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', '#9C27B0').attr('stroke', '#fff');
+                      g.append('text').attr('x', px + 5).attr('y', py - 4)
+                        .attr('font-size', 9.5).attr('fill', '#9C27B0').attr('font-weight', '600')
+                        .text('W(' + this.fmt(wx) + '|' + this.fmt(wy) + ')');
+                    }
                   }
                 }
               }
@@ -447,7 +653,7 @@
         } catch (e) {}
       });
 
-      // intersections between function pairs
+      // 5. Intersections between function pairs
       for (let i = 0; i < vis.length; i++) {
         for (let j = i + 1; j < vis.length; j++) {
           const fi = (x) => this._evalExpr(vis[i].expr, x, vis[i]);
@@ -467,9 +673,9 @@
                 if (isFinite(iy)) {
                   const px = this.xs(ix), py = this.ys(iy);
                   if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                    g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3).attr('fill', '#888');
+                    g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', '#444').attr('stroke', '#fff');
                     g.append('text').attr('x', px + 5).attr('y', py - 4)
-                      .attr('font-size', 9).attr('fill', '#888').attr('font-weight', '500')
+                      .attr('font-size', 9.5).attr('fill', '#444').attr('font-weight', '600')
                       .text('S(' + this.fmt(ix) + '|' + this.fmt(iy) + ')');
                   }
                 }
@@ -494,7 +700,7 @@
       return (a + b) / 2;
     },
 
-    // ── mouse ──
+    // ── MOUSE INSPECTOR & HOVER ──
     mousemove(e) {
       const r = this.svg.node().getBoundingClientRect();
       const mx = e.clientX - r.left, my = e.clientY - r.top;
@@ -510,7 +716,7 @@
       this._ct = setTimeout(() => this.els.crd.classList.remove('visible'), 2500);
     },
 
-    // ── selection rect ──
+    // ── SELECTION RECT (RECTANGLE ZOOM) ──
     toggleSelection() {
       if (this.integral) this._hideIntegral();
       if (this.tangentMode) this.toggleTangent();
@@ -543,7 +749,19 @@
       if (this.selectionRect) {
         const dx = Math.abs(this.selectionRect.x1 - this.selectionRect.x0);
         const dy = Math.abs(this.selectionRect.y1 - this.selectionRect.y0);
-        if (dx < 5 && dy < 5) this.selectionRect = null;
+        if (dx > 10 && dy > 10) {
+          const bounds = this._getSelectionBounds();
+          if (bounds) {
+            this.pushHistory();
+            this.xMin = bounds.xMin; this.xMax = bounds.xMax;
+            this.yMin = bounds.yMin; this.yMax = bounds.yMax;
+            this.buildScales();
+            this.toggleSelection();
+            this._toast('Bereich herangezoomt');
+            return;
+          }
+        }
+        this.selectionRect = null;
       }
       this.repaint();
     },
@@ -567,7 +785,7 @@
         .attr('fill', '#444').text(this.graphTitle);
     },
 
-    // ── tangent ──
+    // ── TANGENTS & NORMALS ──
     toggleTangent() {
       if (this.integral) this._hideIntegral();
       if (this.selectionMode) this.toggleSelection();
@@ -605,38 +823,28 @@
     paintTangent() {
       if (!this.tangent) return;
       const { x, y, m, col } = this.tangent;
-      const run = 1.5;
+      const run = 2.0;
       const x1 = x - run, x2 = x + run;
       const y1 = y - m * run, y2 = y + m * run;
       const g = this.root.append('g');
+      
+      // Tangent line
       g.append('line').attr('x1', this.xs(x1)).attr('y1', this.ys(y1))
         .attr('x2', this.xs(x2)).attr('y2', this.ys(y2))
         .attr('stroke', col).attr('stroke-width', 2).attr('stroke-dasharray', '6,3');
-      const tx = x + 0.8, ty = y + m * 0.8;
-      g.append('line').attr('x1', this.xs(tx)).attr('y1', this.ys(y))
-        .attr('x2', this.xs(tx)).attr('y2', this.ys(ty))
-        .attr('stroke', '#222').attr('stroke-width', 1.2);
-      g.append('line').attr('x1', this.xs(x)).attr('y1', this.ys(y))
-        .attr('x2', this.xs(tx)).attr('y2', this.ys(y))
-        .attr('stroke', '#222').attr('stroke-width', 1.2);
-      g.append('polygon').attr('points', this.xs(x) + ',' + this.ys(y) + ' ' + this.xs(tx) + ',' + this.ys(y) + ' ' + this.xs(tx) + ',' + this.ys(ty))
-        .attr('fill', col).attr('fill-opacity', 0.12).attr('stroke', 'none');
-      const ms = Math.abs(m).toFixed(2);
-      g.append('text').attr('x', this.xs((x + tx) / 2) - 20).attr('y', this.ys(y) + 14)
-        .attr('font-size', 10).attr('fill', '#222').attr('font-weight', '500')
-        .text('\u0394x = ' + (tx - x).toFixed(1));
-      g.append('text').attr('x', this.xs(tx) + 6).attr('y', this.ys((y + ty) / 2) + 3)
-        .attr('font-size', 10).attr('fill', '#222').attr('font-weight', '500')
-        .text('\u0394y = ' + (ty - y).toFixed(1));
+      
       g.append('circle').attr('cx', this.xs(x)).attr('cy', this.ys(y))
         .attr('r', 5).attr('fill', col).attr('stroke', 'white').attr('stroke-width', 1.5);
-      const lbl = 't(x) = ' + (m).toFixed(2) + 'x ' + (y - m * x >= 0 ? '+ ' : '- ') + Math.abs(y - m * x).toFixed(2);
+      
+      const constC = y - m * x;
+      const signStr = constC >= 0 ? '+ ' : '- ';
+      const lbl = 't(x) = ' + (m).toFixed(2) + 'x ' + signStr + Math.abs(constC).toFixed(2);
       g.append('text').attr('x', this.xs(x) + 10).attr('y', this.ys(y) - 8)
         .attr('font-size', 11).attr('fill', col).attr('font-weight', '700')
         .text(lbl);
     },
 
-    // ── themes ──
+    // ── THEMES ──
     themes: {
       standard: {
         label: 'Standard',
@@ -649,6 +857,7 @@
         colors: ['#0044CC', '#CC0000', '#007A33', '#CC7A00', '#660099', '#006699', '#990033', '#333399'],
         bg: '#FFFFFF', surface: '#FFFFFF', accent: '#0055DD',
         text: '#1D1D1F', textSecondary: '#86868B',
+        style: { axisWidth: 3, gridWidth: 1.5, fontSize: 16 }
       },
       dunkel: {
         label: 'Dunkel',
@@ -685,7 +894,7 @@
       return { xMin: this.xs.invert(x0), xMax: this.xs.invert(x1), yMin: this.ys.invert(y1), yMax: this.ys.invert(y0) };
     },
 
-    // ── functions ──
+    // ── FUNCTION MANAGEMENT ──
     addFunc(src) {
       const raw = src || this.els.inp.value.trim();
       if (!raw) return;
@@ -713,10 +922,11 @@
       const c = MathParser.validate(p);
       if (!c) { this._shake(this.els.inp); return; }
       if (!fnLetter) fnLetter = this._nameIdx(this.fns.length);
+      this.pushHistory();
       this.fns.push({
-        id: this.fns.length, expr: c, disp, orig: raw,
-        col: COLORS[this.ci++ % COLORS.length], vis: true, letter: fnLetter, strokeWidth: 4,
-        labelX: null, labelY: null,
+        id: this.fns.length + '_' + Date.now(), expr: c, disp, orig: raw,
+        col: COLORS[this.ci++ % COLORS.length], vis: true, letter: fnLetter, strokeWidth: 3.5,
+        lineStyle: 'solid', labelX: null, labelY: null,
       });
       this.sync();
       this.repaint();
@@ -732,6 +942,7 @@
       if (!c) { if (fail) fail(); this._toast('Ungültiger Ausdruck'); return; }
       const f = this.fns.find(f2 => f2.id === id);
       if (!f) return;
+      this.pushHistory();
       f.expr = c; f.disp = raw; f.orig = raw;
       if (fnLetter) f.letter = fnLetter;
       f.labelX = null; f.labelY = null;
@@ -739,7 +950,7 @@
       this.repaint();
     },
 
-    rmFn(id) { this.fns = this.fns.filter(f => f.id !== id); this.sync(); this.repaint(); },
+    rmFn(id) { this.pushHistory(); this.fns = this.fns.filter(f => f.id !== id); this.sync(); this.repaint(); },
     tgFn(id) { const f = this.fns.find(f => f.id === id); if (f) { f.vis = !f.vis; this.sync(); this.repaint(); } },
 
     sync() {
@@ -751,9 +962,24 @@
         const d = document.createElement('div'); d.className = 'func-item';
         const dot = document.createElement('span'); dot.className = 'func-color';
         dot.style.background = f.col; dot.style.opacity = f.vis ? '1' : '.3';
+        
         const label = document.createElement('span'); label.className = 'func-label';
         label.textContent = f.letter + ':';
-        const t = document.createElement('span'); t.className = 'func-text'; t.textContent = f.disp;
+        
+        const t = document.createElement('span'); t.className = 'func-text';
+        
+        // Render KaTeX if available
+        if (window.katex) {
+          try {
+            const katexHTML = katex.renderToString(f.disp.replace(/\*/g, '\\cdot '), { throwOnError: false });
+            t.innerHTML = katexHTML;
+          } catch (e) {
+            t.textContent = f.disp;
+          }
+        } else {
+          t.textContent = f.disp;
+        }
+        
         t.title = 'Klicken zum Bearbeiten';
         t.addEventListener('click', () => {
           const inp = document.createElement('input'); inp.type = 'text';
@@ -772,30 +998,31 @@
           inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } });
           inp.addEventListener('blur', done);
         });
+
         const ca = document.createElement('div'); ca.className = 'func-controls';
 
         const cp = document.createElement('input'); cp.type = 'color'; cp.value = f.col;
-        cp.title = 'Farbe';
+        cp.title = 'Farbe wählen';
         cp.addEventListener('input', () => { f.col = cp.value; dot.style.background = f.col; this.repaint(); });
 
-        const sw = document.createElement('input'); sw.type = 'range'; sw.min = 0.5; sw.max = 10; sw.step = 0.5;
-        sw.value = f.strokeWidth || 4; sw.title = 'Linienstärke';
+        const sw = document.createElement('input'); sw.type = 'range'; sw.min = 0.5; sw.max = 8; sw.step = 0.5;
+        sw.value = f.strokeWidth || 3.5; sw.title = 'Linienstärke';
         sw.addEventListener('input', () => { f.strokeWidth = parseFloat(sw.value); this.repaint(); });
 
-        const swv = document.createElement('span'); swv.className = 'func-stroke-val';
-        swv.textContent = (f.strokeWidth || 4).toFixed(1);
-        sw.addEventListener('input', () => { swv.textContent = parseFloat(sw.value).toFixed(1); });
-
         const a = document.createElement('span'); a.className = 'func-actions';
-        const tb = document.createElement('button'); tb.innerHTML = f.vis ? '\u25C9' : '\u25CB';
+        const tb = document.createElement('button'); tb.innerHTML = f.vis ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
         tb.title = f.vis ? 'Ausblenden' : 'Einblenden'; tb.addEventListener('click', () => this.tgFn(f.id));
-        const ab = document.createElement('button'); ab.innerHTML = "d/dx";
-        ab.title = 'Ableitung'; ab.addEventListener('click', () => this._addDerivative(f));
-        const ib = document.createElement('button'); ib.innerHTML = '\u222B';
-        ib.title = 'Integral'; ib.addEventListener('click', () => this._showIntegral(f));
-        const db = document.createElement('button'); db.innerHTML = '\u2715';
+        
+        const ab = document.createElement('button'); ab.innerHTML = "f'";
+        ab.title = 'Ableitung erzeugen'; ab.addEventListener('click', () => this._addDerivative(f));
+        
+        const ib = document.createElement('button'); ib.innerHTML = '∫';
+        ib.title = 'Integral berechnen'; ib.addEventListener('click', () => this._showIntegral(f));
+        
+        const db = document.createElement('button'); db.innerHTML = '<i class="fas fa-trash"></i>';
         db.className = 'danger'; db.title = 'Entfernen'; db.addEventListener('click', () => this.rmFn(f.id));
-        ca.appendChild(cp); ca.appendChild(sw); ca.appendChild(swv);
+        
+        ca.appendChild(cp); ca.appendChild(sw);
         a.appendChild(tb); a.appendChild(ab); a.appendChild(ib); a.appendChild(db);
         d.appendChild(dot); d.appendChild(label); d.appendChild(t); d.appendChild(ca); d.appendChild(a);
         lst.appendChild(d);
@@ -807,13 +1034,13 @@
       if (d) this._add(d);
     },
 
-    // ── integral ──
+    // ── INTEGRAL (SIMPSON'S RULE) ──
     _showIntegral(f) {
       if (this.tangentMode) this.toggleTangent();
       if (this.selectionMode) this.toggleSelection();
       const dom = this.xs.domain();
       const mid = (dom[0] + dom[1]) / 2;
-      this.integral = { fn: f, a: mid - 1, b: mid + 1 };
+      this.integral = { fn: f, a: mid - 1.5, b: mid + 1.5 };
       this.els.cib.style.display = '';
       this.repaint();
     },
@@ -825,15 +1052,17 @@
     },
 
     _computeIntegral(fn, a, b) {
+      // Simpson's Rule integration for precision
       const N = 200;
       const h = (b - a) / N;
-      let sum = 0;
-      for (let i = 0; i < N; i++) {
-        const x = a + (i + 0.5) * h;
-        const y = this._evalExpr(fn.expr, x, fn);
-        if (isFinite(y)) sum += y;
+      let sum = this._evalExpr(fn.expr, a, fn) + this._evalExpr(fn.expr, b, fn);
+      for (let i = 1; i < N; i += 2) {
+        sum += 4 * this._evalExpr(fn.expr, a + i * h, fn);
       }
-      return sum * h;
+      for (let i = 2; i < N - 1; i += 2) {
+        sum += 2 * this._evalExpr(fn.expr, a + i * h, fn);
+      }
+      return (sum * h) / 3;
     },
 
     paintIntegral() {
@@ -857,7 +1086,7 @@
       if (areaPts.length > 2) {
         const areaGen = d3.line().x(d => d[0]).y(d => d[1]);
         g.append('path').attr('d', areaGen(areaPts))
-          .attr('fill', fn.col).attr('fill-opacity', 0.2).attr('stroke', 'none');
+          .attr('fill', fn.col).attr('fill-opacity', 0.22).attr('stroke', 'none');
       }
 
       const val = this._computeIntegral(fn, a, b);
@@ -872,7 +1101,7 @@
       g.append('text').attr('x', midX).attr('y', this.PT + 18)
         .attr('text-anchor', 'middle').attr('fill', fn.col)
         .attr('font-size', 14).attr('font-weight', 'bold')
-        .attr('class', 'integral-label').text('\u222B = ' + valStr);
+        .attr('class', 'integral-label').text('∫ = ' + valStr);
 
       g.append('rect').attr('x', pxA - 5).attr('y', this.PT).attr('width', 10).attr('height', this.PB - this.PT)
         .attr('fill', 'transparent').attr('cursor', 'ew-resize').attr('class', 'integral-handle-a');
@@ -901,30 +1130,59 @@
       });
     },
 
-    // ── params ──
+    // ── PARAMETERS & ANIMATION LOOP ──
     addParam() {
       const name = this.els.pName.value.trim().toLowerCase();
       if (!name || name.length !== 1 || !/^[a-z]$/.test(name)) { this._toast('Bitte einen Buchstaben (a-z) eingeben'); return; }
       if (name === 'x') { this._toast('x ist bereits als Variable reserviert'); return; }
       if (this.params[name] !== undefined) { this._toast('Parameter ' + name + ' gibt es bereits'); return; }
       const val = parseFloat(this.els.pVal.value) || 0;
+      this.pushHistory();
       this.params[name] = val;
       this.paramRanges[name] = { min: -10, max: 10 };
       this.els.pName.value = '';
+      this.compiledCache = {};
       this.syncParams();
       this.repaint();
     },
 
     removeParam(name) {
+      this.pushHistory();
       delete this.params[name];
       delete this.paramRanges[name];
+      this.compiledCache = {};
       this.syncParams();
       this.repaint();
     },
 
-    updateParam(name, val) {
-      this.params[name] = parseFloat(val) || 0;
-      this.repaint();
+    toggleParamAnimation() {
+      if (this.isParamAnimRunning) {
+        this.stopParamAnimation();
+      } else {
+        this.startParamAnimation();
+      }
+    },
+
+    startParamAnimation() {
+      const names = Object.keys(this.params);
+      if (!names.length) { this._toast('Keine Parameter vorhanden'); return; }
+      this.isParamAnimRunning = true;
+      if (this.els.btnPlayParams) this.els.btnPlayParams.innerHTML = '<i class="fas fa-pause"></i> Stoppen';
+      let angle = 0;
+      this.paramAnimTimer = setInterval(() => {
+        angle += 0.05;
+        names.forEach(name => {
+          this.params[name] = Math.round(Math.sin(angle) * 5 * 10) / 10;
+        });
+        this.syncParams();
+        this.repaint();
+      }, 50);
+    },
+
+    stopParamAnimation() {
+      this.isParamAnimRunning = false;
+      if (this.paramAnimTimer) clearInterval(this.paramAnimTimer);
+      if (this.els.btnPlayParams) this.els.btnPlayParams.innerHTML = '<i class="fas fa-play"></i> Animieren';
     },
 
     syncParams() {
@@ -955,7 +1213,7 @@
         });
 
         const del = document.createElement('button'); del.className = 'param-del';
-        del.innerHTML = '\u2715'; del.title = 'Entfernen';
+        del.innerHTML = '✕'; del.title = 'Entfernen';
         del.addEventListener('click', () => this.removeParam(name));
 
         d.appendChild(lbl); d.appendChild(range); d.appendChild(num); d.appendChild(del);
@@ -963,7 +1221,208 @@
       });
     },
 
-    // ── export ──
+    // ── WERTETABELLE (TABLE OF VALUES) ──
+    generateTable() {
+      const container = this.els.tblContainer;
+      if (!container) return;
+      const vis = this.fns.filter(f => f.vis);
+      if (!vis.length) {
+        container.innerHTML = '<div class="empty-state">Keine aktiven Funktionen vorhanden.</div>';
+        return;
+      }
+      const start = parseFloat(this.els.tblStart.value) || -5;
+      const end = parseFloat(this.els.tblEnd.value) || 5;
+      const step = parseFloat(this.els.tblStep.value) || 1;
+
+      let html = '<table class="plotoria-table"><thead><tr><th>x</th>';
+      vis.forEach(fn => { html += `<th>${fn.letter}(x)</th>`; });
+      html += '</tr></thead><tbody>';
+
+      for (let x = start; x <= end + 1e-9; x += step) {
+        const xFixed = parseFloat(x.toFixed(4));
+        html += `<tr><td>${xFixed}</td>`;
+        vis.forEach(fn => {
+          const y = this._evalExpr(fn.expr, xFixed, fn);
+          html += `<td>${isFinite(y) ? this.fmt(y) : 'n.d.'}</td>`;
+        });
+        html += '</tr>';
+      }
+      html += 'tbody></table>';
+      container.innerHTML = html;
+    },
+
+    exportTableCSV() {
+      const vis = this.fns.filter(f => f.vis);
+      if (!vis.length) { this._toast('Keine aktiven Funktionen'); return; }
+      const start = parseFloat(this.els.tblStart.value) || -5;
+      const end = parseFloat(this.els.tblEnd.value) || 5;
+      const step = parseFloat(this.els.tblStep.value) || 1;
+
+      let csv = 'x;' + vis.map(f => f.letter + '(x)').join(';') + '\n';
+      for (let x = start; x <= end + 1e-9; x += step) {
+        const xFixed = parseFloat(x.toFixed(4));
+        const row = [xFixed];
+        vis.forEach(fn => {
+          const y = this._evalExpr(fn.expr, xFixed, fn);
+          row.push(isFinite(y) ? y.toString().replace('.', ',') : '');
+        });
+        csv += row.join(';') + '\n';
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'wertetabelle.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this._toast('Wertetabelle als CSV heruntergeladen');
+    },
+
+    // ── RASTER & PNG EXPORT / CLIPBOARD ──
+    exportPNG() {
+      const el = this.svg.node();
+      if (!el) return;
+      const c = el.cloneNode(true);
+      c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const svgString = new XMLSerializer().serializeToString(c);
+      const img = new Image();
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.W * 2; // 2x scale for crisp export
+        canvas.height = this.H * 2;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+          a.download = (this.graphTitle || 'plotoria-graph').replace(/\s+/g, '-') + '.png';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this._toast('PNG-Bild heruntergeladen');
+        });
+      };
+      img.src = url;
+    },
+
+    copyGraphToClipboard() {
+      const el = this.svg.node();
+      if (!el) return;
+      const c = el.cloneNode(true);
+      c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const svgString = new XMLSerializer().serializeToString(c);
+      const img = new Image();
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.W * 2;
+        canvas.height = this.H * 2;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (navigator.clipboard && window.ClipboardItem) {
+            const item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item]).then(() => {
+              this._toast('Graph als PNG in Zwischenablage kopiert');
+            }).catch(() => this.exportPNG());
+          } else {
+            this.exportPNG();
+          }
+          URL.revokeObjectURL(url);
+        });
+      };
+      img.src = url;
+    },
+
+    // ── URL SHARING & LOCALSTORAGE ──
+    generateShareURL() {
+      const state = {
+        fns: this.fns.map(f => f.orig),
+        params: this.params,
+        xMin: this.xMin, xMax: this.xMax, yMin: this.yMin, yMax: this.yMax,
+        angleMode: this.angleMode,
+      };
+      const json = JSON.stringify(state);
+      const encoded = encodeURIComponent(btoa(json));
+      return window.location.origin + window.location.pathname + '#state=' + encoded;
+    },
+
+    openShareModal() {
+      const url = this.generateShareURL();
+      if (this.els.shareUrlInput) this.els.shareUrlInput.value = url;
+      if (this.els.shareModal) this.els.shareModal.style.display = 'flex';
+    },
+
+    closeShareModal() {
+      if (this.els.shareModal) this.els.shareModal.style.display = 'none';
+    },
+
+    openShortcutsModal() {
+      if (this.els.shortcutsModal) this.els.shortcutsModal.style.display = 'flex';
+    },
+
+    closeShortcutsModal() {
+      if (this.els.shortcutsModal) this.els.shortcutsModal.style.display = 'none';
+    },
+
+    loadStateFromURL() {
+      const hash = window.location.hash;
+      if (!hash || !hash.includes('state=')) return false;
+      try {
+        const raw = hash.split('state=')[1];
+        const json = atob(decodeURIComponent(raw));
+        const s = JSON.parse(json);
+        if (s.fns && Array.isArray(s.fns)) {
+          this.fns = []; this.ci = 0;
+          s.fns.forEach(f => this._add(f));
+        }
+        if (s.params) this.params = s.params;
+        if (s.xMin) this.xMin = s.xMin;
+        if (s.xMax) this.xMax = s.xMax;
+        if (s.yMin) this.yMin = s.yMin;
+        if (s.yMax) this.yMax = s.yMax;
+        if (s.angleMode) { this.angleMode = s.angleMode; MathParser.angleMode = s.angleMode; }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    saveStateToLocalStorage() {
+      try {
+        const state = {
+          fns: this.fns.map(f => f.orig),
+          params: this.params,
+          xMin: this.xMin, xMax: this.xMax, yMin: this.yMin, yMax: this.yMax,
+          angleMode: this.angleMode,
+        };
+        localStorage.setItem('plotoria_session', JSON.stringify(state));
+      } catch (e) {}
+    },
+
+    loadStateFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem('plotoria_session');
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (s.fns && Array.isArray(s.fns) && s.fns.length > 0) {
+          this.fns = []; this.ci = 0;
+          s.fns.forEach(f => this._add(f));
+        }
+        if (s.params) this.params = s.params;
+        if (s.angleMode) { this.angleMode = s.angleMode; MathParser.angleMode = s.angleMode; }
+        return true;
+      } catch (e) { return false; }
+    },
+
+    // ── TIKZ EXPORT & IMPORT ──
     _getExportBounds() {
       const sel = this._getSelectionBounds();
       if (sel) return sel;
@@ -990,13 +1449,14 @@
       const c = this.els.tza.value.trim();
       if (!c) return;
       const r = TikZ.parse(c);
-      if (!r.functions.length) { this._toast('Keine \\addplot-Befehle'); return; }
+      if (!r.functions.length) { this._toast('Keine \\addplot-Befehle gefunden'); return; }
+      this.pushHistory();
       this.fns = []; this.ci = 0;
       if (r.bounds) { this.xMin = r.bounds.xMin; this.xMax = r.bounds.xMax; this.yMin = r.bounds.yMin; this.yMax = r.bounds.yMax; }
       r.functions.forEach(f => {
         this.fns.push({
-          id: this.fns.length, expr: f, disp: f, orig: f,
-          col: COLORS[this.ci++ % COLORS.length], vis: true, strokeWidth: 4, letter: this._nameIdx(this.fns.length), labelX: null, labelY: null,
+          id: this.fns.length + '_' + Date.now(), expr: f, disp: f, orig: f,
+          col: COLORS[this.ci++ % COLORS.length], vis: true, strokeWidth: 3.5, letter: this._nameIdx(this.fns.length), labelX: null, labelY: null,
         });
       });
       this.els.tza.value = '';
@@ -1049,10 +1509,11 @@
         s = '<?xml version="1.0" standalone="no"?>\n' + s;
         const b = new Blob([s], { type: 'image/svg+xml' });
         const u = URL.createObjectURL(b);
-        const a = document.createElement('a'); a.href = u; a.download = 'plotoria-graph.svg';
+        const a = document.createElement('a'); a.href = u;
         a.download = (this.graphTitle || 'plotoria-graph').replace(/[^a-zA-Z0-9äöüß \-]/g, '').trim().replace(/\s+/g, '-') || 'plotoria-graph';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(u);
+        this._toast('SVG exportiert');
       }
     },
 
@@ -1076,7 +1537,7 @@
       const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
       document.body.appendChild(t);
       requestAnimationFrame(() => t.classList.add('visible'));
-      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 2000);
+      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 2200);
     },
 
     _shake(el) {
@@ -1092,3 +1553,4 @@
     Plotoria.init();
   }
 })();
+

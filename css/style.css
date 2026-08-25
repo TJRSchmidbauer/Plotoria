@@ -45,20 +45,28 @@ html, body {
 }
 
 header {
-  background: linear-gradient(135deg, rgba(0,102,221,0.92), rgba(0,122,255,0.88));
+  background: linear-gradient(135deg, rgba(0,102,221,0.95), rgba(0,122,255,0.92));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(0,0,0,0.1);
-  padding: 10px 20px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 10;
+  min-height: 50px;
+}
+
+.header-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  z-index: 10;
-  min-height: 48px;
+  flex-shrink: 0;
 }
 
 header h1 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: white;
@@ -66,36 +74,292 @@ header h1 {
 }
 
 .header-title {
-  flex: 0 1 260px;
-  min-width: 100px;
+  width: 180px;
   padding: 5px 10px;
   border: none;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   background: rgba(255,255,255,0.2);
   color: white;
   outline: none;
-  transition: background 0.15s;
+  transition: background 0.15s, width 0.2s;
 }
 
 .header-title::placeholder {
-  color: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,0.65);
   font-weight: 400;
 }
 
 .header-title:focus {
   background: rgba(255,255,255,0.3);
+  width: 220px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.18);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.header-btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-1px);
+}
+
+.header-btn:active {
+  transform: translateY(0);
+}
+
+.header-badge-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.22);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+
+.header-badge-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.header-select {
+  padding: 5px 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.header-select option {
+  background: #1C1C1E;
+  color: white;
+}
+
+.header-select:hover {
+  background: rgba(255,255,255,0.3);
 }
 
 header .header-author {
-  margin-left: auto;
   font-size: 11px;
   color: rgba(255,255,255,0.75);
   font-weight: 500;
   flex-shrink: 0;
+  margin-left: 4px;
 }
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+  border: 0.5px solid var(--separator);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 14px 18px;
+  border-bottom: 0.5px solid var(--separator);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 18px;
+}
+
+.shortcuts-list {
+  list-style: none;
+}
+
+.shortcuts-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--separator);
+  font-size: 12px;
+}
+
+.shortcuts-list li:last-child {
+  border-bottom: none;
+}
+
+kbd {
+  background: var(--bg);
+  border: 0.5px solid var(--separator);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Action Buttons & Exports */
+.btn-text-action {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-text-action:hover {
+  text-decoration: underline;
+}
+
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.export-grid button {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  border-radius: var(--radius-md);
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.plotoria-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.plotoria-table th, .plotoria-table td {
+  padding: 6px 10px;
+  text-align: right;
+  border-bottom: 0.5px solid var(--separator);
+  border-right: 0.5px solid var(--separator);
+}
+
+.plotoria-table th {
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.plotoria-table tr:nth-child(even) {
+  background: rgba(0,0,0,0.02);
+}
+
+.setting-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 0.5px solid var(--separator);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 720px) {
+  main {
+    flex-direction: column;
+  }
+
+  #algebra-panel {
+    width: 100%;
+    min-width: 0;
+    max-height: 45vh;
+    border-left: none;
+    border-top: 0.5px solid var(--separator);
+  }
+
+  #graph-panel {
+    height: 55vh;
+  }
+
+  header .header-author {
+    display: none;
+  }
+
+  .header-title {
+    width: 110px;
+  }
+}
+
 
 main {
   flex: 1;
