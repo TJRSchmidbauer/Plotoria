@@ -18,7 +18,14 @@
     isParamAnimRunning: false,
     compiledCache: {},
 
-    needsSmartPointsUpdate: true,
+    requestRepaint() {
+      if (this._rafPending) return;
+      this._rafPending = true;
+      requestAnimationFrame(() => {
+        this._rafPending = false;
+        this.repaint();
+      });
+    },
 
     init() {
       this.svg = d3.select('#graph-container');
@@ -30,12 +37,14 @@
         this.curT = e.transform;
         this.xs = this.curT.rescaleX(this.baseX);
         this.ys = this.curT.rescaleY(this.baseY);
-        this.repaint();
+        this.isZooming = true;
+        this.requestRepaint();
         clearTimeout(this._zoomTimer);
         this._zoomTimer = setTimeout(() => {
+          this.isZooming = false;
           this.needsSmartPointsUpdate = true;
-          this.repaint();
-        }, 120);
+          this.requestRepaint();
+        }, 100);
       });
       this.curT = d3.zoomIdentity;
       this.svg.call(this.zoom);
@@ -455,29 +464,41 @@
     },
 
     // ── FAST COMPILED FUNCTION EVALUATION ──
+    _prepareParamsCache() {
+      this._paramKeys = Object.keys(this.params);
+      this._paramValues = Object.values(this.params);
+      this._paramKeyStr = this._paramKeys.join(',') + ':' + this._paramValues.join(',');
+    },
+
     _evalExpr(expr, x, fn) {
       let evalX = x;
       if (this.angleMode === 'DEG') {
         evalX = x * Math.PI / 180;
       }
-      const cacheKey = expr + '__' + JSON.stringify(this.params);
-      let compiled = this.compiledCache[cacheKey];
-      if (!compiled) {
+      if (!this._paramKeyStr) this._prepareParamsCache();
+
+      let compiled = fn ? fn.compiledFunc : null;
+      if (!compiled || (fn && (fn.compiledExpr !== expr || fn.compiledParamKeys !== this._paramKeyStr))) {
         try {
           const s = expr.replace(/\bpi\b/g, '(' + Math.PI + ')');
-          compiled = nerdamer.buildFunction(s, ['x', ...Object.keys(this.params)]);
-          this.compiledCache[cacheKey] = compiled;
+          compiled = nerdamer.buildFunction(s, ['x', ...this._paramKeys]);
+          if (fn) {
+            fn.compiledFunc = compiled;
+            fn.compiledExpr = expr;
+            fn.compiledParamKeys = this._paramKeyStr;
+          }
         } catch (e) {
           compiled = null;
         }
       }
+
       if (compiled) {
         try {
-          const paramValues = Object.keys(this.params).map(k => this.params[k]);
-          const y = compiled(evalX, ...paramValues);
+          const y = compiled(evalX, ...this._paramValues);
           return isFinite(y) ? y : NaN;
         } catch (e) { return NaN; }
       }
+
       // Fallback
       try {
         const r = nerdamer(expr.replace(/\bpi\b/g, '(' + Math.PI + ')'), { x: evalX, ...this.params }).evaluate();
@@ -495,7 +516,7 @@
       const g = this.root.append('g');
 
       vis.forEach(fn => {
-        const N = 600;
+        const N = this.isZooming ? 250 : 500;
         const x0 = xs.domain()[0], x1 = xs.domain()[1];
         const pts = [];
 
@@ -538,7 +559,7 @@
           .attr('fill', col).attr('cursor', 'move');
         txt.append('tspan').text('G');
         txt.append('tspan').attr('dy', fs * 0.28).attr('font-size', fs * 0.75).text(fn.letter);
-        const tw = txt.node().getComputedTextLength();
+        const tw = (fn.letter.length + 1) * fs * 0.6;
         const bh = fs * 1.6;
         const bg = g.append('rect').attr('x', lx - 4).attr('y', ly - bh * 0.85)
           .attr('width', tw + 8).attr('height', bh)
@@ -603,9 +624,9 @@
         .attr('stroke', '#ffffff')
         .attr('stroke-width', 1.2);
 
-      // Connecting leader line if dragged away
+      let lineEl = null;
       if (Math.hypot(offset.dx - defaultDx, offset.dy - defaultDy) > 8 || Math.hypot(offset.dx, offset.dy) > 20) {
-        g.append('line')
+        lineEl = g.append('line')
           .attr('x1', px).attr('y1', py)
           .attr('x2', lx).attr('y2', ly)
           .attr('stroke', color)
@@ -614,31 +635,38 @@
           .attr('opacity', 0.65);
       }
 
-      // Draggable text label group
-      const txtGroup = g.append('g')
-        .attr('cursor', 'move')
-        .call(d3.drag()
-          .on('start', (ev) => { if (ev.sourceEvent) ev.sourceEvent.stopPropagation(); })
-          .on('drag', (event) => {
-            offset.dx += event.dx;
-            offset.dy += event.dy;
-            this.repaint();
-          })
-        );
-
-      const txt = txtGroup.append('text')
+      const txt = g.append('text')
         .attr('x', lx).attr('y', ly)
         .attr('font-size', fs)
         .attr('font-weight', '600')
         .attr('fill', color)
         .text(textStr);
 
-      const tw = txt.node().getComputedTextLength();
+      const tw = textStr.length * fs * 0.58;
       const bh = fs * 1.3;
-      txtGroup.append('rect')
+      const bgRect = g.append('rect')
         .attr('x', lx - 2).attr('y', ly - bh * 0.75)
         .attr('width', tw + 4).attr('height', bh)
-        .attr('fill', 'transparent');
+        .attr('fill', 'transparent')
+        .attr('cursor', 'move');
+
+      bgRect.call(d3.drag()
+        .on('start', (ev) => { if (ev.sourceEvent) ev.sourceEvent.stopPropagation(); })
+        .on('drag', (event) => {
+          offset.dx += event.dx;
+          offset.dy += event.dy;
+          const nlx = px + offset.dx;
+          const nly = py + offset.dy;
+          txt.attr('x', nlx).attr('y', nly);
+          bgRect.attr('x', nlx - 2).attr('y', nly - bh * 0.75);
+          if (lineEl) {
+            lineEl.attr('x2', nlx).attr('y2', nly);
+          }
+        })
+        .on('end', () => {
+          this.requestRepaint();
+        })
+      );
     },
 
     computeSmartPoints() {
