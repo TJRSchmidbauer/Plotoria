@@ -18,6 +18,8 @@
     isParamAnimRunning: false,
     compiledCache: {},
 
+    needsSmartPointsUpdate: true,
+
     init() {
       this.svg = d3.select('#graph-container');
       this.root = this.svg.append('g');
@@ -29,6 +31,11 @@
         this.xs = this.curT.rescaleX(this.baseX);
         this.ys = this.curT.rescaleY(this.baseY);
         this.repaint();
+        clearTimeout(this._zoomTimer);
+        this._zoomTimer = setTimeout(() => {
+          this.needsSmartPointsUpdate = true;
+          this.repaint();
+        }, 120);
       });
       this.curT = d3.zoomIdentity;
       this.svg.call(this.zoom);
@@ -634,19 +641,19 @@
         .attr('fill', 'transparent');
     },
 
-    paintSmartLabels() {
+    computeSmartPoints() {
       const vis = this.fns.filter(f => f.vis);
       if (!vis.length) return;
-      const g = this.root.append('g').attr('class', 'smart-labels');
       const tol = 1e-4;
 
       vis.forEach(fn => {
+        fn.smartPoints = [];
         const f = (x) => this._evalExpr(fn.expr, x, fn);
         const xDom = this.xs.domain();
-        const N = 400;
+        const N = 250;
         const stepR = (xDom[1] - xDom[0]) / N;
 
-        // 1. Zeros (Nullstellen)
+        // 1. Zeros
         for (let i = 0; i < N; i++) {
           const a = xDom[0] + i * stepR;
           const b = a + stepR;
@@ -654,28 +661,23 @@
           if (isFinite(fa) && isFinite(fb) && fa * fb < 0) {
             const root = this._bisect(f, a, b, tol);
             if (root !== null && root >= xDom[0] && root <= xDom[1]) {
-              const px = this.xs(root), py = this.ys(0);
-              if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                const labelId = `null_${fn.id}_${root.toFixed(3)}`;
-                this._renderSmartLabel(g, px, py, 'N(' + this.fmt(root) + '|0)', fn.col, labelId, 0, 16);
-              }
+              const labelId = `null_${fn.id}_${root.toFixed(3)}`;
+              fn.smartPoints.push({ x: root, y: 0, text: 'N(' + this.fmt(root) + '|0)', color: fn.col, labelId, defaultDx: 0, defaultDy: 16 });
             }
           }
         }
 
-        // 2. y-intercept (Y-Achsenabschnitt)
+        // 2. y-intercept
         const y0 = f(0);
         if (isFinite(y0) && Math.abs(y0) < 1e5) {
-          const px = this.xs(0), py = this.ys(y0);
-          if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-            const labelId = `sy_${fn.id}`;
-            this._renderSmartLabel(g, px, py, 'S_y(0|' + this.fmt(y0) + ')', fn.col, labelId, -28, -8);
-          }
+          const labelId = `sy_${fn.id}`;
+          fn.smartPoints.push({ x: 0, y: y0, text: 'S_y(0|' + this.fmt(y0) + ')', color: fn.col, labelId, defaultDx: -28, defaultDy: -8 });
         }
 
-        // 3. Extrema (Hoch- und Tiefpunkte)
+        // 3. Extrema
         try {
-          const derExpr = MathParser.derivativeOf(fn);
+          const derExpr = fn.derExpr || MathParser.derivativeOf(fn);
+          fn.derExpr = derExpr;
           if (derExpr) {
             const der = (x) => this._evalExpr(derExpr, x, fn);
             for (let i = 0; i < N; i++) {
@@ -687,12 +689,9 @@
                 if (ex !== null && ex >= xDom[0] && ex <= xDom[1]) {
                   const ey = f(ex);
                   if (isFinite(ey)) {
-                    const px = this.xs(ex), py = this.ys(ey);
-                    if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                      const labelText = (der(ex - 0.01) > 0 ? 'Max' : 'Min') + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')';
-                      const labelId = `ext_${fn.id}_${ex.toFixed(3)}`;
-                      this._renderSmartLabel(g, px, py, labelText, fn.col, labelId, 0, -14);
-                    }
+                    const labelText = (der(ex - 0.01) > 0 ? 'Max' : 'Min') + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')';
+                    const labelId = `ext_${fn.id}_${ex.toFixed(3)}`;
+                    fn.smartPoints.push({ x: ex, y: ey, text: labelText, color: fn.col, labelId, defaultDx: 0, defaultDy: -14 });
                   }
                 }
               }
@@ -700,9 +699,10 @@
           }
         } catch (e) {}
 
-        // 4. Inflection Points (Wendepunkte: f''(x) = 0)
+        // 4. Inflection Points
         try {
-          const secDerExpr = MathParser.secondDerivativeOf(fn);
+          const secDerExpr = fn.secDerExpr || MathParser.secondDerivativeOf(fn);
+          fn.secDerExpr = secDerExpr;
           if (secDerExpr) {
             const secDer = (x) => this._evalExpr(secDerExpr, x, fn);
             for (let i = 0; i < N; i++) {
@@ -714,11 +714,8 @@
                 if (wx !== null && wx >= xDom[0] && wx <= xDom[1]) {
                   const wy = f(wx);
                   if (isFinite(wy)) {
-                    const px = this.xs(wx), py = this.ys(wy);
-                    if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                      const labelId = `wende_${fn.id}_${wx.toFixed(3)}`;
-                      this._renderSmartLabel(g, px, py, 'W(' + this.fmt(wx) + '|' + this.fmt(wy) + ')', '#9C27B0', labelId, 14, 14);
-                    }
+                    const labelId = `wende_${fn.id}_${wx.toFixed(3)}`;
+                    fn.smartPoints.push({ x: wx, y: wy, text: 'W(' + this.fmt(wx) + '|' + this.fmt(wy) + ')', color: '#9C27B0', labelId, defaultDx: 14, defaultDy: 14 });
                   }
                 }
               }
@@ -727,14 +724,15 @@
         } catch (e) {}
       });
 
-      // 5. Intersections between function pairs
+      // 5. Intersections
+      this.intersectionPoints = [];
       for (let i = 0; i < vis.length; i++) {
         for (let j = i + 1; j < vis.length; j++) {
           const fi = (x) => this._evalExpr(vis[i].expr, x, vis[i]);
           const fj = (x) => this._evalExpr(vis[j].expr, x, vis[j]);
           const diff = (x) => fi(x) - fj(x);
           const xDom = this.xs.domain();
-          const N2 = 400;
+          const N2 = 250;
           const stepR = (xDom[1] - xDom[0]) / N2;
           for (let k = 0; k < N2; k++) {
             const a = xDom[0] + k * stepR;
@@ -745,16 +743,44 @@
               if (ix !== null && ix >= xDom[0] && ix <= xDom[1]) {
                 const iy = fi(ix);
                 if (isFinite(iy)) {
-                  const px = this.xs(ix), py = this.ys(iy);
-                  if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                    const labelId = `isect_${vis[i].id}_${vis[j].id}_${ix.toFixed(3)}`;
-                    this._renderSmartLabel(g, px, py, 'S(' + this.fmt(ix) + '|' + this.fmt(iy) + ')', '#444444', labelId, 14, -14);
-                  }
+                  const labelId = `isect_${vis[i].id}_${vis[j].id}_${ix.toFixed(3)}`;
+                  this.intersectionPoints.push({ x: ix, y: iy, text: 'S(' + this.fmt(ix) + '|' + this.fmt(iy) + ')', color: '#444444', labelId, defaultDx: 14, defaultDy: -14 });
                 }
               }
             }
           }
         }
+      }
+    },
+
+    paintSmartLabels() {
+      const vis = this.fns.filter(f => f.vis);
+      if (!vis.length) return;
+      
+      if (this.needsSmartPointsUpdate) {
+        this.computeSmartPoints();
+        this.needsSmartPointsUpdate = false;
+      }
+
+      const g = this.root.append('g').attr('class', 'smart-labels');
+
+      vis.forEach(fn => {
+        if (!fn.smartPoints) return;
+        fn.smartPoints.forEach(pt => {
+          const px = this.xs(pt.x), py = this.ys(pt.y);
+          if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
+            this._renderSmartLabel(g, px, py, pt.text, pt.color, pt.labelId, pt.defaultDx, pt.defaultDy);
+          }
+        });
+      });
+
+      if (this.intersectionPoints) {
+        this.intersectionPoints.forEach(pt => {
+          const px = this.xs(pt.x), py = this.ys(pt.y);
+          if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
+            this._renderSmartLabel(g, px, py, pt.text, pt.color, pt.labelId, pt.defaultDx, pt.defaultDy);
+          }
+        });
       }
     },
 
@@ -1000,6 +1026,7 @@
         col: COLORS[this.ci++ % COLORS.length], vis: true, letter: fnLetter, strokeWidth: 3.5,
         lineStyle: 'solid', labelX: null, labelY: null,
       });
+      this.needsSmartPointsUpdate = true;
       this.sync();
       this.repaint();
     },
@@ -1018,11 +1045,12 @@
       f.expr = c; f.disp = raw; f.orig = raw;
       if (fnLetter) f.letter = fnLetter;
       f.labelX = null; f.labelY = null;
+      this.needsSmartPointsUpdate = true;
       this.sync();
       this.repaint();
     },
 
-    rmFn(id) { this.pushHistory(); this.fns = this.fns.filter(f => f.id !== id); this.sync(); this.repaint(); },
+    rmFn(id) { this.pushHistory(); this.fns = this.fns.filter(f => f.id !== id); this.needsSmartPointsUpdate = true; this.sync(); this.repaint(); },
     tgFn(id) { const f = this.fns.find(f => f.id === id); if (f) { f.vis = !f.vis; this.sync(); this.repaint(); } },
 
     sync() {
