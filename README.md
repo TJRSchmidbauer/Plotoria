@@ -1,42 +1,55 @@
-# 📈 Plotoria
+# 📈 Plotoria 2.0
 
-**Dein moderner, webbasierter Funktionsplotter für Schule, Studium und Beruf!** ✨
+**Dein moderner, webbasierter Funktionsplotter für Schule, Studium und Wissenschaft!** ✨
 
-Willkommen bei **Plotoria**, dem interaktiven Graphing-Tool, das komplexe Mathematik einfach und visuell ansprechend macht! Egal, ob du Lehrkraft, Schüler:in, Student:in oder einfach ein Mathe-Fan bist – Plotoria bietet dir alle Werkzeuge, um Funktionen im Handumdrehen zu visualisieren und zu analysieren. 🚀
+Plotoria ist ein interaktiver, hochperformanter Funktionsplotter mit integrierter Kurvendiskussion, KaTeX-Formelsatz, interaktiver Wertetabelle, Parameter-Animationen und TikZ/SVG/PNG-Export.
 
----
-
-## 🌟 Warum Plotoria? (Die Vorteile)
-
-- 🎨 **Atemberaubendes Design:** Eine moderne, aufgeräumte Benutzeroberfläche, die nicht nur gut aussieht, sondern auch extrem intuitiv zu bedienen ist.
-- ⚡ **Blitzschnell & Direkt im Browser:** Keine Installation notwendig. Öffne Plotoria einfach in deinem Browser und leg direkt los!
-- 🎛️ **Vollständig anpassbar:** Passe das Aussehen der Graphen, Achsen und Farben nach deinen eigenen Wünschen an.
-- 📐 **Ideal für den Unterricht:** Spezielle Ansichtsmodi (z. B. der Projektor-Modus) sorgen für perfekte Lesbarkeit am Beamer oder Smartboard.
-- 📤 **Einfacher Export:** Exportiere deine Graphen als SVG oder direkt als TikZ-Code für LaTeX-Dokumente.
+![Plotoria 2.0 Screenshot](assets/plotoria_v2.jpg)
 
 ---
 
-## 🛠️ Features, die begeistern
+## 📸 Versionsvergleich
 
-Plotoria ist vollgepackt mit nützlichen Funktionen, die dir das Leben leichter machen:
-
-*   **📈 Interaktive Graphen:** Plotte beliebige Funktionen (z. B. `x^2`, `sin(x)`) mit flüssigem Zoomen und Verschieben.
-*   **🎚️ Parametrisierung:** Füge Parameter (wie `a`, `b`, `c`) hinzu und steuere sie bequem, um zu sehen, wie sie die Funktion verändern!
-*   **🏷️ Smart Labels:** Intelligente Beschriftungen an den Graphen, damit du immer den Überblick behältst, welche Funktion welche ist.
-*   **📏 Tangenten & Integrale:** Berechne und visualisiere Tangenten an beliebigen Stellen sowie Flächeninhalte unter Graphen.
-*   **🎨 Themenauswahl:** Wechsle zwischen Standard-, Dunkel- und Projektor-Modus für den optimalen Kontrast in jeder Umgebung.
-*   **🔧 Umfangreiche Fenster-Einstellungen:** Definiere die x- und y-Achsen exakt, wähle proportionale Ansichten und passe die Rasterweite an.
-*   **📝 LaTeX/TikZ-Integration:** Du schreibst Skripte in LaTeX? Exportiere den Graphen direkt als TikZ-Code oder importiere ihn wieder zurück!
-*   **💾 SVG-Export:** Lade deine Graphen in gestochen scharfer Vektorqualität herunter.
+| Plotoria 1.0 (Original SVG-Plotter) | Plotoria 2.0 (AI-Enhanced Antigravity) |
+|---|---|
+| ![Plotoria 1.0](assets/plotoria_v1.jpg) | ![Plotoria 2.0](assets/plotoria_v2.jpg) |
+| Basis-SVG Rendering mit D3.js | 60 FPS Fast Compilation, KaTeX, Kurvendiskussion, Wertetabelle, Drag & Drop Labels |
 
 ---
 
-## 🚀 Los geht's!
+## 📚 Dokumentation & Anleitungen
 
-1. Klone das Repository oder lade die Dateien herunter.
-2. Öffne einfach die `index.html` in deinem Lieblingsbrowser.
-3. Gib links im Panel eine Funktion ein (z. B. `f(x) = x^3 - 2x`) und drücke Enter! 🎉
+* 📘 **[Vollständige Bedienungsanleitung (ANLEITUNG.md)](file:///run/media/tobias/Media2/Plotoria/ANLEITUNG.md)**: Detaillierte Schritt-für-Schritt-Anleitung für alle Funktionen, Tastaturkürzel und Exporte.
+* 🤖 **[KI-Entwicklung & Antigravity Collaboration (AI_DEVELOPMENT.md)](file:///run/media/tobias/Media2/Plotoria/AI_DEVELOPMENT.md)**: Dokumentation der Mensch-KI-Entwicklung mit Google Antigravity AI.
 
 ---
 
-*Erstellt von Tobias Schmidbauer.* 👨‍💻
+## ✨ Features von Plotoria 2.0
+
+* ⚡ **60 FPS Performance Engine:** Schnellere Auswertung dank Vorkompilierung mathematischer Ausdrücke.
+* 📐 **Vollständige Kurvendiskussion:** Automatische Berechnung & Beschriftung von Nullstellen ($N$), $y$-Abschnitt ($S_y$), Extrema ($Max/Min$), Wendepunkten ($W$) und Schnittpunkten ($S$).
+* 🖱️ **Draggable Smart Labels:** Verschiebbare Beschriftungen mit gestrichelten Verbindungslinien per Drag & Drop.
+* 📊 **Wertetabelle & CSV-Export:** Interaktive Tabellenanzeige mit anpassbarem Bereich und CSV-Download.
+* 🎛️ **Parameter-Schieberegler & Animation:** Variablen ($a, b, c$) in Echtzeit anpassen oder automatisch schwingen lassen.
+* 🎨 **LaTeX KaTeX Formelsatz:** Schöne mathematische Formeldarstellung im Algebra-Panel.
+* 🔄 **RAD / DEG Modus:** Umschaltung zwischen Bogen- und Gradmaß per Klick.
+* 📤 **Vielseitige Exporte:** PNG-Bild, Zwischenablage, SVG, TikZ-Code für LaTeX und Teilen per URL-State.
+
+---
+
+## 📄 Lizenz & Namensnennung (Open Source)
+
+Dieses Projekt ist unter der **[MIT-Lizenz](file:///run/media/tobias/Media2/Plotoria/LICENSE)** veröffentlicht.
+
+### ⚠️ Zwingende Namensnennung (Attribution):
+Jede Weiterverwendung, Vervielfältigung oder Abwandlung dieses Softwareprojekts muss die folgende Copyright-Zeile und den Autorennamen unverändert beinhalten:
+
+```text
+Copyright (c) 2026 Tobias Schmidbauer
+```
+
+---
+
+## 👨‍💻 Entwickelt von
+* **Tobias Schmidbauer** (Idee, Architektur & Projektleitung)
+* In Zusammenarbeit mit **Google Antigravity AI** (Advanced Agentic Coding Team, Google DeepMind)
