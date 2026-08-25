@@ -1,8 +1,6 @@
-# 📘 Plotoria – Vollständige Bedienungsanleitung
+# 📘 Plotoria – Ausführliche Bedienungsanleitung & Praxis-Tipps
 
-Willkommen zur offiziellen Benutzeranleitung von **Plotoria**, dem modernen, browserbasierten Funktionsplotter für Schule, Studium und Wissenschaft.
-
-![Plotoria 2.0 Screenshot](assets/plotoria_v2.jpg)
+Willkommen zur offiziellen Benutzeranleitung von **Plotoria**, dem modernen, browserbasierten Funktionsplotter für Schule, Studium, Lehre und Mathematikbegeisterte.
 
 ---
 
@@ -11,45 +9,45 @@ Willkommen zur offiziellen Benutzeranleitung von **Plotoria**, dem modernen, bro
 1. Öffne Plotoria im Browser (z. B. unter [http://localhost:8080](http://localhost:8080) oder auf GitHub Pages).
 2. Gib in der Algebra-Spalte oben im Eingabefeld eine Funktion ein, z. B. `x^2 - 4` oder `f(x) = sin(x)`.
 3. Drücke **Enter** oder klicke auf das **+ (Hinzufügen)**.
-4. Der Graph wird sofort mit flüssigen 60 FPS gezeichnet.
+4. Der Graph wird sofort in flüssigen 60 FPS gezeichnet.
 
 ---
 
 ## 🧮 1. Funktionen eingeben & verwalten
 
 ### Unterstützte Schreibweisen
-* Standard-Ausdrücke: `x^3 - 2*x`, `1/x`, `exp(-x^2)`
-* Funktionsnamen: `f(x) = sin(x)`, `g(x) = 2*x + 1`
-* Mathematische Funktionen: `sin(x)`, `cos(x)`, `tan(x)`, `sqrt(x)`, `abs(x)`, `log(x)`, `exp(x)`
-* Parameter-Terme: `a*x^2 + b*x + c`
+* **Standard-Ausdrücke:** `x^3 - 2*x`, `1/x`, `exp(-x^2)`
+* **Mit Funktionsnamen:** `f(x) = sin(x)`, `g(x) = 2*x + 1`
+* **Mathematische Funktionen:** `sin(x)`, `cos(x)`, `tan(x)`, `sqrt(x)`, `abs(x)`, `log(x)`, `exp(x)`
+* **Parameter-Terme:** `a*x^2 + b*x + c`
 
-### Beispiele laden
-Oben in der Kopfzeile befindet sich das **Beispiele-Dropdown**:
-* **Polynom 3. Grades** (`x^3 - 2*x`)
-* **Sinuskurve** (`sin(x)`)
-* **Gaußsche Glockenkurve** (`exp(-x^2)`)
-* **Gebrochen-Rational** (`1/x`)
-* **Parabel mit Parametern** (`a*x^2 + b*x + c`)
+### Beispiele-Dropdown
+In der oberen Kopfzeile befindet sich ein **Beispiele-Dropdown** mit vorbereiteten Funktionen:
+* **Polynom 3. Grades:** `x^3 - 2*x`
+* **Sinuskurve:** `sin(x)`
+* **Gaußsche Glockenkurve:** `exp(-x^2)`
+* **Gebrochen-Rational:** `1/x`
+* **Parabel mit Parametern:** `a*x^2 + b*x + c` (legt Parameter $a, b, c$ automatisch an)
 
 ---
 
-## 🔍 2. Kurvendiskussion (Smart Labels)
+## 🔍 2. Automatische Kurvendiskussion (Smart Labels)
 
-Wenn die Option **Kurvendiskussion (Smart Labels)** aktiviert ist, berechnet Plotoria automatisch alle wichtigen Punkte und hebt sie farbig hervor:
+Wenn die Option **Kurvendiskussion (Smart Labels)** aktiviert ist, berechnet Plotoria automatisch alle wichtigen Kennpunkte und zeichnet sie farbig ein:
 
 * **N (Nullstellen):** Schnittpunkte der Funktion mit der $x$-Achse $N(x|0)$.
 * **S_y (Y-Achsenabschnitt):** Schnittpunkt mit der $y$-Achse $S_y(0|y_0)$.
 * **Max / Min (Extrema):** Hochpunkte und Tiefpunkte der Funktion.
 * **W (Wendepunkte):** Punkte, an denen $f''(x) = 0$ gilt (in Lila hervorgehoben).
-* **S (Schnittpunkte):** Schnittpunkte zwischen zwei verschiedenen Funktionsgraphen.
+* **S (Schnittpunkte):** Schnittpunkte zwischen verschiedenen Funktionsgraphen.
 
-> 💡 **Tipp:** Alle Smart Labels lassen sich **mit der Maus oder per Touch beliebig im Koordinatensystem verschieben** (Drag & Drop). Dabei zieht das Label eine gestrichelte Verbindungslinie zum Ursprungspunkt auf der Kurve.
+> 💡 **Tipp:** Alle Smart Labels lassen sich per Drag & Drop **frei im Koordinatensystem verschieben**. Beim Ziehen bleibt eine gestrichelte Verbindungslinie zum Punkt auf der Kurve bestehen.
 
 ---
 
 ## 📊 3. Wertetabelle
 
-Im Tab **Tabelle** kannst du für alle eingegebenen Funktionen exakte Wertetabellen erzeugen:
+Im Tab **Tabelle** kannst du für alle aktiven Funktionen exakte Wertetabellen erzeugen:
 
 1. Klicke oben auf den Tab **Tabelle**.
 2. Wähle den Startwert ($x_{\text{Start}}$), Endwert ($x_{\text{Ende}}$) und die Schrittweite ($\Delta x$).
@@ -67,23 +65,32 @@ Sobald du eine Funktion mit Variablen wie `a*x^2 + b*x + c` eingibst:
 
 ---
 
-## 💾 5. Export & Teilen
+## 💡 Tipps & Tricks für Unterricht & Praxis
 
-* **PNG-Bild:** Lade den Graphen als hochauflösendes PNG-Bild herunter.
-* **In Zwischenablage kopieren:** Kopiert das Bild per Klick in die Zwischenablage (ideal für Word oder PowerPoint).
-* **SVG-Vektorgrafik:** Exportiert den Graphen als verlustfreie Vektorgrafik.
-* **TikZ / LaTeX Code:** Generiert gebrauchsfertigen TikZ-Code für LaTeX-Dokumente.
-* **Link Teilen:** Erzeugt einen teilen-baren URL-Link, der die exakte Ansicht und alle Funktionen wiederherstellt.
+### 💡 Tipp 1: Wertsprung & Asymptoten erkennen
+Bei gebrochen-rationalen Funktionen wie $f(x) = \frac{1}{x}$ kannst du den Zoom mit dem Mausrad feinfühlig anpassen, um Polstellen und Asymptoten genau zu analysieren.
+
+### 💡 Tipp 2: Tangenten & Normalen zeichnen
+Klicke in der Werkzeugleiste des Graphen auf das **Tangenten-Icon (Chart-Line)** und bewege den Mauszeiger über einen Graphen. Plotoria berechnet die Tangente und Normale an dieser Stelle live und zeigt die Geradengleichung an!
+
+### 💡 Tipp 3: Flächeninhalte (Integrale) berechnen
+Nutze das Integral-Feature, um die Fläche zwischen einem Graphen und der $x$-Achse in einem wählbaren Intervall $[a, b]$ numerisch per Simpson-Verfahren zu berechnen und farbig hervorzuheben.
+
+### 💡 Tipp 4: Grafik in Word / PowerPoint einfügen
+Klicke in der Werkzeugleiste auf das **Zwischenablage-Icon (Copy)**. Der Graph wird direkt als hochauflösendes Bild kopiert und kann mit `Strg + V` sofort in Word, PowerPoint oder ein Arbeitsblatt eingefügt werden.
+
+### 💡 Tipp 5: Arbeitsstände per Link teilen
+Klicke auf das **Teilen-Icon (Share-Alt)**. Es wird ein kompakter Link generiert, der alle eingegebenen Funktionen, Parameter und Ansichtseinstellungen enthält. Ideal zum Versenden an Schüler oder Kollegen!
 
 ---
 
-## ⌨️ 6. Tastatur-Kürzel
+## ⌨️ Tastatur-Kürzel
 
-| Kürzel | Aktion |
+| Kürzel | Funktion |
 |---|---|
-| `Strg + Z` | Rückgängig |
-| `Strg + Y` | Wiederholen |
+| `Strg + Z` | Rückgängig (Undo) |
+| `Strg + Y` | Wiederholen (Redo) |
 | `Home` | Ansicht auf Standard zurücksetzen |
 | `+` / `-` | Hinein- / Herauszoomen |
-| `?` | Hilfe & Kürzel-Übersicht öffnen |
+| `?` | Hilfe & Kürzel-Modal öffnen |
 | `Esc` | Aktionsmodus abbrechen |
