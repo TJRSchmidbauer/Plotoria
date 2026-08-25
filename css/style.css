@@ -45,17 +45,16 @@ html, body {
 }
 
 header {
-  background: linear-gradient(135deg, rgba(0,102,221,0.95), rgba(0,122,255,0.92));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0,0,0,0.1);
-  padding: 8px 18px;
+  background: linear-gradient(135deg, #0052CC, #0066DD);
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+  padding: 4px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   z-index: 10;
-  min-height: 50px;
+  height: 38px;
+  min-height: 38px;
 }
 
 .header-left {
@@ -66,7 +65,7 @@ header {
 }
 
 header h1 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: white;
@@ -74,11 +73,11 @@ header h1 {
 }
 
 .header-title {
-  width: 180px;
-  padding: 5px 10px;
+  width: 150px;
+  padding: 3px 8px;
   border: none;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   background: rgba(255,255,255,0.2);
@@ -94,46 +93,22 @@ header h1 {
 
 .header-title:focus {
   background: rgba(255,255,255,0.3);
-  width: 220px;
+  width: 190px;
 }
 
-.header-actions {
+.header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.header-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.18);
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  transition: all 0.15s ease;
-}
-
-.header-btn:hover {
-  background: rgba(255,255,255,0.3);
-  transform: translateY(-1px);
-}
-
-.header-btn:active {
-  transform: translateY(0);
+  gap: 10px;
 }
 
 .header-badge-btn {
-  padding: 4px 10px;
+  padding: 3px 8px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255,255,255,0.22);
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   letter-spacing: 0.5px;
@@ -145,9 +120,9 @@ header h1 {
 }
 
 .header-select {
-  padding: 5px 8px;
+  padding: 3px 6px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
   background: rgba(255,255,255,0.2);
@@ -171,8 +146,30 @@ header .header-author {
   color: rgba(255,255,255,0.75);
   font-weight: 500;
   flex-shrink: 0;
-  margin-left: 4px;
 }
+
+.undo-redo-inline {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.btn-icon-subtle {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-icon-subtle:hover {
+  background: var(--surface-hover);
+  color: var(--accent);
+}
+
 
 /* Modals */
 .modal-overlay {

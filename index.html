@@ -24,10 +24,7 @@
         <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
       </div>
 
-      <div class="header-actions">
-        <button id="btn-undo" class="header-btn" title="Rückgängig (Strg+Z)"><i class="fas fa-undo"></i></button>
-        <button id="btn-redo" class="header-btn" title="Wiederholen (Strg+Y)"><i class="fas fa-redo"></i></button>
-        
+      <div class="header-right">
         <button id="btn-angle-mode" class="header-badge-btn" title="Umschalten zwischen RAD (Bogenmaß) und DEG (Gradmaß)">
           <span id="angle-mode-text">RAD</span>
         </button>
@@ -35,16 +32,14 @@
         <div class="preset-dropdown-wrapper">
           <select id="preset-select" class="header-select" title="Beispiel-Funktionen laden">
             <option value="" disabled selected>✨ Beispiele...</option>
-            <option value="x^3 - 2*x">Polynom 3. Grades</option>
-            <option value="sin(x)">Sinuskurve</option>
-            <option value="exp(-x^2)">Gaußsche Glockenkurve</option>
-            <option value="1/x">Gebrochen-Rational (1/x)</option>
-            <option value="a*x^2 + b*x + c">Parabel mit Parametern</option>
+
+            <option value="poly">Polynom 3. Grades</option>
+            <option value="sin">Sinuskurve</option>
+            <option value="gauss">Gaußsche Glockenkurve</option>
+            <option value="rational">Gebrochen-Rational (1/x)</option>
+            <option value="param">Parabel mit Parametern</option>
           </select>
         </div>
-
-        <button id="btn-share" class="header-btn" title="Link zum Teilen generieren"><i class="fas fa-share-alt"></i></button>
-        <button id="btn-help" class="header-btn" title="Tastaturkürzel & Hilfe (?)"><i class="fas fa-question-circle"></i></button>
         <span class="header-author">Tobias Schmidbauer</span>
       </div>
     </header>
@@ -67,6 +62,12 @@
           <button id="close-integral" title="Integral ausblenden" class="integral-close-btn" style="display:none">
             <i class="fas fa-times"></i>
           </button>
+          <button id="btn-share" title="Link zum Teilen generieren">
+            <i class="fas fa-share-alt"></i>
+          </button>
+          <button id="btn-help" title="Tastaturkürzel & Hilfe (?)">
+            <i class="fas fa-question-circle"></i>
+          </button>
           <button id="copy-clipboard" title="Graph in Zwischenablage kopieren">
             <i class="fas fa-copy"></i>
           </button>
@@ -88,7 +89,13 @@
           <!-- TAB ALGEBRA -->
           <div class="tab-pane active" id="tab-algebra">
             <div class="panel-scroll">
-              <div class="section-label">Funktion eingeben</div>
+              <div class="section-label">
+                <span>Funktion eingeben</span>
+                <div class="undo-redo-inline">
+                  <button id="btn-undo" class="btn-icon-subtle" title="Rückgängig (Strg+Z)"><i class="fas fa-undo"></i></button>
+                  <button id="btn-redo" class="btn-icon-subtle" title="Wiederholen (Strg+Y)"><i class="fas fa-redo"></i></button>
+                </div>
+              </div>
               <div class="input-row">
                 <div class="input-field">
                   <input type="text" id="func-input"

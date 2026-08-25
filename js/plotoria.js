@@ -102,7 +102,7 @@
       if (this.els.btnShare) this.els.btnShare.addEventListener('click', () => this.openShareModal());
       if (this.els.btnHelp) this.els.btnHelp.addEventListener('click', () => this.openShortcutsModal());
       if (this.els.btnPlayParams) this.els.btnPlayParams.addEventListener('click', () => this.toggleParamAnimation());
-      if (this.els.presetSelect) this.els.presetSelect.addEventListener('change', (e) => { this.addFunc(e.target.value); e.target.selectedIndex = 0; });
+      if (this.els.presetSelect) this.els.presetSelect.addEventListener('change', (e) => { this.loadPreset(e.target.value); e.target.selectedIndex = 0; });
       if (this.els.pngExportTop) this.els.pngExportTop.addEventListener('click', () => this.exportPNG());
       if (this.els.clipboardCopyTop) this.els.clipboardCopyTop.addEventListener('click', () => this.copyGraphToClipboard());
       if (this.els.copyClipboard) this.els.copyClipboard.addEventListener('click', () => this.copyGraphToClipboard());
@@ -551,7 +551,89 @@
       pts.length = 0;
     },
 
-    // ── SMART LABELS & KURVENDISKUSSION ──
+    // ── PRESETS ──
+    loadPreset(type) {
+      if (!type) return;
+      if (type === 'poly') {
+        this.addFunc('x^3 - 2*x');
+      } else if (type === 'sin') {
+        this.addFunc('sin(x)');
+      } else if (type === 'gauss') {
+        this.addFunc('exp(-x^2)');
+      } else if (type === 'rational') {
+        this.addFunc('1/x');
+      } else if (type === 'param') {
+        this.params['a'] = 1;
+        this.params['b'] = 0;
+        this.params['c'] = -2;
+        this.paramRanges['a'] = { min: -10, max: 10 };
+        this.paramRanges['b'] = { min: -10, max: 10 };
+        this.paramRanges['c'] = { min: -10, max: 10 };
+        this.syncParams();
+        this.addFunc('a*x^2 + b*x + c');
+      }
+    },
+
+    // ── SMART LABELS & DRAGGABLE KURVENDISKUSSION ──
+    _renderSmartLabel(g, px, py, textStr, color, labelId, defaultDx, defaultDy) {
+      const fs = Math.max(9, Math.round(this.style.fontSize * 0.72));
+      const circleRadius = Math.max(2.5, Math.round(this.style.fontSize * 0.22));
+
+      this.smartLabelOffsets = this.smartLabelOffsets || {};
+      if (!this.smartLabelOffsets[labelId]) {
+        this.smartLabelOffsets[labelId] = { dx: defaultDx, dy: defaultDy };
+      }
+      const offset = this.smartLabelOffsets[labelId];
+
+      const lx = px + offset.dx;
+      const ly = py + offset.dy;
+
+      // Circle marker on graph
+      g.append('circle')
+        .attr('cx', px).attr('cy', py)
+        .attr('r', circleRadius)
+        .attr('fill', color)
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 1.2);
+
+      // Connecting leader line if dragged away
+      if (Math.hypot(offset.dx - defaultDx, offset.dy - defaultDy) > 8 || Math.hypot(offset.dx, offset.dy) > 20) {
+        g.append('line')
+          .attr('x1', px).attr('y1', py)
+          .attr('x2', lx).attr('y2', ly)
+          .attr('stroke', color)
+          .attr('stroke-width', 1)
+          .attr('stroke-dasharray', '3,3')
+          .attr('opacity', 0.65);
+      }
+
+      // Draggable text label group
+      const txtGroup = g.append('g')
+        .attr('cursor', 'move')
+        .call(d3.drag()
+          .on('start', (ev) => { if (ev.sourceEvent) ev.sourceEvent.stopPropagation(); })
+          .on('drag', (event) => {
+            offset.dx += event.dx;
+            offset.dy += event.dy;
+            this.repaint();
+          })
+        );
+
+      const txt = txtGroup.append('text')
+        .attr('x', lx).attr('y', ly)
+        .attr('font-size', fs)
+        .attr('font-weight', '600')
+        .attr('fill', color)
+        .text(textStr);
+
+      const tw = txt.node().getComputedTextLength();
+      const bh = fs * 1.3;
+      txtGroup.append('rect')
+        .attr('x', lx - 2).attr('y', ly - bh * 0.75)
+        .attr('width', tw + 4).attr('height', bh)
+        .attr('fill', 'transparent');
+    },
+
     paintSmartLabels() {
       const vis = this.fns.filter(f => f.vis);
       if (!vis.length) return;
@@ -574,10 +656,8 @@
             if (root !== null && root >= xDom[0] && root <= xDom[1]) {
               const px = this.xs(root), py = this.ys(0);
               if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
-                g.append('text').attr('x', px + 5).attr('y', py - 4)
-                  .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
-                  .text('N(' + this.fmt(root) + '|0)');
+                const labelId = `null_${fn.id}_${root.toFixed(3)}`;
+                this._renderSmartLabel(g, px, py, 'N(' + this.fmt(root) + '|0)', fn.col, labelId, 0, 16);
               }
             }
           }
@@ -588,10 +668,8 @@
         if (isFinite(y0) && Math.abs(y0) < 1e5) {
           const px = this.xs(0), py = this.ys(y0);
           if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-            g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
-            g.append('text').attr('x', px + 5).attr('y', py - 4)
-              .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
-              .text('S_y(0|' + this.fmt(y0) + ')');
+            const labelId = `sy_${fn.id}`;
+            this._renderSmartLabel(g, px, py, 'S_y(0|' + this.fmt(y0) + ')', fn.col, labelId, -28, -8);
           }
         }
 
@@ -611,11 +689,9 @@
                   if (isFinite(ey)) {
                     const px = this.xs(ex), py = this.ys(ey);
                     if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                      const label = der(ex - 0.01) > 0 ? 'Max' : 'Min';
-                      g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', fn.col).attr('stroke', '#fff');
-                      g.append('text').attr('x', px + 5).attr('y', py - 4)
-                        .attr('font-size', 9.5).attr('fill', fn.col).attr('font-weight', '600')
-                        .text(label + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')');
+                      const labelText = (der(ex - 0.01) > 0 ? 'Max' : 'Min') + '(' + this.fmt(ex) + '|' + this.fmt(ey) + ')';
+                      const labelId = `ext_${fn.id}_${ex.toFixed(3)}`;
+                      this._renderSmartLabel(g, px, py, labelText, fn.col, labelId, 0, -14);
                     }
                   }
                 }
@@ -640,10 +716,8 @@
                   if (isFinite(wy)) {
                     const px = this.xs(wx), py = this.ys(wy);
                     if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                      g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', '#9C27B0').attr('stroke', '#fff');
-                      g.append('text').attr('x', px + 5).attr('y', py - 4)
-                        .attr('font-size', 9.5).attr('fill', '#9C27B0').attr('font-weight', '600')
-                        .text('W(' + this.fmt(wx) + '|' + this.fmt(wy) + ')');
+                      const labelId = `wende_${fn.id}_${wx.toFixed(3)}`;
+                      this._renderSmartLabel(g, px, py, 'W(' + this.fmt(wx) + '|' + this.fmt(wy) + ')', '#9C27B0', labelId, 14, 14);
                     }
                   }
                 }
@@ -673,10 +747,8 @@
                 if (isFinite(iy)) {
                   const px = this.xs(ix), py = this.ys(iy);
                   if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
-                    g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3.5).attr('fill', '#444').attr('stroke', '#fff');
-                    g.append('text').attr('x', px + 5).attr('y', py - 4)
-                      .attr('font-size', 9.5).attr('fill', '#444').attr('font-weight', '600')
-                      .text('S(' + this.fmt(ix) + '|' + this.fmt(iy) + ')');
+                    const labelId = `isect_${vis[i].id}_${vis[j].id}_${ix.toFixed(3)}`;
+                    this._renderSmartLabel(g, px, py, 'S(' + this.fmt(ix) + '|' + this.fmt(iy) + ')', '#444444', labelId, 14, -14);
                   }
                 }
               }
