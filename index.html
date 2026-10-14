@@ -2,13 +2,15 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plotoria</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/nerdamer.core.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/Algebra.js"></script>
   <script src="https://unpkg.com/nerdamer@1.1.13/Calculus.js"></script>
@@ -19,6 +21,25 @@
     <header>
       <h1>Plotoria</h1>
       <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
+      <select id="examples" class="header-select" title="Beispiele">
+        <option value="">Beispiele…</option>
+        <option value="x^3 - 2x">Polynom 3. Grades</option>
+        <option value="sin(x)">Sinuskurve</option>
+        <option value="exp(-x^2)">Gaußsche Glockenkurve</option>
+        <option value="1/x">Gebrochen-rational</option>
+        <option value="a*x^2 + b*x + c">Parabel mit Parametern</option>
+        <option value="a*sin(b*(x - c)) + d">Allgemeine Sinusfunktion</option>
+        <option value="(x^2 - 1)/(x - 2)">Polstelle &amp; schiefe Asymptote</option>
+        <option value="ln(x)">Logarithmus</option>
+        <option value="2^x">Exponentialfunktion</option>
+        <option value="|x - 1| - 2">Betragsfunktion</option>
+      </select>
+      <div class="header-buttons">
+        <button id="angle-mode" class="header-btn" title="Winkelmaß umschalten (Bogenmaß / Gradmaß)">RAD</button>
+        <button id="undo-btn" class="header-btn" title="Rückgängig (Strg+Z)"><i class="fas fa-undo"></i></button>
+        <button id="redo-btn" class="header-btn" title="Wiederholen (Strg+Y)"><i class="fas fa-redo"></i></button>
+        <button id="help-btn" class="header-btn" title="Hilfe &amp; Tastenkürzel (?)"><i class="fas fa-question"></i></button>
+      </div>
       <span class="header-author">Tobias Schmidbauer</span>
     </header>
 
@@ -27,17 +48,23 @@
         <svg id="graph-container" width="100%" height="100%"></svg>
         <div id="coord-display" class="coord-display"></div>
         <div class="graph-overlay">
-          <button id="reset-view" title="Zurücksetzen">
+          <button id="reset-view" title="Ansicht zurücksetzen (Pos1)">
             <i class="fas fa-home"></i>
           </button>
-          <button id="select-rect" title="Bereich auswählen">
+          <button id="select-rect" title="Bereich auswählen (für Export, Doppelklick zoomt hinein)">
             <i class="fas fa-crop-alt"></i>
           </button>
-          <button id="tangent-btn" title="Tangente">
+          <button id="tangent-btn" title="Tangente &amp; Normale">
             <i class="fas fa-chart-line"></i>
           </button>
           <button id="close-integral" title="Integral schließen" class="integral-close-btn" style="display:none">
             <i class="fas fa-times"></i>
+          </button>
+          <button id="copy-image" title="Bild in die Zwischenablage kopieren">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button id="share-link" title="Link zum Teilen kopieren">
+            <i class="fas fa-share-alt"></i>
           </button>
           <button id="svg-export" title="SVG exportieren">
             <i class="fas fa-download"></i>
@@ -48,6 +75,7 @@
       <div id="algebra-panel">
         <div class="tab-bar">
           <button class="tab active" data-tab="algebra">Algebra</button>
+          <button class="tab" data-tab="table">Tabelle</button>
           <button class="tab" data-tab="view">Ansicht</button>
           <button class="tab" data-tab="export">Export</button>
         </div>
@@ -58,13 +86,15 @@
               <div class="input-row">
                 <div class="input-field">
                   <input type="text" id="func-input"
-                         placeholder='z.B. x^2  oder  f(x) = sin(x)'
+                         placeholder="z.B. x^2  oder  f(x) = sin(x)"
                          autocomplete="off" spellcheck="false">
                 </div>
                 <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzufügen">
                   <i class="fas fa-plus"></i>
                 </button>
               </div>
+              <div id="input-error" class="input-error"></div>
+              <div id="input-preview" class="input-preview"></div>
 
               <div id="param-section" class="param-section">
                 <div class="section-label">Parameter</div>
@@ -78,10 +108,10 @@
 
               <div class="section-label">
                 <span>Funktionen</span>
-                <label class="smart-toggle">
+                <label class="smart-toggle" title="Nullstellen, Extrema, Wendepunkte und Schnittpunkte anzeigen">
                   <input type="checkbox" id="smart-labels">
                   <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  <span class="toggle-text">Smart Labels</span>
+                  <span class="toggle-text">Kurvendiskussion</span>
                 </label>
               </div>
               <div class="func-list" id="func-list"></div>
@@ -89,6 +119,29 @@
                 Noch keine Funktionen<br>
                 <small>Gib oben einen Term ein und drücke Enter</small>
               </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="tab-table">
+            <div class="panel-scroll">
+              <div class="section-label">Wertetabelle</div>
+              <div class="setting-row">
+                <label>x von</label>
+                <div class="interval-inputs">
+                  <input type="number" id="tbl-start" value="-5" step="1">
+                  <span>bis</span>
+                  <input type="number" id="tbl-end" value="5" step="1">
+                </div>
+              </div>
+              <div class="setting-row">
+                <label>Schrittweite</label>
+                <input type="number" id="tbl-step" value="1" step="0.1" min="0" class="setting-text">
+              </div>
+              <div class="tool-group" style="margin-top:8px">
+                <button class="btn btn-primary btn-small" id="tbl-generate"><i class="fas fa-table"></i> Tabelle generieren</button>
+                <button class="btn btn-outline btn-small" id="tbl-csv"><i class="fas fa-file-csv"></i> CSV Export</button>
+              </div>
+              <div id="value-table" class="value-table"></div>
             </div>
           </div>
 
@@ -113,7 +166,7 @@
               </div>
               <div class="setting-row">
                 <label>Proportional</label>
-                <label class="toggle-switch">
+                <label class="toggle-switch" title="Gleiche Einheit auf x- und y-Achse">
                   <input type="checkbox" id="set-proportional">
                   <span class="toggle-track"><span class="toggle-thumb"></span></span>
                 </label>
@@ -130,7 +183,7 @@
               <div class="section-label">Darstellung</div>
               <div class="setting-row">
                 <label>Farbthema</label>
-                <select id="theme-select" style="flex:1;padding:5px 6px;border:0.5px solid var(--separator);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer">
+                <select id="theme-select" class="setting-select">
                   <option value="standard">Standard</option>
                   <option value="projektor">Projektor (Kontrast)</option>
                   <option value="dunkel">Dunkel</option>
@@ -150,12 +203,13 @@
               </div>
               <div class="setting-row">
                 <label>Schriftgröße</label>
-                <input type="range" id="set-font-size" min="10" max="28" step="1" value="16">
+                <input type="range" id="set-font-size" min="10" max="28" step="1" value="14">
               </div>
               <div class="setting-row">
                 <label>Rasterschritt</label>
-                <input type="number" id="set-grid-step" value="1" step="0.5" min="0.5">
+                <input type="number" id="set-grid-step" value="1" step="0.5" min="0" title="0 = automatisch">
               </div>
+              <div class="setting-hint">Rasterschritt 0 = automatisch passend zum Zoom</div>
               <div class="setting-row">
                 <label>Rasterfarbe</label>
                 <input type="color" id="set-grid-color" value="#D2D2D2">
@@ -174,7 +228,17 @@
                 <button class="btn btn-outline btn-small" id="svg-export-top">
                   <i class="fas fa-image"></i> SVG
                 </button>
+                <button class="btn btn-outline btn-small" id="png-export">
+                  <i class="fas fa-file-image"></i> PNG
+                </button>
+                <button class="btn btn-outline btn-small" id="copy-image-top">
+                  <i class="fas fa-copy"></i> Bild kopieren
+                </button>
+                <button class="btn btn-outline btn-small" id="share-link-top">
+                  <i class="fas fa-share-alt"></i> Link teilen
+                </button>
               </div>
+              <div class="setting-hint">Ist im Graphen ein Bereich ausgewählt, wird nur dieser exportiert.</div>
 
               <div class="section-label" style="margin-top:16px">TikZ importieren</div>
               <div class="input-field">
@@ -188,6 +252,32 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <div id="help-modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <button class="modal-close" id="help-close" title="Schließen (Esc)">&#x2715;</button>
+      <h2 id="help-title">Hilfe &amp; Tastenkürzel</h2>
+      <h3>Eingabe</h3>
+      <table>
+        <tr><td><code>x^2 - 4</code>, <code>2x(x+1)</code></td><td>Terme, Malpunkt darf fehlen</td></tr>
+        <tr><td><code>f(x) = sin(x)</code></td><td>Funktion mit Namen (überschreibt vorhandenes f)</td></tr>
+        <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
+        <tr><td><code>g(x) = f(x - 2) + 1</code></td><td>Andere Funktionen verwenden</td></tr>
+        <tr><td><code>a*x^2 + b</code></td><td>Unbekannte Buchstaben werden Parameter</td></tr>
+        <tr><td><code>sqrt</code> <code>abs</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>exp</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
+        <tr><td><code>pi</code>, <code>π</code>, <code>e</code></td><td>Konstanten</td></tr>
+        <tr><td><code>0,5x</code>, <code>\frac{1}{x}</code></td><td>Dezimalkomma und einfaches LaTeX</td></tr>
+      </table>
+      <h3>Tastenkürzel</h3>
+      <table>
+        <tr><td><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>Strg</kbd>+<kbd>Y</kbd></td><td>Rückgängig / Wiederholen</td></tr>
+        <tr><td><kbd>Pos1</kbd></td><td>Ansicht zurücksetzen</td></tr>
+        <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Hinein- / Herauszoomen</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Diese Hilfe</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Werkzeug / Dialog beenden</td></tr>
+      </table>
+    </div>
   </div>
 
   <script src="js/math-parser.js"></script>

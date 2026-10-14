@@ -1,0 +1,12 @@
+{
+  "name": "plotoria",
+  "private": true,
+  "description": "Webbasierter Funktionsplotter",
+  "license": "CC-BY-NC-4.0",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "nerdamer": "1.1.13"
+  }
+}

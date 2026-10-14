@@ -8,21 +8,37 @@ Plotoria ist ein interaktiver, hochperformanter Funktionsplotter mit integrierte
 
 ## 📚 Dokumentation & Anleitungen
 
-* 📘 **[Vollständige Bedienungsanleitung & Tipps (ANLEITUNG.md)](file:///run/media/tobias/Media2/Plotoria/ANLEITUNG.md)**: Detaillierte Schritt-für-Schritt-Anleitung für alle Funktionen, didaktische Tipps & Tricks, Tastaturkürzel und Exporte.
-* 🤖 **[KI-Entwicklung & Antigravity Collaboration (AI_DEVELOPMENT.md)](file:///run/media/tobias/Media2/Plotoria/AI_DEVELOPMENT.md)**: Dokumentation der gemeinsamen Mensch-KI-Entwicklung mit Google Antigravity AI.
+* 📘 **[Vollständige Bedienungsanleitung & Tipps (ANLEITUNG.md)](ANLEITUNG.md)**: Detaillierte Schritt-für-Schritt-Anleitung für alle Funktionen, didaktische Tipps & Tricks, Tastaturkürzel und Exporte.
+* 🤖 **[KI-Entwicklung & Antigravity Collaboration (AI_DEVELOPMENT.md)](AI_DEVELOPMENT.md)**: Dokumentation der gemeinsamen Mensch-KI-Entwicklung mit Google Antigravity AI.
 
 ---
 
 ## ✨ Hauptfunktionen
 
-* ⚡ **60 FPS Performance Engine:** Blitzschnelle Auswertung dank Vorkompilierung mathematischer Ausdrücke.
-* 📐 **Vollständige Kurvendiskussion:** Automatische Berechnung & Beschriftung von Nullstellen ($N$), $y$-Abschnitt ($S_y$), Extrema ($Max/Min$), Wendepunkten ($W$) und Schnittpunkten ($S$).
-* 🖱️ **Draggable Smart Labels:** Verschiebbare Beschriftungen mit gestrichelten Verbindungslinien per Drag & Drop.
-* 📊 **Wertetabelle & CSV-Export:** Interaktive Tabellenanzeige mit anpassbarem Bereich und CSV-Download.
-* 🎛️ **Parameter-Schieberegler & Animation:** Variablen ($a, b, c$) in Echtzeit anpassen oder automatisch schwingen lassen.
-* 🎨 **LaTeX KaTeX Formelsatz:** Schöne mathematische Formeldarstellung im Algebra-Panel.
+* ⚡ **Schnelle Auswertung:** Eigener Ausdrucks-Compiler übersetzt Terme in JavaScript – flüssiges Zoomen und Verschieben.
+* 📐 **Kurvendiskussion:** Automatische Berechnung & Beschriftung von Nullstellen ($N$), $y$-Abschnitt ($S_y$), Hoch-/Tiefpunkten ($H$/$T$), Wendepunkten ($W$) und Schnittpunkten ($S$).
+* 🖱️ **Verschiebbare Beschriftungen:** Punkt- und Graphbeschriftungen per Drag & Drop, mit gestrichelter Verbindungslinie.
+* ✏️ **Ableitungen & Verknüpfungen:** `f'` / `f''` werden symbolisch berechnet und automatisch mitgeführt; `g(x) = f(x-2) + 1` greift auf andere Funktionen zu.
+* 📈 **Tangente, Normale, Integral:** Live-Tangente mit Steigungsdreieck, Normale, orientiertes Integral und Flächeninhalt (Simpson-Regel).
+* 📊 **Wertetabelle & CSV-Export:** Tabellen mit frei wählbarem Bereich, CSV mit Semikolon und Dezimalkomma (für deutsches Excel/LibreOffice).
+* 🎛️ **Parameter-Schieberegler & Animation:** Unbekannte Buchstaben ($a, b, c$) werden automatisch zu Parametern; per Play-Button schwingen sie.
+* 🎨 **KaTeX-Formelsatz:** Formeldarstellung im Algebra-Panel und Live-Vorschau beim Tippen.
 * 🔄 **RAD / DEG Modus:** Umschaltung zwischen Bogen- und Gradmaß per Klick.
-* 📤 **Vielseitige Exporte:** PNG-Bild, Zwischenablage, SVG, TikZ-Code für LaTeX und Teilen per URL-State.
+* ↩️ **Rückgängig / Wiederholen & Autospeichern:** Der Arbeitsstand bleibt nach einem Neuladen erhalten.
+* 📤 **Exporte:** PNG, Bild in die Zwischenablage, SVG, TikZ/pgfplots (inkl. Import) und Teilen per Link.
+
+---
+
+## 🚀 Starten & Entwickeln
+
+Plotoria ist eine statische Webseite ohne Build-Schritt: `index.html` im Browser öffnen oder einen beliebigen Webserver im Projektordner starten, z. B. `python3 -m http.server 8080`.
+
+Tests für den Ausdrucks-Parser (Node.js ≥ 18):
+
+```bash
+npm install   # installiert nerdamer für die Ableitungstests
+npm test
+```
 
 ---
 
@@ -30,7 +46,7 @@ Plotoria ist ein interaktiver, hochperformanter Funktionsplotter mit integrierte
 
 Dieses Werk ist unter der **[Creative Commons Namensnennung - Nicht-kommerziell 4.0 International Lizenz (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.de)** lizenziert.
 
-Die Lizenzbestimmungen sind in der Datei **[LICENSE](file:///run/media/tobias/Media2/Plotoria/LICENSE)** hinterlegt.
+Die Lizenzbestimmungen sind in der Datei **[LICENSE](LICENSE)** hinterlegt.
 
 ### 📜 Lizenz-Statuten im Überblick:
 * **Namensnennung (BY):** Sie müssen angemessene Urheber- und Rechteangaben machen (Urheber: **Tobias Schmidbauer**), einen Link zur Lizenz beifügen und angeben, ob Änderungen vorgenommen wurden.
