@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## Version 2.0.2
+- **Absturz beim Tangenten-Werkzeug behoben:** Nahe Polstellen und an Hoch-/Tiefpunkten entstanden Linien mit Koordinaten von bis zu 10¹⁴ Pixeln, an denen Browser abstürzten bzw. die Seite neu luden. Tangente und Normale werden jetzt auf den sichtbaren Bereich zugeschnitten.
+- Gleiche Absicherung für Integralgrenzen, schiefe Asymptoten, Pfeile und senkrechte Geraden beim starken Zoomen.
+
 ## Version 2.0.1
 - **Speichern nur mit Zustimmung:** Bei jedem Start fragt ein Hinweis der Seite, ob Arbeitsstand, Druckbogen und Offline-Dateien lokal gespeichert werden dürfen. Vor der Entscheidung wird nichts gelesen oder gespeichert; „Ablehnen“ löscht vorhandene Plotoria-Daten.
 - Lizenzhinweise der mitgelieferten Bibliotheken ergänzt.

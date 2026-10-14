@@ -1654,11 +1654,16 @@
           .attr('font-size', fs).attr('font-weight', '600').attr('fill', col)).text(s);
         a.v.forEach(xv => {
           const px = this.xs(xv);
+          if (px < this.PL || px > this.PR) return;
           line(px, this.PT, px, this.PB);
           label(px + 5, this.PT + fs + 4, 'x = ' + this.fmtPt(xv));
         });
         a.o.forEach(({ m, b }) => {
-          line(this.xs(x0), this.ys(m * x0 + b), this.xs(x1), this.ys(m * x1 + b));
+          const k = 1 + Math.abs(m), sx = Math.abs(this.xs(1) - this.xs(0)), sy = Math.abs(this.ys(0) - this.ys(1));
+          const xm = (x0 + x1) / 2;
+          const cl = this._clipLine(this.xs(xm), this.ys(m * xm + b), sx / k, -m * sy / k);
+          if (!cl) return;
+          line(...cl);
           const eq = m === 0 ? 'y = ' + this.fmtPt(b) : 'y = ' + (m === 1 ? '' : m === -1 ? '−' : this.fmtPt(m)) + 'x' + (b === 0 ? '' : (b > 0 ? ' + ' : ' − ') + this.fmtPt(Math.abs(b)));
           const ly = this.ys(m * x1 + b);
           label(this.xs(x1) - 6, clamp(ly + (m > 0 ? fs + 4 : -6), this.PT + fs, this.PB - 4), eq, 'end');
@@ -1801,47 +1806,92 @@
       this.repaint();
     },
 
+    // Gerade durch (px, py) mit Richtung (dx, dy) auf den sichtbaren Bereich zuschneiden.
+    // Verhindert riesige Pixelkoordinaten, an denen Browser abstürzen (z. B. Tangente an einer Polstelle).
+    _clipLine(px, py, dx, dy) {
+      const len = Math.hypot(dx, dy);
+      if (!isFinite(px) || !isFinite(py) || !(len > 0) || !isFinite(len)) return null;
+      dx /= len; dy /= len;
+      let t0 = -Infinity, t1 = Infinity;
+      const edge = (p, q) => {          // Liang-Barsky: p·t ≤ q
+        if (Math.abs(p) < 1e-15) return q >= 0;
+        const r = q / p;
+        if (p < 0) t0 = Math.max(t0, r); else t1 = Math.min(t1, r);
+        return true;
+      };
+      if (!edge(-dx, px - this.PL) || !edge(dx, this.PR - px) || !edge(-dy, py - this.PT) || !edge(dy, this.PB - py)) return null;
+      if (!(t0 <= t1) || !isFinite(t0) || !isFinite(t1)) return null;
+      return [px + t0 * dx, py + t0 * dy, px + t1 * dx, py + t1 * dy];
+    },
+
+    // Strecke auf den sichtbaren Bereich (plus Rand) zuschneiden; null, wenn sie außerhalb liegt
+    _clipSeg(x1, y1, x2, y2, margin = 20) {
+      if (![x1, y1, x2, y2].every(isFinite)) return null;
+      const dx = x2 - x1, dy = y2 - y1;
+      let t0 = 0, t1 = 1;
+      const L = this.PL - margin, R = this.PR + margin, T = this.PT - margin, B = this.PB + margin;
+      for (const [p, q] of [[-dx, x1 - L], [dx, R - x1], [-dy, y1 - T], [dy, B - y1]]) {
+        if (p === 0) { if (q < 0) return null; continue; }
+        const r = q / p;
+        if (p < 0) t0 = Math.max(t0, r); else t1 = Math.min(t1, r);
+        if (t0 > t1) return null;
+      }
+      return [x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy];
+    },
+
     paintTangent(g0, tg, preview) {
-      if (!tg || !isFinite(tg.y) || !isFinite(tg.m)) return;
+      if (!tg || !isFinite(tg.x) || !isFinite(tg.y) || !isFinite(tg.m)) return;
       const { x, y, m, col } = tg;
       const g = g0.append('g').attr('opacity', preview ? 0.75 : 1);
       const clip = g.append('g').attr('clip-path', this._clipUrl());
-      const [x0, x1] = this.xs.domain();
-      const line = (slope, isVertical) => {
-        if (isVertical) return [this.xs(x), this.PT, this.xs(x), this.PB];
-        return [this.xs(x0), this.ys(y + slope * (x0 - x)), this.xs(x1), this.ys(y + slope * (x1 - x))];
-      };
-      const [a1, b1, a2, b2] = line(m);
-      clip.append('line').attr('x1', a1).attr('y1', b1).attr('x2', a2).attr('y2', b2).attr('stroke', col).attr('stroke-width', 2).attr('stroke-dasharray', '8,4');
+      const px = this.xs(x), py = this.ys(y);
+      const W = this.PR - this.PL, H = this.PB - this.PT;
+      // Nur zeichnen, solange der Berührpunkt in der Nähe des sichtbaren Bereichs liegt
+      if (!(px > this.PL - 2 * W && px < this.PR + 2 * W && py > this.PT - 2 * H && py < this.PB + 2 * H)) return;
+      // Richtungen in Pixeln (y-Achse zeigt nach unten); durch (1 + |m|) teilen, damit nichts überläuft
+      const sx = Math.abs(this.xs(1) - this.xs(0)), sy = Math.abs(this.ys(0) - this.ys(1));
+      const k = 1 + Math.abs(m);
+      const tl = this._clipLine(px, py, sx / k, -m * sy / k);
+      if (tl) clip.append('line').attr('x1', tl[0]).attr('y1', tl[1]).attr('x2', tl[2]).attr('y2', tl[3])
+        .attr('stroke', col).attr('stroke-width', 2).attr('stroke-dasharray', '8,4');
       const flat = Math.abs(m) < 1e-12;
-      const [c1, d1, c2, d2] = line(flat ? 0 : -1 / m, flat);
-      clip.append('line').attr('x1', c1).attr('y1', d1).attr('x2', c2).attr('y2', d2).attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '2,4').attr('opacity', 0.8);
-      const ppu = Math.abs(this.xs(1) - this.xs(0));
+      const nl = this._clipLine(px, py, -m * sx / k, -sy / k);    // Normale: Richtung (−m, 1)
+      if (nl) clip.append('line').attr('x1', nl[0]).attr('y1', nl[1]).attr('x2', nl[2]).attr('y2', nl[3])
+        .attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '2,4').attr('opacity', 0.8);
+
+      const ppu = sx;
       const dxu = ppu >= 30 && ppu <= 300 ? 1 : niceStep(80 / ppu);
       const tx = x + dxu, ty = y + m * dxu;
       const ink = this._styleColors().axis;
       const bw = this._ctx().bw;
-      clip.append('polygon').attr('points', `${this.xs(x)},${this.ys(y)} ${this.xs(tx)},${this.ys(y)} ${this.xs(tx)},${this.ys(ty)}`)
-        .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.5 : 0.12).attr('stroke', ink).attr('stroke-width', 1.2);
       const fs = Math.max(11, this.style.fontSize * 0.8);
-      this._halo(clip.append('text').attr('x', this.xs(x + dxu / 2)).attr('y', this.ys(y) + (m > 0 ? fs + 2 : -6))
-        .attr('text-anchor', 'middle').attr('font-size', fs).attr('fill', ink).attr('font-weight', '500')).text('Δx = ' + fmtDE(dxu));
-      this._halo(clip.append('text').attr('x', this.xs(tx) + 6).attr('y', this.ys((y + ty) / 2) + 4)
-        .attr('font-size', fs).attr('fill', ink).attr('font-weight', '500')).text('Δy = ' + this.fmtPt(m * dxu));
-      g.append('circle').attr('cx', this.xs(x)).attr('cy', this.ys(y)).attr('r', 5).attr('fill', col).attr('stroke', 'white').attr('stroke-width', 1.5);
-      const lin = (k, d) => {
-        const ks = Math.abs(k - 1) < 1e-12 ? '' : Math.abs(k + 1) < 1e-12 ? '−' : this.fmtPt(k);
-        const xs = Math.abs(k) < 1e-12 ? '' : ks + 'x';
+      const qx = this.xs(tx), qy = this.ys(ty);
+      // Steigungsdreieck nur, wenn es nicht absurd groß wird
+      if (Math.abs(qy - py) <= 3 * H && Math.abs(qx - px) <= 3 * W) {
+        clip.append('polygon').attr('points', `${px},${py} ${qx},${py} ${qx},${qy}`)
+          .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.5 : 0.12).attr('stroke', ink).attr('stroke-width', 1.2);
+        this._halo(clip.append('text').attr('x', (px + qx) / 2).attr('y', py + (m > 0 ? fs + 2 : -6))
+          .attr('text-anchor', 'middle').attr('font-size', fs).attr('fill', ink).attr('font-weight', '500')).text('Δx = ' + fmtDE(dxu));
+        this._halo(clip.append('text').attr('x', qx + 6).attr('y', (py + qy) / 2 + 4)
+          .attr('font-size', fs).attr('fill', ink).attr('font-weight', '500')).text('Δy = ' + this.fmtPt(m * dxu));
+      }
+      if (px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB) {
+        g.append('circle').attr('cx', px).attr('cy', py).attr('r', 5).attr('fill', col).attr('stroke', 'white').attr('stroke-width', 1.5);
+      }
+      const lin = (kk, d) => {
+        const ks = Math.abs(kk - 1) < 1e-12 ? '' : Math.abs(kk + 1) < 1e-12 ? '−' : this.fmtPt(kk);
+        const xs = Math.abs(kk) < 1e-12 ? '' : ks + 'x';
         if (!xs) return 'y = ' + this.fmtPt(d);
         if (Math.abs(d) < 1e-12) return 'y = ' + xs;
         return 'y = ' + xs + (d > 0 ? ' + ' : ' − ') + this.fmtPt(Math.abs(d));
       };
       const lines = ['m = ' + this.fmtPt(m), 't: ' + lin(m, y - m * x), 'n: ' + (flat ? 'x = ' + this.fmtPt(x) : lin(-1 / m, y + x / m))];
-      const px = this.xs(x), py = this.ys(y);
-      const right = px < (this.PL + this.PR) / 2;
-      const tbox = this._halo(g.append('text').attr('x', px + (right ? 12 : -12)).attr('y', py - 12 - (lines.length - 1) * fs * 1.2)
+      // Gleichungen immer innerhalb der Zeichenfläche
+      const lx = clamp(px, this.PL + 8, this.PR - 8), ly = clamp(py, this.PT + fs * 3.6, this.PB - 8);
+      const right = lx < (this.PL + this.PR) / 2;
+      const tbox = this._halo(g.append('text').attr('x', lx + (right ? 12 : -12)).attr('y', ly - 12 - (lines.length - 1) * fs * 1.2)
         .attr('text-anchor', right ? 'start' : 'end').attr('font-size', fs).attr('fill', col).attr('font-weight', '650'));
-      lines.forEach((s, i) => tbox.append('tspan').attr('x', px + (right ? 12 : -12)).attr('dy', i ? fs * 1.2 : 0).text(s));
+      lines.forEach((t, i) => tbox.append('tspan').attr('x', lx + (right ? 12 : -12)).attr('dy', i ? fs * 1.2 : 0).text(t));
     },
 
     // ── Integral ──
@@ -1883,21 +1933,28 @@
       const xs = this.xs, ys = this.ys, bw = this._ctx().bw, col = this._col(fn);
       const g = this.root.append('g').attr('class', 'integral-group');
       const clip = g.append('g').attr('clip-path', this._clipUrl());
-      const N = 400, y0 = ys(0), H = this.PB - this.PT;
-      const pts = [[xs(a), y0]];
-      for (let i = 0; i <= N; i++) {
-        const x = a + (b - a) * i / N, y = fn.f(x);
-        pts.push([xs(x), isFinite(y) ? clamp(ys(y), this.PT - 2 * H, this.PB + 2 * H) : y0]);
+      const N = 400, H = this.PB - this.PT;
+      const y0 = clamp(ys(0), this.PT - 2 * H, this.PB + 2 * H);
+      // Fläche nur im sichtbaren Teil zeichnen (keine riesigen Koordinaten beim Zoomen)
+      const [d0, d1] = xs.domain();
+      const va = Math.max(a, d0 - (d1 - d0)), vb = Math.min(b, d1 + (d1 - d0));
+      if (vb > va) {
+        const pts = [[xs(va), y0]];
+        for (let i = 0; i <= N; i++) {
+          const x = va + (vb - va) * i / N, y = fn.f(x);
+          pts.push([xs(x), isFinite(y) ? clamp(ys(y), this.PT - 2 * H, this.PB + 2 * H) : y0]);
+        }
+        pts.push([xs(vb), y0]);
+        clip.append('path').attr('d', d3.line()(pts) + 'Z')
+          .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.6 : 0.22).attr('stroke', 'none');
       }
-      pts.push([xs(b), y0]);
-      clip.append('path').attr('d', d3.line()(pts) + 'Z')
-        .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.6 : 0.22).attr('stroke', 'none');
       const { value, area } = this._computeIntegral(fn.f, a, b);
       const pxA = xs(a), pxB = xs(b);
-      [pxA, pxB].forEach(px => clip.append('line').attr('x1', px).attr('y1', this.PT).attr('x2', px).attr('y2', this.PB)
-        .attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '6,4'));
+      const visA = pxA >= this.PL - 8 && pxA <= this.PR + 8, visB = pxB >= this.PL - 8 && pxB <= this.PR + 8;
+      [[pxA, visA], [pxB, visB]].forEach(([px, vis]) => { if (vis) clip.append('line').attr('x1', px).attr('y1', this.PT).attr('x2', px).attr('y2', this.PB)
+        .attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '6,4'); });
       const fs = Math.max(12, this.style.fontSize);
-      const midX = clamp((pxA + pxB) / 2, this.PL + 90, this.PR - 90);
+      const midX = clamp((clamp(pxA, this.PL, this.PR) + clamp(pxB, this.PL, this.PR)) / 2, this.PL + 90, this.PR - 90);
       const txt = this._halo(g.append('text').attr('x', midX).attr('y', this.PT + fs + 30)
         .attr('text-anchor', 'middle').attr('fill', col).attr('font-size', fs).attr('font-weight', '650'));
       if (isFinite(value)) {
@@ -1906,8 +1963,8 @@
       } else txt.text('Integral existiert nicht (Definitionslücke)');
       const lbl = (px, s) => this._halo(g.append('text').attr('x', px).attr('y', this.PB - 6).attr('text-anchor', 'middle')
         .attr('font-size', fs * 0.85).attr('font-weight', '600').attr('fill', col)).text(s);
-      lbl(pxA, 'a = ' + this.fmtPt(a));
-      lbl(pxB, 'b = ' + this.fmtPt(b));
+      if (visA) lbl(pxA, 'a = ' + this.fmtPt(a));
+      if (visB) lbl(pxB, 'b = ' + this.fmtPt(b));
       if (this.rc) return;
       const snap = (x) => { const s = this.ticks().x.step / 20; return Math.round(x / s) * s; };
       const handle = (px, key) => g.append('rect').attr('x', px - 8).attr('y', this.PT).attr('width', 16).attr('height', this.PB - this.PT)
@@ -1922,8 +1979,8 @@
             else this.integral.b = Math.max(x, this.integral.a + 1e-9);
             this.repaint();
           }));
-      handle(pxA, 'a');
-      handle(pxB, 'b');
+      if (visA) handle(pxA, 'a');
+      if (visB) handle(pxB, 'b');
     },
 
     // ══════════════════ Farbthemen ══════════════════
