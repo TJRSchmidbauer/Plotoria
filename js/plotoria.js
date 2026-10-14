@@ -74,7 +74,7 @@
   }
 
   window.Plotoria = {
-    VERSION, COLORS, CM, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf,
+    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf,
     fns: [], objs: [], datasets: [], ci: 0, nextId: 1,
     ...DEFAULT_VIEW,
     home: { ...DEFAULT_VIEW },
@@ -231,7 +231,7 @@
 
       document.addEventListener('keydown', (e) => this._onKey(e));
       document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
-      document.querySelectorAll('dialog.sheet').forEach(d => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+      document.querySelectorAll('dialog.sheet:not([data-no-dismiss])').forEach(d => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
       window.addEventListener('resize', () => { clearTimeout(this._rt); this._rt = setTimeout(() => this.resize(), 80); });
       if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (this.theme === 'auto') this.applyTheme('auto', { keepColors: true }); });
@@ -252,7 +252,8 @@
         this._syncControls();
         this.repaint();
         this.commit();
-        if (window.matchMedia && !window.matchMedia('(pointer: coarse)').matches) E.inp.focus();
+        if (this.askConsent) this.askConsent();
+        else if (window.matchMedia && !window.matchMedia('(pointer: coarse)').matches) E.inp.focus();
       });
     },
 
@@ -389,14 +390,20 @@
         if (m) {
           const json = new TextDecoder().decode(Uint8Array.from(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
           history.replaceState(null, '', location.pathname + location.search);
+          this._fromLink = true;
           return JSON.parse(json);
         }
       } catch (e) { setTimeout(() => this._toast('Link konnte nicht gelesen werden'), 500); }
+      // Gespeicherter Stand wird erst nach Zustimmung gelesen (siehe main.js)
+      return null;
+    },
+
+    // Gespeicherten Arbeitsstand lesen – nur nach Zustimmung aufrufen
+    _readStoredState() {
       try {
         const s = localStorage.getItem(STORAGE_KEY);
-        if (s) return JSON.parse(s);
-      } catch (e) { /* kein Speicher verfügbar */ }
-      return null;
+        return s ? JSON.parse(s) : null;
+      } catch (e) { return null; }
     },
 
     commit() {
@@ -433,6 +440,7 @@
     },
 
     _scheduleSave() {
+      if (!this.storageOK) return;   // ohne Zustimmung nichts auf dem Gerät speichern
       clearTimeout(this._st);
       this._st = setTimeout(() => {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.serialize())); } catch (e) { /* voll oder gesperrt */ }

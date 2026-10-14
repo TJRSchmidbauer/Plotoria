@@ -4,6 +4,7 @@
   const { esc, fmtDE, CM } = P;
   const $ = id => document.getElementById(id);
   const PRINT_KEY = 'plotoria-print-v1';
+  P.PRINT_KEY = PRINT_KEY;
   const MAX_CM = 60;
   const fmtCm = (v) => fmtDE(v, 1);
 
@@ -12,7 +13,6 @@
       this.exp = { format: 'png', sizeMode: 'scale', ux: 1, uy: 1, w: 12, h: 8, range: 'view', dpi: 300, title: false, labels: true, smart: false, bw: false, white: true, mark: false };
       this.printItems = [];
       this.printOpts = { header: true, heading: '', numbers: true };
-      try { const s = JSON.parse(localStorage.getItem(PRINT_KEY) || 'null'); if (s) { this.printItems = s.items || []; Object.assign(this.printOpts, s.opts || {}); } } catch (e) { /* leer */ }
 
       const E = this.els;
       Object.assign(E, {
@@ -297,8 +297,18 @@
       if (this.els.printSheet.open) this.renderPrint();
     },
 
+    // Gespeicherten Druckbogen lesen – nur nach Zustimmung aufrufen
+    _readStoredPrint() {
+      try {
+        const s = JSON.parse(localStorage.getItem(PRINT_KEY) || 'null');
+        if (s) { this.printItems = s.items || []; Object.assign(this.printOpts, s.opts || {}); }
+      } catch (e) { /* leer */ }
+      this._updatePrintCount();
+    },
+
     _savePrint() {
       this._updatePrintCount();
+      if (!this.storageOK) return;
       try { localStorage.setItem(PRINT_KEY, JSON.stringify({ items: this.printItems, opts: this.printOpts })); }
       catch (e) { this._toast('Druckbogen zu groß zum Zwischenspeichern – bitte bald drucken'); }
     },

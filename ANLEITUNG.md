@@ -106,7 +106,7 @@ Der TikZ-Code übernimmt Maßstab (`x=1cm, y=1cm`), Farben, Parameterwerte, Defi
 
 * **Vorlagen** (oben): 13 fertige Aufgabenformate, z. B. „Graph ablesen“, „Graphen zuordnen“, „Ableitungsgraph skizzieren“, „Steigungsdreieck“, „Sinus im Gradmaß“, „Wachstum (Sachaufgabe)“, „Messwerte & Ausgleichsgerade“. Eine Vorlage ersetzt die aktuelle Zeichnung – `Strg + Z` holt sie zurück.
 * **Sichern** (`Strg + S`) speichert eine `.plotoria`-Datei mit allem (auch dem Druckbogen) – ideal für ein Aufgabenarchiv. **Öffnen** (`Strg + O`) oder die Datei einfach ins Fenster ziehen.
-* Der aktuelle Stand wird außerdem automatisch im Browser gespeichert. **Teilen** (Symbol unten) kopiert einen Link mit der kompletten Zeichnung.
+* Wenn du beim Start „Speichern erlauben“ wählst, wird der aktuelle Stand außerdem automatisch im Browser gespeichert. Bei „Ablehnen“ wird nichts gespeichert – dann vor dem Schließen mit `Strg + S` als Datei sichern. **Teilen** (Symbol unten) kopiert einen Link mit der kompletten Zeichnung.
 
 ---
 

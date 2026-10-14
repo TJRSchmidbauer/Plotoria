@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## Version 2.0.1
+- **Speichern nur mit Zustimmung:** Bei jedem Start fragt ein Hinweis der Seite, ob Arbeitsstand, Druckbogen und Offline-Dateien lokal gespeichert werden dürfen. Vor der Entscheidung wird nichts gelesen oder gespeichert; „Ablehnen“ löscht vorhandene Plotoria-Daten.
+- Lizenzhinweise der mitgelieferten Bibliotheken ergänzt.
+
 ## Version 2.0 – Graphen für Arbeitsblätter und Prüfungen
 
 Plotoria 2.0 richtet sich an Lehrkräfte, die Graphen für Prüfungen erstellen, bearbeiten und druckfertig exportieren. Die Oberfläche folgt Apples Gestaltungsrichtlinien (Human Interface Guidelines).
