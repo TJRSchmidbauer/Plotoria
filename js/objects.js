@@ -232,11 +232,15 @@
       const ang = Math.atan2(y2 - y1, x2 - x1), hl = 8 + w * 2.2, hw = 4 + w * 1.2;
       const head = (x, y, an) => `${x},${y} ${x - hl * Math.cos(an) + hw * Math.sin(an)},${y - hl * Math.sin(an) - hw * Math.cos(an)} ${x - hl * Math.cos(an) - hw * Math.sin(an)},${y - hl * Math.sin(an) + hw * Math.cos(an)}`;
       const sx = dbl ? x1 + (hl - 1) * Math.cos(ang) : x1, sy = dbl ? y1 + (hl - 1) * Math.sin(ang) : y1;
+      // Nur den sichtbaren Teil zeichnen (riesige Koordinaten bringen Browser zum Absturz)
+      const shaft = this._clipSeg(sx, sy, x2 - (hl - 1) * Math.cos(ang), y2 - (hl - 1) * Math.sin(ang));
+      if (!shaft) return null;
       const grp = g.append('g').attr('opacity', preview ? 0.7 : 1);
-      grp.append('line').attr('x1', sx).attr('y1', sy).attr('x2', x2 - (hl - 1) * Math.cos(ang)).attr('y2', y2 - (hl - 1) * Math.sin(ang))
+      grp.append('line').attr('x1', shaft[0]).attr('y1', shaft[1]).attr('x2', shaft[2]).attr('y2', shaft[3])
         .attr('stroke', col).attr('stroke-width', w).attr('stroke-linecap', 'round');
-      grp.append('polygon').attr('points', head(x2, y2, ang)).attr('fill', col);
-      if (dbl) grp.append('polygon').attr('points', head(x1, y1, ang + Math.PI)).attr('fill', col);
+      const near = (x, y) => x > this.PL - 40 && x < this.PR + 40 && y > this.PT - 40 && y < this.PB + 40;
+      if (near(x2, y2)) grp.append('polygon').attr('points', head(x2, y2, ang)).attr('fill', col);
+      if (dbl && near(x1, y1)) grp.append('polygon').attr('points', head(x1, y1, ang + Math.PI)).attr('fill', col);
       return grp;
     },
 
@@ -255,6 +259,7 @@
         let el = null;
         if (o.type === 'vline') {
           const px = this.xs(pos.x);
+          if (px < this.PL - 10 || px > this.PR + 10) return;
           el = clip.append('g');
           el.append('line').attr('x1', px).attr('y1', this.PT).attr('x2', px).attr('y2', this.PB)
             .attr('stroke', col).attr('stroke-width', 2).attr('stroke-dasharray', o.dash === 'solid' ? null : '8,5');
@@ -278,13 +283,17 @@
             if (interactive) this._dragLabel(txt, (lx, ly) => { o.off = [lx - px, ly - py]; });
           }
         } else if (o.type === 'text') {
+          const tx = this.xs(o.x), ty = this.ys(o.y);
+          if (tx < this.PL - this.W || tx > this.PR + this.W || ty < this.PT - this.H || ty > this.PB + this.H) return;
           el = this._halo(g.append('text').attr('x', this.xs(o.x)).attr('y', this.ys(o.y))
             .attr('font-size', o.size || fs).attr('font-weight', o.bold ? '650' : '500').attr('fill', col));
           this._richText(el, o.text, o.size || fs, false);
           if (interactive) el.on('dblclick', (ev) => { ev.stopPropagation(); this._textEditor(this.xs(o.x), this.ys(o.y), o); });
         } else if (o.type === 'arrow') {
           el = this._drawArrow(g, o, col, o.width || 2, o.double);
-          el.append('line').attr('x1', this.xs(o.x1)).attr('y1', this.ys(o.y1)).attr('x2', this.xs(o.x2)).attr('y2', this.ys(o.y2))
+          if (!el) return;
+          const cs = this._clipSeg(this.xs(o.x1), this.ys(o.y1), this.xs(o.x2), this.ys(o.y2));
+          if (cs) el.append('line').attr('x1', cs[0]).attr('y1', cs[1]).attr('x2', cs[2]).attr('y2', cs[3])
             .attr('stroke', 'transparent').attr('stroke-width', 14);
         }
         if (!el || !interactive) return;
@@ -299,6 +308,8 @@
       if (o.type === 'point') s(g.append('circle').attr('cx', this.xs(pos.x)).attr('cy', this.ys(pos.y)).attr('r', 10));
       if (o.type === 'arrow') {
         [['x1', 'y1'], ['x2', 'y2']].forEach(([kx, ky]) => {
+          const hx = this.xs(o[kx]), hy = this.ys(o[ky]);
+          if (hx < this.PL - 20 || hx > this.PR + 20 || hy < this.PT - 20 || hy > this.PB + 20) return;
           const h = g.append('circle').attr('cx', this.xs(o[kx])).attr('cy', this.ys(o[ky])).attr('r', 6)
             .attr('fill', '#fff').attr('stroke', '#007AFF').attr('stroke-width', 2).attr('cursor', 'grab');
           h.call(d3.drag().container(this.svg.node())
