@@ -1,294 +1,400 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="auto">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Plotoria</title>
-  <meta name="description" content="Plotoria – webbasierter Funktionsplotter für Schule und Studium: Kurvendiskussion, Wertetabelle, Parameter, Tangente, Integral und Export als PNG, SVG oder TikZ.">
-  <meta name="theme-color" content="#0066DD">
+  <meta name="description" content="Plotoria – Funktionsplotter für Schule und Unterricht: Graphen für Prüfungen erstellen, maßstabsgetreu exportieren (PNG, SVG, TikZ, PDF), Kurvendiskussion, Wertetabellen und Messwerte.">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Plotoria">
   <meta property="og:title" content="Plotoria – Funktionsplotter">
-  <meta property="og:description" content="Funktionen zeichnen, untersuchen und als PNG, SVG oder TikZ exportieren – direkt im Browser.">
+  <meta property="og:description" content="Graphen für Arbeitsblätter und Prüfungen erstellen und maßstabsgetreu exportieren – direkt im Browser, auch offline.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://tjrschmidbauer.github.io/Plotoria/">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230066DD'/%3E%3Cpath d='M6 26H27M6 26V5' stroke='white' stroke-width='2'/%3E%3Cpath d='M7 22C12 22 12 8 17 8S22 20 27 12' fill='none' stroke='%23FFD60A' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-  <script src="https://unpkg.com/nerdamer@1.1.13/nerdamer.core.js"></script>
-  <script src="https://unpkg.com/nerdamer@1.1.13/Algebra.js"></script>
-  <script src="https://unpkg.com/nerdamer@1.1.13/Calculus.js"></script>
-  <script src="https://unpkg.com/nerdamer@1.1.13/Solve.js"></script>
 </head>
 <body>
   <div id="app">
-    <header>
-      <h1>Plotoria</h1>
-      <input type="text" id="header-title" class="header-title" placeholder="Titel eingeben…" maxlength="100" value="">
-      <select id="examples" class="header-select" title="Beispiele">
-        <option value="">Beispiele…</option>
-        <option value="x^3 - 2x">Polynom 3. Grades</option>
-        <option value="sin(x)">Sinuskurve</option>
-        <option value="exp(-x^2)">Gaußsche Glockenkurve</option>
-        <option value="1/x">Gebrochen-rational</option>
-        <option value="a*x^2 + b*x + c">Parabel mit Parametern</option>
-        <option value="a*sin(b*(x - c)) + d">Allgemeine Sinusfunktion</option>
-        <option value="(x^2 - 1)/(x - 2)">Polstelle &amp; schiefe Asymptote</option>
-        <option value="ln(x)">Logarithmus</option>
-        <option value="2^x">Exponentialfunktion</option>
-        <option value="|x - 1| - 2">Betragsfunktion</option>
-      </select>
-      <div class="header-buttons">
-        <button id="angle-mode" class="header-btn" title="Winkelmaß umschalten (Bogenmaß / Gradmaß)">RAD</button>
-        <button id="undo-btn" class="header-btn" title="Rückgängig (Strg+Z)"><i class="fas fa-undo"></i></button>
-        <button id="redo-btn" class="header-btn" title="Wiederholen (Strg+Y)"><i class="fas fa-redo"></i></button>
-        <button id="help-btn" class="header-btn" title="Hilfe &amp; Tastenkürzel (?)"><i class="fas fa-question"></i></button>
+    <!-- ── Werkzeugleiste ── -->
+    <header class="toolbar">
+      <div class="toolbar-brand">
+        <img src="icons/icon.svg" alt="" class="brand-icon" width="26" height="26">
+        <span class="brand-name">Plotoria</span>
+        <span class="brand-version">2.0</span>
       </div>
-      <span class="header-author">Tobias Schmidbauer</span>
+      <input type="text" id="header-title" class="title-field" placeholder="Titel der Grafik" maxlength="100" aria-label="Titel der Grafik">
+      <div class="toolbar-spacer"></div>
+      <div class="toolbar-group">
+        <button class="tb-btn" id="templates-btn" title="Aufgabenvorlagen"><i data-icon="templates"></i><span class="tb-label">Vorlagen</span></button>
+        <button class="tb-btn" id="open-btn" title="Projekt öffnen (Strg+O)"><i data-icon="folder"></i></button>
+        <button class="tb-btn" id="save-btn" title="Projekt sichern (Strg+S)"><i data-icon="save"></i></button>
+      </div>
+      <div class="toolbar-group">
+        <button class="tb-btn" id="undo-btn" title="Rückgängig (Strg+Z)"><i data-icon="undo"></i></button>
+        <button class="tb-btn" id="redo-btn" title="Wiederholen (Strg+Y)"><i data-icon="redo"></i></button>
+      </div>
+      <div class="segmented segmented-sm" id="angle-seg" role="radiogroup" aria-label="Winkelmaß">
+        <button role="radio" data-value="rad" class="active" title="Bogenmaß">RAD</button>
+        <button role="radio" data-value="deg" title="Gradmaß">DEG</button>
+      </div>
+      <button class="tb-btn" id="help-btn" title="Hilfe &amp; Tastenkürzel (?)"><i data-icon="help"></i></button>
+      <button class="btn btn-filled" id="export-open" title="Exportieren &amp; Drucken (Strg+E)"><i data-icon="export"></i><span>Exportieren</span></button>
+      <input type="file" id="file-input" accept=".plotoria,.json,application/json" hidden>
     </header>
 
     <main>
-      <div id="graph-panel">
+      <!-- ── Zeichenfläche ── -->
+      <section id="graph-panel" aria-label="Koordinatensystem">
         <svg id="graph-container" width="100%" height="100%"></svg>
-        <div id="coord-display" class="coord-display"></div>
-        <div class="graph-overlay">
-          <button id="reset-view" title="Ansicht zurücksetzen (Pos1)">
-            <i class="fas fa-home"></i>
-          </button>
-          <button id="select-rect" title="Bereich auswählen (für Export, Doppelklick zoomt hinein)">
-            <i class="fas fa-crop-alt"></i>
-          </button>
-          <button id="tangent-btn" title="Tangente &amp; Normale">
-            <i class="fas fa-chart-line"></i>
-          </button>
-          <button id="close-integral" title="Integral schließen" class="integral-close-btn" style="display:none">
-            <i class="fas fa-times"></i>
-          </button>
-          <button id="copy-image" title="Bild in die Zwischenablage kopieren">
-            <i class="fas fa-copy"></i>
-          </button>
-          <button id="share-link" title="Link zum Teilen kopieren">
-            <i class="fas fa-share-alt"></i>
-          </button>
-          <button id="svg-export" title="SVG exportieren">
-            <i class="fas fa-download"></i>
-          </button>
+        <div id="coord-display" class="hud coord-display" aria-live="polite"></div>
+        <div id="tool-hint" class="hud tool-hint" hidden>
+          <span id="tool-hint-text"></span>
+          <button id="tool-hint-close" class="hud-close" title="Beenden (Esc)"><i data-icon="close"></i></button>
         </div>
-      </div>
+        <div class="tool-capsule" role="toolbar" aria-label="Werkzeuge">
+          <div class="segmented segmented-tools" id="tool-seg" role="radiogroup" aria-label="Werkzeug">
+            <button role="radio" data-tool="move" class="active" title="Verschieben &amp; Zoomen (V)"><i data-icon="move"></i></button>
+            <button role="radio" data-tool="point" title="Punkt setzen (P)"><i data-icon="point"></i></button>
+            <button role="radio" data-tool="text" title="Text einfügen (T)"><i data-icon="text"></i></button>
+            <button role="radio" data-tool="arrow" title="Pfeil zeichnen (A)"><i data-icon="arrow"></i></button>
+            <button role="radio" data-tool="select" title="Bereich auswählen (B)"><i data-icon="select"></i></button>
+            <button role="radio" data-tool="tangent" title="Tangente &amp; Normale (N)"><i data-icon="tangent"></i></button>
+          </div>
+          <span class="capsule-sep"></span>
+          <button class="cap-btn" id="zoom-out" title="Herauszoomen (−)"><i data-icon="minus"></i></button>
+          <button class="cap-btn" id="zoom-in" title="Hineinzoomen (+)"><i data-icon="plus"></i></button>
+          <button class="cap-btn" id="reset-view" title="Ansicht zurücksetzen (Pos1)"><i data-icon="home"></i></button>
+          <span class="capsule-sep"></span>
+          <button class="cap-btn" id="copy-image" title="Bild kopieren (für Word &amp; Co.)"><i data-icon="copy"></i></button>
+          <button class="cap-btn" id="share-link" title="Link zum Teilen kopieren"><i data-icon="share"></i></button>
+        </div>
+      </section>
 
-      <div id="algebra-panel">
-        <div class="tab-bar">
-          <button class="tab active" data-tab="algebra">Algebra</button>
-          <button class="tab" data-tab="table">Tabelle</button>
-          <button class="tab" data-tab="view">Ansicht</button>
-          <button class="tab" data-tab="export">Export</button>
+      <!-- ── Seitenleiste ── -->
+      <aside id="sidebar">
+        <div class="sidebar-head">
+          <div class="segmented" id="tab-seg" role="tablist">
+            <button role="tab" data-tab="algebra" class="active">Algebra</button>
+            <button role="tab" data-tab="data">Daten</button>
+            <button role="tab" data-tab="view">Darstellung</button>
+          </div>
         </div>
-        <div class="tab-content">
-          <div class="tab-pane active" id="tab-algebra">
-            <div class="panel-scroll">
-              <div class="section-label">Funktion eingeben</div>
+
+        <div class="sidebar-scroll">
+          <!-- Algebra -->
+          <div class="pane active" id="pane-algebra" role="tabpanel">
+            <div class="input-card">
               <div class="input-row">
-                <div class="input-field">
-                  <input type="text" id="func-input"
-                         placeholder="z.B. x^2  oder  f(x) = sin(x)"
-                         autocomplete="off" spellcheck="false">
-                </div>
-                <button class="btn btn-primary btn-icon" id="btn-add-top" title="Hinzufügen">
-                  <i class="fas fa-plus"></i>
-                </button>
+                <input type="text" id="func-input" class="field field-mono" placeholder="f(x) = x^2 – oder A(2|3), x = 1"
+                       autocomplete="off" spellcheck="false" aria-label="Eingabe">
+                <button class="btn-round" id="btn-add" title="Hinzufügen (Enter)"><i data-icon="plus"></i></button>
               </div>
-              <div id="input-error" class="input-error"></div>
+              <div id="input-error" class="input-error" role="alert"></div>
               <div id="input-preview" class="input-preview"></div>
+            </div>
 
-              <div id="param-section" class="param-section">
-                <div class="section-label">Parameter</div>
-                <div id="param-list" class="param-list"></div>
-                <div class="param-add-row">
-                  <input type="text" id="param-name-input" placeholder="z.B. a" class="param-name-inp" maxlength="1">
-                  <input type="number" id="param-value-input" value="1" step="0.1" class="param-val-inp">
-                  <button class="btn btn-outline btn-small" id="add-param">+</button>
+            <section class="group" id="param-group">
+              <div class="group-head">
+                <h3>Parameter</h3>
+                <button class="link-btn" id="param-add-toggle">Hinzufügen</button>
+              </div>
+              <div class="group-body">
+                <div id="param-list"></div>
+                <div class="param-add-row" id="param-add-row" hidden>
+                  <input type="text" id="param-name-input" class="field field-mono" placeholder="a" maxlength="1" aria-label="Name">
+                  <input type="number" id="param-value-input" class="field" value="1" step="0.1" aria-label="Wert">
+                  <button class="btn btn-tinted" id="add-param">Anlegen</button>
                 </div>
               </div>
+            </section>
 
-              <div class="section-label">
-                <span>Funktionen</span>
-                <label class="smart-toggle" title="Nullstellen, Extrema, Wendepunkte und Schnittpunkte anzeigen">
-                  <input type="checkbox" id="smart-labels">
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  <span class="toggle-text">Kurvendiskussion</span>
+            <section class="group">
+              <div class="group-head">
+                <h3>Funktionen</h3>
+                <label class="switch-label" title="Nullstellen, Extrema, Wendepunkte, Schnittpunkte">
+                  <span>Kurvendiskussion</span>
+                  <input type="checkbox" class="switch" id="smart-labels">
                 </label>
               </div>
-              <div class="func-list" id="func-list"></div>
+              <div class="group-body list" id="func-list"></div>
               <div class="empty-state" id="empty-state">
-                Noch keine Funktionen<br>
-                <small>Gib oben einen Term ein und drücke Enter</small>
+                <i data-icon="derive"></i>
+                <p>Noch keine Funktionen</p>
+                <small>Term eingeben und Enter drücken – oder eine <button class="link-btn" id="empty-templates">Vorlage</button> wählen.</small>
               </div>
-            </div>
+            </section>
+
+            <section class="group" id="obj-group" hidden>
+              <div class="group-head"><h3>Punkte &amp; Beschriftungen</h3></div>
+              <div class="group-body list" id="obj-list"></div>
+            </section>
+
+            <section class="group" id="data-group" hidden>
+              <div class="group-head"><h3>Messreihen</h3></div>
+              <div class="group-body list" id="data-list"></div>
+            </section>
           </div>
 
-          <div class="tab-pane" id="tab-table">
-            <div class="panel-scroll">
-              <div class="section-label">Wertetabelle</div>
-              <div class="setting-row">
-                <label>x von</label>
-                <div class="interval-inputs">
-                  <input type="number" id="tbl-start" value="-5" step="1">
-                  <span>bis</span>
-                  <input type="number" id="tbl-end" value="5" step="1">
-                </div>
+          <!-- Daten -->
+          <div class="pane" id="pane-data" role="tabpanel">
+            <section class="group">
+              <div class="group-head"><h3>Wertetabelle</h3></div>
+              <div class="group-body form">
+                <div class="row"><label for="tbl-start">x von</label>
+                  <div class="pair"><input type="number" id="tbl-start" class="field" value="-3" step="1"><span>bis</span><input type="number" id="tbl-end" class="field" value="3" step="1"></div></div>
+                <div class="row"><label for="tbl-step">Schrittweite</label><input type="number" id="tbl-step" class="field" value="1" step="0.1" min="0"></div>
+                <div class="row"><label>Ausrichtung</label>
+                  <div class="segmented segmented-sm" id="tbl-orient"><button data-value="h" class="active">Quer</button><button data-value="v">Hoch</button></div></div>
+                <div class="row"><label>Lücken</label>
+                  <div class="btn-row">
+                    <button class="btn btn-gray btn-sm" id="tbl-blank-all" title="Alle Funktionswerte leeren">Alle</button>
+                    <button class="btn btn-gray btn-sm" id="tbl-blank-rand" title="Etwa die Hälfte zufällig leeren">Zufällig</button>
+                    <button class="btn btn-gray btn-sm" id="tbl-blank-none" title="Alle Werte anzeigen">Keine</button>
+                  </div></div>
+                <p class="hint">Klick auf eine Zelle leert sie für Arbeitsblätter („Fülle die Tabelle aus“).</p>
               </div>
-              <div class="setting-row">
-                <label>Schrittweite</label>
-                <input type="number" id="tbl-step" value="1" step="0.1" min="0" class="setting-text">
-              </div>
-              <div class="tool-group" style="margin-top:8px">
-                <button class="btn btn-primary btn-small" id="tbl-generate"><i class="fas fa-table"></i> Tabelle generieren</button>
-                <button class="btn btn-outline btn-small" id="tbl-csv"><i class="fas fa-file-csv"></i> CSV Export</button>
-              </div>
-              <div id="value-table" class="value-table"></div>
+            </section>
+            <div id="value-table" class="value-table"></div>
+            <div class="btn-row btn-row-wrap">
+              <button class="btn btn-tinted btn-sm" id="tbl-word"><i data-icon="copy"></i>Für Word kopieren</button>
+              <button class="btn btn-tinted btn-sm" id="tbl-latex"><i data-icon="doc"></i>LaTeX</button>
+              <button class="btn btn-tinted btn-sm" id="tbl-csv"><i data-icon="table"></i>CSV</button>
+              <button class="btn btn-tinted btn-sm" id="tbl-print"><i data-icon="print"></i>Zum Druckbogen</button>
             </div>
+
+            <section class="group">
+              <div class="group-head"><h3>Messwerte</h3></div>
+              <div class="group-body form">
+                <textarea id="data-input" class="field field-mono" rows="5" placeholder="x;y – je Zeile ein Wertepaar&#10;0;1,2&#10;1;2,9&#10;2;5,1&#10;(aus Excel einfügen geht auch)"></textarea>
+                <div class="row"><label for="data-name">Name</label><input type="text" id="data-name" class="field" placeholder="Messreihe 1"></div>
+                <button class="btn btn-tinted" id="data-add"><i data-icon="data"></i>Als Messreihe übernehmen</button>
+              </div>
+            </section>
           </div>
 
-          <div class="tab-pane" id="tab-view">
-            <div class="panel-scroll">
-              <div class="section-label">Fenster</div>
-              <div class="setting-row">
-                <label>x-Achse</label>
-                <div class="interval-inputs">
-                  <input type="number" id="set-xmin" value="-4" step="1">
-                  <span>bis</span>
-                  <input type="number" id="set-xmax" value="5" step="1">
-                </div>
+          <!-- Darstellung -->
+          <div class="pane" id="pane-view" role="tabpanel">
+            <section class="group">
+              <div class="group-head"><h3>Fenster</h3></div>
+              <div class="group-body form">
+                <div class="row"><label>x</label><div class="pair"><input type="number" id="set-xmin" class="field" step="1"><span>bis</span><input type="number" id="set-xmax" class="field" step="1"></div></div>
+                <div class="row"><label>y</label><div class="pair"><input type="number" id="set-ymin" class="field" step="1"><span>bis</span><input type="number" id="set-ymax" class="field" step="1"></div></div>
+                <div class="row"><label for="set-proportional">Gleiche Einheiten</label><input type="checkbox" class="switch" id="set-proportional"></div>
               </div>
-              <div class="setting-row">
-                <label>y-Achse</label>
-                <div class="interval-inputs">
-                  <input type="number" id="set-ymin" value="-10" step="1">
-                  <span>bis</span>
-                  <input type="number" id="set-ymax" value="10" step="1">
-                </div>
-              </div>
-              <div class="setting-row">
-                <label>Proportional</label>
-                <label class="toggle-switch" title="Gleiche Einheit auf x- und y-Achse">
-                  <input type="checkbox" id="set-proportional">
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-              <div class="setting-row">
-                <label>x-Achse</label>
-                <input type="text" id="set-xlabel" value="x" class="setting-text">
-              </div>
-              <div class="setting-row">
-                <label>y-Achse</label>
-                <input type="text" id="set-ylabel" value="y" class="setting-text">
-              </div>
+            </section>
 
-              <div class="section-label">Darstellung</div>
-              <div class="setting-row">
-                <label>Farbthema</label>
-                <select id="theme-select" class="setting-select">
-                  <option value="standard">Standard</option>
-                  <option value="projektor">Projektor (Kontrast)</option>
-                  <option value="dunkel">Dunkel</option>
-                </select>
+            <section class="group">
+              <div class="group-head"><h3>Achsen</h3></div>
+              <div class="group-body form">
+                <div class="row"><label for="set-xlabel">x-Achse</label><input type="text" id="set-xlabel" class="field" placeholder="x – z. B. t in s"></div>
+                <div class="row"><label for="set-xstep">Schritt</label><input type="text" id="set-xstep" class="field field-mono" placeholder="auto – z. B. 2 oder pi/2"></div>
+                <div class="row"><label for="set-xfmt">Zahlen</label>
+                  <select id="set-xfmt" class="field"><option value="dec">Dezimal</option><option value="pi">Vielfache von π</option><option value="frac">Brüche</option></select></div>
+                <div class="row"><label for="set-ylabel">y-Achse</label><input type="text" id="set-ylabel" class="field" placeholder="y – z. B. h in m"></div>
+                <div class="row"><label for="set-ystep">Schritt</label><input type="text" id="set-ystep" class="field field-mono" placeholder="auto"></div>
+                <div class="row"><label for="set-yfmt">Zahlen</label>
+                  <select id="set-yfmt" class="field"><option value="dec">Dezimal</option><option value="pi">Vielfache von π</option><option value="frac">Brüche</option></select></div>
+                <div class="row"><label for="set-sub">Rasterlinien</label>
+                  <select id="set-sub" class="field"><option value="1">je Schritt</option><option value="2">2 je Schritt</option><option value="4">4 je Schritt</option><option value="5">5 je Schritt</option><option value="10">10 je Schritt</option></select></div>
               </div>
-              <div class="setting-row">
-                <label>Achsendicke</label>
-                <input type="range" id="set-axis-width" min="1" max="5" step="0.5" value="2">
-              </div>
-              <div class="setting-row">
-                <label>Achsenfarbe</label>
-                <input type="color" id="set-axis-color" value="#222222">
-              </div>
-              <div class="setting-row">
-                <label>Rasterdicke</label>
-                <input type="range" id="set-grid-width" min="0.5" max="4" step="0.5" value="1">
-              </div>
-              <div class="setting-row">
-                <label>Schriftgröße</label>
-                <input type="range" id="set-font-size" min="10" max="28" step="1" value="14">
-              </div>
-              <div class="setting-row">
-                <label>Rasterschritt</label>
-                <input type="number" id="set-grid-step" value="1" step="0.5" min="0" title="0 = automatisch">
-              </div>
-              <div class="setting-hint">Rasterschritt 0 = automatisch passend zum Zoom</div>
-              <div class="setting-row">
-                <label>Rasterfarbe</label>
-                <input type="color" id="set-grid-color" value="#D2D2D2">
-              </div>
-              <button class="btn btn-primary btn-small" id="apply-view" style="margin-top:12px">Übernehmen</button>
-            </div>
-          </div>
+            </section>
 
-          <div class="tab-pane" id="tab-export">
-            <div class="panel-scroll">
-              <div class="section-label">Export</div>
-              <div class="tool-group">
-                <button class="btn btn-outline btn-small" id="tikz-export">
-                  <i class="fas fa-code"></i> TikZ
-                </button>
-                <button class="btn btn-outline btn-small" id="svg-export-top">
-                  <i class="fas fa-image"></i> SVG
-                </button>
-                <button class="btn btn-outline btn-small" id="png-export">
-                  <i class="fas fa-file-image"></i> PNG
-                </button>
-                <button class="btn btn-outline btn-small" id="copy-image-top">
-                  <i class="fas fa-copy"></i> Bild kopieren
-                </button>
-                <button class="btn btn-outline btn-small" id="share-link-top">
-                  <i class="fas fa-share-alt"></i> Link teilen
-                </button>
+            <section class="group">
+              <div class="group-head"><h3>Raster</h3></div>
+              <div class="group-body form">
+                <div class="segmented" id="grid-mode"><button data-value="grid" class="active">Koordinaten</button><button data-value="karo">Karopapier</button><button data-value="none">Ohne</button></div>
+                <div class="row" id="karo-row" hidden><label for="set-karo">1 Einheit =</label>
+                  <select id="set-karo" class="field"><option value="1">1 Kästchen (0,5 cm)</option><option value="2" selected>2 Kästchen (1 cm)</option><option value="4">4 Kästchen (2 cm)</option></select></div>
+                <p class="hint" id="karo-hint" hidden>Kästchen sind 5 mm groß. Beim Export ist der Maßstab dadurch festgelegt.</p>
               </div>
-              <div class="setting-hint">Ist im Graphen ein Bereich ausgewählt, wird nur dieser exportiert.</div>
+            </section>
 
-              <div class="section-label" style="margin-top:16px">TikZ importieren</div>
-              <div class="input-field">
-                <textarea id="tikz-area" placeholder="TikZ-Code hier einfügen ..."></textarea>
+            <section class="group">
+              <div class="group-head"><h3>Stil</h3></div>
+              <div class="group-body form">
+                <div class="row"><label for="theme-select">Farbthema</label>
+                  <select id="theme-select" class="field"><option value="auto">Automatisch</option><option value="standard">Hell</option><option value="projektor">Projektor</option><option value="dunkel">Dunkel</option></select></div>
+                <div class="row"><label for="set-bw">Schwarz-Weiß</label><input type="checkbox" class="switch" id="set-bw"></div>
+                <div class="row"><label for="set-font-size">Schriftgröße</label><input type="range" id="set-font-size" min="10" max="28" step="1"></div>
+                <div class="row"><label for="set-axis-width">Achsen</label><input type="range" id="set-axis-width" min="1" max="5" step="0.5"></div>
+                <div class="row"><label for="set-grid-width">Raster</label><input type="range" id="set-grid-width" min="0.5" max="4" step="0.5"></div>
+                <div class="row"><label for="set-axis-color">Achsenfarbe</label><input type="color" id="set-axis-color" class="swatch"></div>
+                <div class="row"><label for="set-grid-color">Rasterfarbe</label><input type="color" id="set-grid-color" class="swatch"></div>
               </div>
-              <button class="btn btn-primary btn-small" id="tikz-import" style="margin-top:4px">
-                <i class="fas fa-play"></i> Importieren
-              </button>
-            </div>
+            </section>
+
+            <section class="group">
+              <div class="group-head"><h3>Kurvendiskussion</h3></div>
+              <div class="group-body form">
+                <div class="row"><label for="set-exact">Exakte Werte (√2, π/2, ⅓)</label><input type="checkbox" class="switch" id="set-exact"></div>
+              </div>
+            </section>
           </div>
         </div>
-      </div>
+      </aside>
     </main>
   </div>
 
-  <div id="help-modal" class="modal" hidden>
-    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
-      <button class="modal-close" id="help-close" title="Schließen (Esc)">&#x2715;</button>
-      <h2 id="help-title">Hilfe &amp; Tastenkürzel</h2>
+  <!-- ── Export-Sheet ── -->
+  <dialog class="sheet sheet-wide" id="export-sheet" aria-labelledby="export-title">
+    <div class="sheet-head">
+      <button class="link-btn" data-close>Abbrechen</button>
+      <h2 id="export-title">Exportieren</h2>
+      <button class="link-btn link-strong" id="exp-go">Sichern</button>
+    </div>
+    <div class="sheet-body export-layout">
+      <div class="export-preview">
+        <div class="preview-paper" id="exp-preview"></div>
+        <div class="preview-caption" id="exp-size"></div>
+      </div>
+      <div class="export-options">
+        <div class="segmented" id="exp-format">
+          <button data-value="png" class="active">PNG</button><button data-value="svg">SVG</button><button data-value="tikz">TikZ</button><button data-value="pdf">PDF</button>
+        </div>
+
+        <section class="group">
+          <div class="group-head"><h3>Größe</h3></div>
+          <div class="group-body form">
+            <div class="segmented segmented-sm" id="exp-size-mode"><button data-value="scale" class="active">Maßstab</button><button data-value="fixed">Breite × Höhe</button></div>
+            <div class="row" data-mode="scale"><label for="exp-ux">1 Einheit x =</label><div class="unit"><input type="number" id="exp-ux" class="field" value="1" step="0.1" min="0.05"><span>cm</span></div></div>
+            <div class="row" data-mode="scale"><label for="exp-uy">1 Einheit y =</label><div class="unit"><input type="number" id="exp-uy" class="field" value="1" step="0.1" min="0.05"><span>cm</span></div></div>
+            <div class="row" data-mode="fixed" hidden><label for="exp-w">Breite</label><div class="unit"><input type="number" id="exp-w" class="field" value="12" step="0.5" min="2"><span>cm</span></div></div>
+            <div class="row" data-mode="fixed" hidden><label for="exp-h">Höhe</label><div class="unit"><input type="number" id="exp-h" class="field" value="8" step="0.5" min="2"><span>cm</span></div></div>
+            <div class="row"><label for="exp-range">Bereich</label>
+              <select id="exp-range" class="field"><option value="view">Aktuelle Ansicht</option><option value="selection">Auswahl</option></select></div>
+            <div class="row" data-fmt="png"><label for="exp-dpi">Auflösung</label>
+              <select id="exp-dpi" class="field"><option value="150">150 dpi</option><option value="300" selected>300 dpi (Druck)</option><option value="600">600 dpi</option></select></div>
+          </div>
+        </section>
+
+        <section class="group">
+          <div class="group-head"><h3>Inhalt</h3></div>
+          <div class="group-body form">
+            <div class="row"><label for="exp-title">Titel</label><input type="checkbox" class="switch" id="exp-title"></div>
+            <div class="row"><label for="exp-labels">Graph-Beschriftungen</label><input type="checkbox" class="switch" id="exp-labels" checked></div>
+            <div class="row"><label for="exp-smart">Kurvendiskussion</label><input type="checkbox" class="switch" id="exp-smart"></div>
+            <div class="row"><label for="exp-bw">Schwarz-Weiß</label><input type="checkbox" class="switch" id="exp-bw"></div>
+            <div class="row"><label for="exp-white">Weißer Hintergrund</label><input type="checkbox" class="switch" id="exp-white" checked></div>
+            <div class="row"><label for="exp-mark">Wasserzeichen</label><input type="checkbox" class="switch" id="exp-mark"></div>
+          </div>
+        </section>
+
+        <div class="btn-row btn-row-wrap">
+          <button class="btn btn-tinted" id="exp-copy"><i data-icon="copy"></i>Kopieren</button>
+          <button class="btn btn-tinted" id="exp-to-print"><i data-icon="print"></i>Zum Druckbogen</button>
+          <button class="btn btn-gray" id="print-open"><i data-icon="doc"></i>Druckbogen öffnen <span class="badge" id="print-count"></span></button>
+        </div>
+
+        <details class="disclosure">
+          <summary>TikZ-Code importieren</summary>
+          <textarea id="tikz-area" class="field field-mono" rows="5" placeholder="\begin{axis} … \addplot {x^2}; …"></textarea>
+          <button class="btn btn-tinted btn-sm" id="tikz-import">Importieren</button>
+        </details>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Druckbogen-Sheet ── -->
+  <dialog class="sheet sheet-wide" id="print-sheet" aria-labelledby="print-title">
+    <div class="sheet-head">
+      <button class="link-btn" data-close>Fertig</button>
+      <h2 id="print-title">Druckbogen (DIN A4)</h2>
+      <button class="link-btn link-strong" id="print-go">Drucken / PDF</button>
+    </div>
+    <div class="sheet-body print-layout">
+      <div class="print-options">
+        <section class="group">
+          <div class="group-body form">
+            <div class="row"><label for="pr-header">Kopfzeile Name / Datum</label><input type="checkbox" class="switch" id="pr-header" checked></div>
+            <div class="row"><label for="pr-heading">Überschrift</label><input type="text" id="pr-heading" class="field" placeholder="z. B. Mathematik-Schulaufgabe"></div>
+            <div class="row"><label for="pr-numbers">Abbildungen nummerieren</label><input type="checkbox" class="switch" id="pr-numbers" checked></div>
+          </div>
+        </section>
+        <div class="list group-body" id="print-items"></div>
+        <p class="hint" id="print-empty">Noch leer. Im Export „Zum Druckbogen“ wählen, um Grafiken oder Tabellen zu sammeln.</p>
+        <button class="btn btn-gray btn-sm" id="print-clear">Alle entfernen</button>
+        <p class="hint">Tipp: Im Druckdialog „Als PDF sichern“ wählen und die Skalierung auf 100 % lassen – dann stimmen die Zentimeter.</p>
+      </div>
+      <div class="print-preview-wrap"><div class="a4" id="print-preview"></div></div>
+    </div>
+  </dialog>
+
+  <!-- ── Vorlagen-Sheet ── -->
+  <dialog class="sheet" id="templates-sheet" aria-labelledby="tpl-title">
+    <div class="sheet-head">
+      <button class="link-btn" data-close>Abbrechen</button>
+      <h2 id="tpl-title">Aufgabenvorlagen</h2>
+      <span></span>
+    </div>
+    <div class="sheet-body">
+      <p class="hint">Eine Vorlage ersetzt die aktuelle Zeichnung. Mit Rückgängig (Strg+Z) kommst du zurück.</p>
+      <div class="template-grid" id="template-grid"></div>
+    </div>
+  </dialog>
+
+  <!-- ── Hilfe-Sheet ── -->
+  <dialog class="sheet" id="help-modal" aria-labelledby="help-title">
+    <div class="sheet-head">
+      <span></span>
+      <h2 id="help-title">Hilfe</h2>
+      <button class="link-btn link-strong" data-close id="help-close">Fertig</button>
+    </div>
+    <div class="sheet-body help-body">
       <h3>Eingabe</h3>
       <table>
         <tr><td><code>x^2 - 4</code>, <code>2x(x+1)</code></td><td>Terme, Malpunkt darf fehlen</td></tr>
         <tr><td><code>f(x) = sin(x)</code></td><td>Funktion mit Namen (überschreibt vorhandenes f)</td></tr>
+        <tr><td><code>f(x) = x^2 für 0 ≤ x ≤ 3</code></td><td>Definitionsbereich (auch <code>x ∈ [0; 3[</code>, <code>, x > 1</code>)</td></tr>
         <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
         <tr><td><code>g(x) = f(x - 2) + 1</code></td><td>Andere Funktionen verwenden</td></tr>
+        <tr><td><code>A(2|3)</code>, <code>P(1|f(1))</code></td><td>Punkt (auch <code>A = (2; 3)</code>)</td></tr>
+        <tr><td><code>x = 2</code></td><td>Senkrechte Gerade</td></tr>
         <tr><td><code>a*x^2 + b</code></td><td>Unbekannte Buchstaben werden Parameter</td></tr>
-        <tr><td><code>sqrt</code> <code>abs</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>exp</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
-        <tr><td><code>pi</code>, <code>π</code>, <code>e</code></td><td>Konstanten</td></tr>
+        <tr><td><code>sqrt</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
+        <tr><td><code>pi</code>, <code>π</code>, <code>e</code>, <code>30°</code></td><td>Konstanten, Grad im Bogenmaß</td></tr>
         <tr><td><code>0,5x</code>, <code>\frac{1}{x}</code></td><td>Dezimalkomma und einfaches LaTeX</td></tr>
+      </table>
+      <h3>Werkzeuge</h3>
+      <table>
+        <tr><td><kbd>V</kbd> <kbd>P</kbd> <kbd>T</kbd> <kbd>A</kbd> <kbd>B</kbd> <kbd>N</kbd></td><td>Verschieben, Punkt, Text, Pfeil, Bereich, Tangente</td></tr>
+        <tr><td>Doppelklick auf Text</td><td>Text bearbeiten</td></tr>
+        <tr><td>Ziehen mit <kbd>Alt</kbd></td><td>Ohne Einrasten am Raster</td></tr>
       </table>
       <h3>Tastenkürzel</h3>
       <table>
         <tr><td><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>Strg</kbd>+<kbd>Y</kbd></td><td>Rückgängig / Wiederholen</td></tr>
-        <tr><td><kbd>Pos1</kbd></td><td>Ansicht zurücksetzen</td></tr>
-        <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Hinein- / Herauszoomen</td></tr>
-        <tr><td><kbd>?</kbd></td><td>Diese Hilfe</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>Werkzeug / Dialog beenden</td></tr>
+        <tr><td><kbd>Strg</kbd>+<kbd>S</kbd> / <kbd>Strg</kbd>+<kbd>O</kbd></td><td>Projekt sichern / öffnen</td></tr>
+        <tr><td><kbd>Strg</kbd>+<kbd>E</kbd> / <kbd>Strg</kbd>+<kbd>P</kbd></td><td>Exportieren / Druckbogen</td></tr>
+        <tr><td><kbd>Pos1</kbd>, <kbd>+</kbd> / <kbd>−</kbd></td><td>Ansicht zurücksetzen, Zoomen</td></tr>
+        <tr><td><kbd>Entf</kbd></td><td>Ausgewähltes Objekt löschen</td></tr>
+        <tr><td><kbd>?</kbd>, <kbd>Esc</kbd></td><td>Hilfe, Werkzeug / Dialog beenden</td></tr>
       </table>
+      <p class="hint">Plotoria 2.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
     </div>
-  </div>
+  </dialog>
 
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script src="vendor/d3.min.js"></script>
+  <script src="vendor/katex/katex.min.js"></script>
+  <script src="vendor/nerdamer/nerdamer.core.js"></script>
+  <script src="vendor/nerdamer/Algebra.js"></script>
+  <script src="vendor/nerdamer/Calculus.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/math-parser.js"></script>
+  <script src="js/numerics.js"></script>
   <script src="js/tikz.js"></script>
   <script src="js/plotoria.js"></script>
+  <script src="js/objects.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
