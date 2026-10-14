@@ -35,6 +35,13 @@ Plotoria kombiniert moderne Webtechnologien mit agentischer KI-Unterstützung:
 * **Neue bzw. vervollständigte Funktionen:** Wertetabelle mit CSV-Export, Wendepunkte, Parameter-Erkennung und -Animation, Ableitungen `f'`/`f''`, Funktionsverweise, RAD/DEG, Undo/Redo, Autospeichern, Teilen-Link, PNG-Export und Bild kopieren, Beispiele, Hilfe-Dialog, Tastenkürzel, KaTeX-Formelsatz, Touch-Bedienung.
 * **Tests:** `npm test` prüft den Parser (Node.js-Testrunner).
 
+### 📌 Version 2.0 – für Lehrkräfte und Prüfungen
+* Neue Oberfläche nach Apples Human Interface Guidelines (Systemschrift, Materialien, Segmented Controls, Sheets, Hell/Dunkel, Barrierefreiheit).
+* Maßstabsgetreuer Export (cm, PNG mit 300 dpi, SVG, TikZ), Druckbogen DIN A4 mit PDF, Schwarz-Weiß-Modus, Karopapier.
+* Punkte, Texte, Pfeile, senkrechte Geraden, Definitionsbereiche, Asymptoten, Beschriftungsmodi, freie Achsenskalierung.
+* Messwerte mit Regression, Wertetabelle mit Lücken, Projektdateien, Aufgabenvorlagen, exakte Werte, Offline-Betrieb (PWA).
+* Details: [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## 👨‍💻 Mitwirkende & Credits

@@ -1,46 +1,77 @@
-# 📈 Plotoria
+# 📈 Plotoria 2.0
 
-**Dein moderner, webbasierter Funktionsplotter für Schule, Studium und Wissenschaft!** ✨
+**Graphen für Arbeitsblätter und Prüfungen – maßstabsgetreu, druckfertig, auch offline.** ✨
 
-Plotoria ist ein interaktiver, hochperformanter Funktionsplotter mit integrierter Kurvendiskussion, KaTeX-Formelsatz, interaktiver Wertetabelle, Parameter-Animationen und TikZ/SVG/PNG-Export.
+Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrkräfte erstellen damit Graphen, bearbeiten sie (Beschriftungen, Punkte, Pfeile, Definitionsbereiche, Lückentabellen) und exportieren sie in exakter Größe für Word, LaTeX oder den Druck.
 
 ### 🌐 [Plotoria direkt im Browser öffnen](https://tjrschmidbauer.github.io/Plotoria/)
 
 ---
 
-## 📚 Dokumentation & Anleitungen
+## 📚 Dokumentation
 
-* 📘 **[Vollständige Bedienungsanleitung & Tipps (ANLEITUNG.md)](ANLEITUNG.md)**: Detaillierte Schritt-für-Schritt-Anleitung für alle Funktionen, didaktische Tipps & Tricks, Tastaturkürzel und Exporte.
-* 🤖 **[KI-Entwicklung & Antigravity Collaboration (AI_DEVELOPMENT.md)](AI_DEVELOPMENT.md)**: Dokumentation der gemeinsamen Mensch-KI-Entwicklung mit Google Antigravity AI.
+* 📘 **[Bedienungsanleitung & Tipps für den Unterricht (ANLEITUNG.md)](ANLEITUNG.md)**
+* 📝 **[Änderungsprotokoll (CHANGELOG.md)](CHANGELOG.md)** – was in Version 2.0 neu ist
+* 🤖 **[KI-Entwicklung (AI_DEVELOPMENT.md)](AI_DEVELOPMENT.md)**
 
 ---
 
 ## ✨ Hauptfunktionen
 
-* ⚡ **Schnelle Auswertung:** Eigener Ausdrucks-Compiler übersetzt Terme in JavaScript – flüssiges Zoomen und Verschieben.
-* 📐 **Kurvendiskussion:** Automatische Berechnung & Beschriftung von Nullstellen ($N$), $y$-Abschnitt ($S_y$), Hoch-/Tiefpunkten ($H$/$T$), Wendepunkten ($W$) und Schnittpunkten ($S$).
-* 🖱️ **Verschiebbare Beschriftungen:** Punkt- und Graphbeschriftungen per Drag & Drop, mit gestrichelter Verbindungslinie.
-* ✏️ **Ableitungen & Verknüpfungen:** `f'` / `f''` werden symbolisch berechnet und automatisch mitgeführt; `g(x) = f(x-2) + 1` greift auf andere Funktionen zu.
-* 📈 **Tangente, Normale, Integral:** Live-Tangente mit Steigungsdreieck, Normale, orientiertes Integral und Flächeninhalt (Simpson-Regel).
-* 📊 **Wertetabelle & CSV-Export:** Tabellen mit frei wählbarem Bereich, CSV mit Semikolon und Dezimalkomma (für deutsches Excel/LibreOffice).
-* 🎛️ **Parameter-Schieberegler & Animation:** Unbekannte Buchstaben ($a, b, c$) werden automatisch zu Parametern; per Play-Button schwingen sie.
-* 🎨 **KaTeX-Formelsatz:** Formeldarstellung im Algebra-Panel und Live-Vorschau beim Tippen.
-* 🔄 **RAD / DEG Modus:** Umschaltung zwischen Bogen- und Gradmaß per Klick.
-* ↩️ **Rückgängig / Wiederholen & Autospeichern:** Der Arbeitsstand bleibt nach einem Neuladen erhalten.
-* 📤 **Exporte:** PNG, Bild in die Zwischenablage, SVG, TikZ/pgfplots (inkl. Import) und Teilen per Link.
+### Für Prüfungen und Arbeitsblätter
+* 📏 **Maßstabsgetreuer Export:** „1 Einheit = 1 cm“ oder feste Größe in cm – als PNG (300 dpi, Word übernimmt die Größe), SVG, TikZ oder PDF.
+* 🖨️ **Druckbogen DIN A4:** Grafiken und Tabellen sammeln, mit Kopfzeile „Name / Klasse / Datum“ drucken oder als PDF sichern.
+* ⚫ **Schwarz-Weiß-Modus:** Strichmuster statt Farben, schraffierte Flächen – kopiertauglich.
+* 🟦 **Karopapier:** 5-mm-Kästchen mit festem Maßstab wie im Schulheft.
+* 🏷️ **Beschriftungen je Graph:** G_f, Funktionsterm, eigener Text (A, B, C …) oder keine.
+* 📍 **Punkte, Texte, Pfeile, senkrechte Geraden** – per Werkzeug oder Eingabe `A(2|3)`, `x = 2`.
+* ✂️ **Definitionsbereiche** (`f(x) = x² für 0 ≤ x < 3`) mit offenen/geschlossenen Randpunkten.
+* ↗️ **Asymptoten** senkrecht, waagrecht und schief.
+* 🔢 **Achsen frei skalieren:** Schritte wie `pi/2`, Vielfache von π, Brüche, Achsentitel mit Einheit.
+* 📊 **Messwerte & Regression** (linear, quadratisch, kubisch, exponentiell, Potenz) mit R².
+* 🧩 **Lückenhafte Wertetabelle** für Word, LaTeX, CSV und Druckbogen.
+* 🗂️ **Projektdateien (.plotoria)** und **13 Aufgabenvorlagen**.
+* √ **Exakte Werte** wie √2, π/2, 1/3 in der Kurvendiskussion.
+
+### Mathematik
+* 📐 **Kurvendiskussion:** Nullstellen, y-Abschnitt, Hoch-/Tiefpunkte, Wendepunkte, Schnittpunkte.
+* ✏️ **Ableitungen** `f'`, `f''` (symbolisch, werden mitgeführt) und Funktionsverweise `g(x) = f(x − 2) + 1`.
+* 📈 **Tangente & Normale** mit Steigungsdreieck, **Integral** und Flächeninhalt.
+* 🎛️ **Parameter** mit Schiebereglern und Animation; **RAD/DEG**.
+
+### Bedienung
+* 🍏 Gestaltung nach Apples Human Interface Guidelines, Hell- und Dunkelmodus automatisch.
+* ✈️ **Offline-fähig** und als App installierbar (PWA).
+* ↩️ Rückgängig/Wiederholen, Autospeichern, Teilen per Link.
 
 ---
 
 ## 🚀 Starten & Entwickeln
 
-Plotoria ist eine statische Webseite ohne Build-Schritt: `index.html` im Browser öffnen oder einen beliebigen Webserver im Projektordner starten, z. B. `python3 -m http.server 8080`.
+Plotoria ist eine statische Webseite ohne Build-Schritt. Alle Bibliotheken liegen im Ordner `vendor/`. `index.html` im Browser öffnen oder einen Webserver im Projektordner starten, z. B. `python3 -m http.server 8080` (der Offline-Modus funktioniert nur über http/https).
 
-Tests für den Ausdrucks-Parser (Node.js ≥ 18):
+Tests (Node.js ≥ 18):
 
 ```bash
 npm install   # installiert nerdamer für die Ableitungstests
 npm test
 ```
+
+Projektaufbau:
+
+| Datei | Inhalt |
+|---|---|
+| `js/math-parser.js` | Ausdrucks-Parser und -Compiler, Definitionen, TeX-/pgf-/Unicode-Ausgabe |
+| `js/numerics.js` | Exakte Werte, Regression, Messwerte, Asymptoten, PNG-Auflösung |
+| `js/plotoria.js` | Kern: Zustand, Funktionen, Zeichnen, Werkzeuge |
+| `js/objects.js` | Punkte, Texte, Pfeile, senkrechte Geraden |
+| `js/data.js` | Wertetabelle mit Lücken, Messreihen |
+| `js/export.js` | Export in cm, Druckbogen, Projektdateien |
+| `js/templates.js` | Aufgabenvorlagen |
+| `js/tikz.js` | TikZ-Export und -Import |
+| `sw.js`, `manifest.webmanifest` | Offline-Betrieb und App-Installation |
+
+Version 1.0 ist im Branch [`version/1.0`](https://github.com/TJRSchmidbauer/Plotoria/tree/version/1.0) gesichert.
 
 ---
 
