@@ -209,14 +209,17 @@
               <div class="group-head"><h3>Raster</h3></div>
               <div class="group-body form">
                 <div class="segmented" id="grid-mode"><button data-value="grid" class="active">Koordinaten</button><button data-value="karo">Karopapier</button><button data-value="none">Ohne</button></div>
-                <div class="row" id="karo-row" hidden><label for="set-karo">1 Einheit auf Papier</label>
+                <div class="row row-stack" id="karo-row" hidden>
+                  <label for="set-karo">Maßstab</label>
                   <select id="set-karo" class="field">
-                    <option value="1">0,5 cm = 1 Kästchen</option>
-                    <option value="2" selected>1 cm = 2 Kästchen</option>
-                    <option value="4">2 cm = 4 Kästchen</option>
-                  </select></div>
+                    <option value="1">1 Einheit = 1 Kästchen (0,5 cm)</option>
+                    <option value="2" selected>1 Einheit = 2 Kästchen (1 cm) – Standard</option>
+                    <option value="4">1 Einheit = 4 Kästchen (2 cm)</option>
+                  </select>
+                  <div class="karo-sketch" id="karo-sketch" aria-hidden="true"></div>
+                </div>
                 <div id="karo-hint" hidden>
-                  <p class="hint">Ein Kästchen ist auf Papier immer 5 mm groß. „1 Einheit“ ist der Abstand von 0 bis 1 auf der Achse. Am Bildschirm hängt die Größe vom Zoom ab.</p>
+                  <p class="hint">Wie im Schulheft: Ein Kästchen ist immer 5 mm groß. Die Einstellung legt fest, wie viele Kästchen von 0 bis 1 reichen – je mehr Kästchen, desto größer wird der Graph.</p>
                   <button class="link-btn" id="karo-actual">In Druckgröße anzeigen</button>
                 </div>
               </div>
