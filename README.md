@@ -4,6 +4,8 @@
 
 Plotoria ist ein interaktiver, hochperformanter Funktionsplotter mit integrierter Kurvendiskussion, KaTeX-Formelsatz, interaktiver Wertetabelle, Parameter-Animationen und TikZ/SVG/PNG-Export.
 
+### 🌐 [Plotoria direkt im Browser öffnen](https://tjrschmidbauer.github.io/Plotoria/)
+
 ---
 
 ## 📚 Dokumentation & Anleitungen

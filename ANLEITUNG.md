@@ -6,7 +6,7 @@ Willkommen zur offiziellen Benutzeranleitung von **Plotoria**, dem modernen, bro
 
 ## 🚀 Quick-Start
 
-1. Öffne Plotoria im Browser (z. B. unter [http://localhost:8080](http://localhost:8080) oder auf GitHub Pages).
+1. Öffne Plotoria im Browser unter [tjrschmidbauer.github.io/Plotoria](https://tjrschmidbauer.github.io/Plotoria/) oder lokal (z. B. `python3 -m http.server 8080` im Projektordner, dann [http://localhost:8080](http://localhost:8080)).
 2. Gib in der Algebra-Spalte oben im Eingabefeld eine Funktion ein, z. B. `x^2 - 4` oder `f(x) = sin(x)`.
 3. Drücke **Enter** oder klicke auf das **+ (Hinzufügen)**.
 4. Der Graph wird sofort in flüssigen 60 FPS gezeichnet.
