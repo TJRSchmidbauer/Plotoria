@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Version 2.0.4
+- **Karopapier-Maßstab eindeutig:** Auswahl „1 Einheit = 2 Kästchen (1 cm)“ usw. mit einer Skizze, die zeigt, wie viele 5-mm-Kästchen von 0 bis 1 reichen. Auf den Achsen hat jede Einheit einen Strich; die Zahlen stehen so dicht wie lesbar.
+
 ## Version 2.0.3
 - **Karopapier verständlicher:** Die Auswahl heißt jetzt „1 Einheit auf Papier“ und nennt zuerst die gedruckte Länge (z. B. „2 cm = 4 Kästchen“). Beim Wechsel auf Karopapier zeigt Plotoria die Kästchen am Bildschirm ungefähr in Druckgröße (5 mm); der Knopf „In Druckgröße anzeigen“ stellt das wieder her.
 - Auswahl „Rasterlinien“ zeigte bei „automatisch“ ein leeres Feld – behoben.

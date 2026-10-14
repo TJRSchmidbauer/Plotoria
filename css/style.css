@@ -558,6 +558,11 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 .template-card strong { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
 .template-card span { font-size: 11.5px; color: var(--label-2); line-height: 1.35; }
 
+/* Karopapier: Einstellung untereinander, mit Skizze */
+.row-stack { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 0; }
+.row-stack .field { max-width: none; }
+.karo-sketch svg { display: block; width: 100%; height: auto; }
+
 /* Hinweis zur Speicherung */
 dialog.consent-sheet { width: min(440px, calc(100vw - 32px)); }
 .consent-body { padding: 26px 26px 22px; text-align: left; }

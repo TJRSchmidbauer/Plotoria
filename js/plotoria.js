@@ -1099,6 +1099,7 @@
       E.karo.value = String(s.karo);
       this.setSegmented(E.gridMode, s.gridMode);
       E.karoRow.hidden = E.karoHint.hidden = s.gridMode !== 'karo';
+      if (s.gridMode === 'karo') this._karoSketch();
       E.prop.disabled = s.gridMode === 'karo';
       this.setSegmented(E.angleSeg, this.deg ? 'deg' : 'rad');
     },
@@ -1113,6 +1114,28 @@
       this._syncControls();
       this.repaint();
       this.commit();
+    },
+
+    // Skizze in der Einstellung: wie viele 5-mm-Kästchen von 0 bis 1 reichen
+    _karoSketch() {
+      const el = document.getElementById('karo-sketch');
+      if (!el) return;
+      const k = this.style.karo, box = 14, n = 16, W = n * box + 24, y0 = 34;
+      const cm = String(k * 0.5).replace('.', ',');
+      let g = '';
+      for (let i = 0; i <= n; i++) g += `<line x1="${12 + i * box}" y1="6" x2="${12 + i * box}" y2="${6 + 3 * box}" stroke="#A9C1DA" stroke-width="1"/>`;
+      for (let j = 0; j <= 3; j++) g += `<line x1="12" y1="${6 + j * box}" x2="${12 + n * box}" y2="${6 + j * box}" stroke="#A9C1DA" stroke-width="1"/>`;
+      g += `<line x1="12" y1="${y0}" x2="${12 + n * box}" y2="${y0}" stroke="currentColor" stroke-width="1.6"/>`;
+      for (let u = 0; u * k <= n; u++) {
+        const x = 12 + u * k * box;
+        g += `<line x1="${x}" y1="${y0 - 4}" x2="${x}" y2="${y0 + 4}" stroke="currentColor" stroke-width="1.6"/>`;
+        if (k > 1 || u % 2 === 0) g += `<text x="${x}" y="${y0 + 16}" text-anchor="middle" font-size="11" fill="currentColor">${u}</text>`;
+      }
+      // Klammer über der ersten Einheit
+      const x1 = 12, x2 = 12 + k * box;
+      g += `<path d="M${x1},${y0 + 24}V${y0 + 28}H${x2}V${y0 + 24}" fill="none" stroke="#007AFF" stroke-width="1.5"/>`;
+      g += `<text x="${12}" y="${y0 + 42}" font-size="11.5" fill="#007AFF">von 0 bis 1: ${k} ${k === 1 ? 'Kästchen' : 'Kästchen'} = ${cm} cm</text>`;
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${y0 + 48}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, sans-serif">${g}</svg>`;
     },
 
     // Ansicht so zoomen, dass 1 Einheit am Bildschirm ungefähr so groß ist wie auf Papier
@@ -1249,7 +1272,9 @@
         // Beschriftungen nur so dicht, dass sie lesbar bleiben
         const mult = fmt === 'pi' && !(user > 0) ? [1, 2, 4, 8] : [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
         let k = 1;
-        for (const m of mult) { k = m; if (step * m * ppu >= minLabelPx) break; }
+        // Karopapier: Zahlen so dicht wie möglich (jede Einheit, wenn Platz ist)
+        const need = s.gridMode === 'karo' ? Math.min(minLabelPx, fs * (scale === this.xs ? 2.2 : 1.6)) : minLabelPx;
+        for (const m of mult) { k = m; if (step * m * ppu >= need) break; }
         const ls = step * k;
         let gridStep;
         if (s.gridMode === 'karo') gridStep = 1 / s.karo;
@@ -1261,7 +1286,12 @@
         for (let i = g0; i <= g1 && grid.length < 3000; i++) if (i !== 0) grid.push(i * gridStep);
         const l0 = Math.ceil(d0 / ls - 1e-9), l1 = Math.floor(d1 / ls + 1e-9);
         for (let i = l0; i <= l1 && labels.length < 500; i++) if (i !== 0) labels.push(i * ls);
-        return { grid, labels, step: ls, gridStep, dec: decimalsOf(ls), fmt };
+        // Striche an jeder Einheit (Karopapier), auch wenn nicht jede beschriftet ist
+        const marks = [];
+        if (s.gridMode === 'karo' && step * ppu >= 6) {
+          for (let i = Math.ceil(d0 / step - 1e-9); i <= Math.floor(d1 / step + 1e-9) && marks.length < 1000; i++) if (i !== 0) marks.push(i * step);
+        }
+        return { grid, labels, marks: marks.length ? marks : labels, step: ls, gridStep, dec: decimalsOf(ls), fmt };
       };
       this._ticksCache = {
         // Export: Beschriftung jeder Einheit auch bei 1 cm Abstand; Bildschirm: luftiger
@@ -1325,8 +1355,8 @@
       const ticks = this.ticks();
       const tw = Math.max(1, Math.min(aw - 0.5, 2));
       const path = [];
-      ticks.x.labels.forEach(v => { const px = this.xs(v); path.push(`M${px},${ay - tk}V${ay + tk}`); });
-      ticks.y.labels.forEach(v => { const py = this.ys(v); path.push(`M${ax - tk},${py}H${ax + tk}`); });
+      ticks.x.marks.forEach(v => { const px = this.xs(v); path.push(`M${px},${ay - tk}V${ay + tk}`); });
+      ticks.y.marks.forEach(v => { const py = this.ys(v); path.push(`M${ax - tk},${py}H${ax + tk}`); });
       g.append('path').attr('d', path.join('')).attr('stroke', ac).attr('stroke-width', tw);
     },
 
