@@ -79,7 +79,8 @@ Version 1.0 ist im Branch [`version/1.0`](https://github.com/TJRSchmidbauer/Plot
 
 * **Keine Cookies**, kein Tracking, keine Analyse- oder Werbedienste, keine Anmeldung.
 * **Keine Daten an Dritte:** Alle Bibliotheken und Schriften liegen im Projekt; es werden keine externen Server (CDNs, Google Fonts o. Ä.) aufgerufen.
-* **Nur lokale Speicherung im Browser:** der aktuelle Arbeitsstand und der Druckbogen (`localStorage`) sowie die App-Dateien für den Offline-Betrieb (Service-Worker-Cache). Diese Daten verlassen das Gerät nicht und lassen sich über die Browser-Einstellungen („Websitedaten löschen“) jederzeit entfernen.
+* **Speichern nur mit Zustimmung:** Bei jedem Start fragt Plotoria in einem eigenen Hinweis, ob der Arbeitsstand, der Druckbogen (`localStorage`) und die App-Dateien für den Offline-Betrieb (Service-Worker-Cache) lokal im Browser gespeichert werden dürfen. Vor der Entscheidung wird nichts gelesen oder gespeichert. Bei „Ablehnen“ werden vorhandene Plotoria-Daten gelöscht und Plotoria arbeitet nur im Arbeitsspeicher; Sichern als Datei und Teilen per Link funktionieren weiterhin.
+* Die gespeicherten Daten verlassen das Gerät nicht und lassen sich jederzeit über „Ablehnen“ beim nächsten Start oder die Browser-Einstellungen („Websitedaten löschen“) entfernen.
 * Beim Aufruf über GitHub Pages gelten für den Server die [Datenschutzbestimmungen von GitHub](https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement).
 
 ---

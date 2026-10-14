@@ -558,6 +558,19 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 .template-card strong { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
 .template-card span { font-size: 11.5px; color: var(--label-2); line-height: 1.35; }
 
+/* Hinweis zur Speicherung */
+dialog.consent-sheet { width: min(440px, calc(100vw - 32px)); }
+.consent-body { padding: 26px 26px 22px; text-align: left; }
+.consent-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-tint); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+.consent-icon .icon { width: 26px; height: 26px; }
+.consent-body h2 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; margin-bottom: 10px; }
+.consent-body p { font-size: 13.5px; line-height: 1.45; margin-bottom: 8px; }
+.consent-body ul { margin: 0 0 10px 20px; font-size: 13.5px; line-height: 1.5; }
+.consent-body .hint { margin: 10px 0 0; }
+/* Beide Möglichkeiten gleichwertig gestaltet */
+.consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.consent-btn { height: 40px; font-size: 14px; }
+
 /* Hilfe */
 .help-body h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.01em; color: var(--label-2); margin: 16px 4px 6px; }
 .help-body table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--r-md); overflow: hidden; font-size: 12.5px; }

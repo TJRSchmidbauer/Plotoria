@@ -376,8 +376,27 @@
         <tr><td><kbd>?</kbd>, <kbd>Esc</kbd></td><td>Hilfe, Werkzeug / Dialog beenden</td></tr>
       </table>
       <h3>Datenschutz</h3>
-      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Arbeitsstand und Druckbogen werden nur lokal in diesem Browser gespeichert, damit nach dem Neuladen nichts verloren geht; über „Websitedaten löschen“ in den Browser-Einstellungen lassen sie sich entfernen.</p>
+      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
       <p class="hint">Plotoria 2.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
+    </div>
+  </dialog>
+
+  <!-- ── Hinweis zur Speicherung (bei jedem Start) ── -->
+  <dialog class="sheet consent-sheet" id="consent-sheet" data-no-dismiss aria-labelledby="consent-title" aria-describedby="consent-text">
+    <div class="consent-body">
+      <div class="consent-icon"><i data-icon="save"></i></div>
+      <h2 id="consent-title">Arbeitsstand auf diesem Gerät speichern?</h2>
+      <p id="consent-text">Plotoria verwendet <strong>keine Cookies</strong> und sendet keine Daten an Dritte. Damit nach dem Neuladen nichts verloren geht, kann Plotoria Folgendes <strong>nur lokal in diesem Browser</strong> speichern:</p>
+      <ul>
+        <li>den aktuellen Arbeitsstand (Funktionen, Einstellungen),</li>
+        <li>den Druckbogen,</li>
+        <li>die App-Dateien für die Nutzung ohne Internet.</li>
+      </ul>
+      <p class="hint">Bei „Ablehnen“ wird nichts gespeichert und bereits gespeicherte Plotoria-Daten werden gelöscht. Sichern als Datei (Strg+S) und Teilen per Link funktionieren trotzdem. Diese Frage erscheint bei jedem Start.</p>
+      <div class="consent-actions">
+        <button class="btn btn-gray consent-btn" id="consent-deny">Ablehnen</button>
+        <button class="btn btn-gray consent-btn" id="consent-allow">Speichern erlauben</button>
+      </div>
     </div>
   </dialog>
 
