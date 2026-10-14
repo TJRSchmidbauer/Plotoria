@@ -1,5 +1,6 @@
 {
   "name": "plotoria",
+  "version": "2.0.0",
   "private": true,
   "description": "Webbasierter Funktionsplotter",
   "license": "CC-BY-NC-4.0",

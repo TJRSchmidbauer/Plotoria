@@ -10,49 +10,106 @@ const TikZ = {
     return String(parseFloat(Number(v).toPrecision(6)));
   },
 
-  // functions: [{ letter, ast, col, strokeWidth, dash }]
+  hex(c) {
+    let h = String(c || '#000000').replace('#', '').toUpperCase();
+    if (h.length === 3) h = h.split('').map(ch => ch + ch).join('');
+    return /^[0-9A-F]{6}$/.test(h.slice(0, 6)) ? h.slice(0, 6) : '000000';
+  },
+
+  // Text für \node: Tiefstellung G_1 → $G_{1}$, sonst maskiert
+  label(s) {
+    const t = String(s);
+    if (/_/.test(t)) return '$' + t.replace(/_(\{[^}]*\}|\S)/g, (m, g) => '_{' + g.replace(/^\{|\}$/g, '') + '}').replace(/ /g, '\\ ') + '$';
+    return this.escape(t).replace(/−/g, '$-$').replace(/π/g, '$\\pi$').replace(/√/g, '$\\surd$').replace(/\|/g, '$|$');
+  },
+
+  // functions: [{ letter, ast, col, strokeWidth, dash, lo, hi, labelText, labelMode }]
+  // opts: { title, xLabel, yLabel, params, deg, ux, uy (cm) | width, height (cm), bw, karo, grid, objects, datasets, legend }
   generate(functions, b, opts) {
     opts = opts || {};
     const yPad = (b.yMax - b.yMin) * 2;
     const L = [];
-    L.push('% Benötigt im Präambel: \\usepackage{pgfplots} \\pgfplotsset{compat=1.18}');
-    functions.forEach((fn, i) => {
-      L.push(`\\definecolor{plotoria${i}}{HTML}{${fn.col.replace('#', '').toUpperCase()}}`);
-    });
+    const DASH = { dash: 'dashed', dot: 'dotted', dashdot: 'dashdotted' };
+    const BW = ['solid', 'dashed', 'dotted', 'dashdotted'];
+    L.push('% Plotoria ' + (opts.version || '') + ' – benötigt: \\usepackage{pgfplots} \\pgfplotsset{compat=1.18}');
+    if (!opts.bw) functions.forEach((fn, i) => L.push(`\\definecolor{plotoria${i}}{HTML}{${this.hex(fn.col)}}`));
     L.push('\\begin{tikzpicture}');
     L.push('  \\begin{axis}[');
     if (opts.title) L.push(`    title={${this.escape(opts.title)}},`);
     L.push(`    xmin=${this.num(b.xMin)}, xmax=${this.num(b.xMax)},`);
     L.push(`    ymin=${this.num(b.yMin)}, ymax=${this.num(b.yMax)},`);
+    if (opts.ux && opts.uy) L.push(`    x=${this.num(opts.ux)}cm, y=${this.num(opts.uy)}cm,   % Maßstab: 1 Einheit = ${this.num(opts.ux)} cm`);
+    else L.push(`    width=${this.num(opts.width || 12)}cm, height=${this.num(opts.height || 8)}cm, scale only axis,`);
     L.push('    axis lines=middle,');
-    L.push('    axis line style={-stealth, line width=1pt},');
-    L.push('    grid=major,');
-    L.push('    grid style={line width=0.4pt, color=gray!35},');
-    L.push(`    xlabel={$${this.escape(opts.xLabel || 'x')}$},`);
-    L.push(`    ylabel={$${this.escape(opts.yLabel || 'y')}$},`);
+    L.push('    axis line style={-stealth, line width=0.9pt},');
+    if (opts.xStep) L.push(`    xtick distance=${this.num(opts.xStep)},`);
+    if (opts.yStep) L.push(`    ytick distance=${this.num(opts.yStep)},`);
+    if (opts.karo) {
+      L.push(`    minor tick num=${opts.karo - 1}, grid=both,`);
+      L.push('    major grid style={line width=0.3pt, color=cyan!40!gray!50},');
+      L.push('    minor grid style={line width=0.3pt, color=cyan!40!gray!50},');
+    } else if (opts.grid !== false) {
+      L.push('    grid=major,');
+      L.push('    grid style={line width=0.4pt, color=gray!35},');
+    }
+    L.push(`    xlabel={${this.axisLabel(opts.xLabel || 'x')}},`);
+    L.push(`    ylabel={${this.axisLabel(opts.yLabel || 'y')}},`);
     L.push('    xlabel style={anchor=north east},');
     L.push('    ylabel style={anchor=north east},');
-    L.push('    width=12cm, height=8cm,');
+    L.push('    tick label style={font=\\small},');
     // pgfplots rechnet Winkelfunktionen standardmäßig im Gradmaß
     if (!opts.deg) L.push('    trig format plots=rad,');
     L.push('    unbounded coords=jump,');
-    L.push('    legend pos=outer north east,');
-    L.push('    legend cell align=left,');
+    L.push('    clip=true,');
+    if (opts.legend) L.push('    legend pos=outer north east, legend cell align=left,');
     L.push('  ]');
 
     functions.forEach((fn, i) => {
       const expr = MathParser.toPgf(fn.ast, opts.params || {});
-      const style = [`color=plotoria${i}`, `line width=${this.num((fn.strokeWidth || 4) * 0.3)}pt`];
-      if (fn.dash) style.push('dashed');
-      style.push(`domain=${this.num(b.xMin)}:${this.num(b.xMax)}`, 'samples=400', 'smooth');
+      const color = opts.bw ? 'black' : `plotoria${i}`;
+      const style = [`color=${color}`, `line width=${this.num((fn.strokeWidth || 3) * 0.35)}pt`];
+      const dash = opts.bw && (!fn.dash || fn.dash === 'solid') ? BW[i % BW.length] : DASH[fn.dash];
+      if (dash && dash !== 'solid') style.push(dash);
+      const lo = Math.max(b.xMin, isFinite(fn.lo) ? fn.lo : -Infinity), hi = Math.min(b.xMax, isFinite(fn.hi) ? fn.hi : Infinity);
+      style.push(`domain=${this.num(lo)}:${this.num(hi)}`, 'samples=400', 'smooth');
       style.push(`restrict y to domain=${this.num(b.yMin - yPad)}:${this.num(b.yMax + yPad)}`);
+      if (!opts.legend) style.push('forget plot');
       L.push(`    \\addplot[${style.join(', ')}] {${expr}};`);
-      L.push(`    \\addlegendentry{$${fn.letterTeX || fn.letter}(x)=${MathParser.toTeX(fn.ast)}$}`);
+      if (opts.legend) L.push(`    \\addlegendentry{${fn.legend || '$' + (fn.letterTeX || fn.letter) + '(x)=' + MathParser.toTeX(fn.ast) + '$'}}`);
+      // Randpunkte des Definitionsbereichs
+      [[fn.lo, fn.loOpen], [fn.hi, fn.hiOpen]].forEach(([x, open]) => {
+        if (!isFinite(x) || x < b.xMin || x > b.xMax || !isFinite(fn.f0 ? fn.f0(x) : NaN)) return;
+        L.push(`    \\draw[${color}, ${open ? 'fill=white' : 'fill=' + color}] (axis cs:${this.num(x)},${this.num(fn.f0(x))}) circle (2.2pt);`);
+      });
+      if (fn.inlineLabel && isFinite(fn.lx)) L.push(`    \\node[${color}, anchor=south west, font=\\bfseries] at (axis cs:${this.num(fn.lx)},${this.num(fn.ly)}) {${fn.inlineLabel}};`);
+    });
+
+    (opts.datasets || []).forEach(ds => {
+      const coords = ds.pts.map(([x, y]) => `(${this.num(x)},${this.num(y)})`).join(' ');
+      L.push(`    \\addplot[only marks, mark=x, mark size=3pt, ${opts.bw ? 'black' : 'color={rgb,255:red,' + parseInt(this.hex(ds.col).slice(0, 2), 16) + ';green,' + parseInt(this.hex(ds.col).slice(2, 4), 16) + ';blue,' + parseInt(this.hex(ds.col).slice(4, 6), 16) + '}'}, forget plot] coordinates {${coords}};`);
+    });
+
+    (opts.objects || []).forEach(o => {
+      const col = opts.bw ? 'black' : `{rgb,255:red,${parseInt(this.hex(o.col).slice(0, 2), 16)};green,${parseInt(this.hex(o.col).slice(2, 4), 16)};blue,${parseInt(this.hex(o.col).slice(4, 6), 16)}}`;
+      if (o.type === 'point') {
+        L.push(`    \\fill[color=${col}] (axis cs:${this.num(o.px)},${this.num(o.py)}) circle (2.2pt)` + (o.text ? ` node[anchor=south west, color=${col}] {${this.label(o.text)}}` : '') + ';');
+      } else if (o.type === 'vline') {
+        L.push(`    \\draw[color=${col}, ${o.dash === 'solid' ? '' : 'dashed, '}line width=0.8pt] (axis cs:${this.num(o.px)},${this.num(b.yMin)}) -- (axis cs:${this.num(o.px)},${this.num(b.yMax)});`);
+      } else if (o.type === 'text') {
+        L.push(`    \\node[anchor=base west, color=${col}${o.bold ? ', font=\\bfseries' : ''}] at (axis cs:${this.num(o.x)},${this.num(o.y)}) {${this.label(o.text)}};`);
+      } else if (o.type === 'arrow') {
+        L.push(`    \\draw[${o.double ? 'stealth-stealth' : '-stealth'}, color=${col}, line width=${this.num((o.width || 2) * 0.4)}pt] (axis cs:${this.num(o.x1)},${this.num(o.y1)}) -- (axis cs:${this.num(o.x2)},${this.num(o.y2)});`);
+      }
     });
 
     L.push('  \\end{axis}');
     L.push('\\end{tikzpicture}');
     return L.join('\n');
+  },
+
+  // Achsentitel: einzelner Buchstabe kursiv in Mathe, sonst Text („t in s“)
+  axisLabel(s) {
+    return /^[a-zA-Z]$/.test(s) ? '$' + s + '$' : this.label(s);
   },
 
   // Entfernt deg(…) inklusive passender Klammer: sin(deg(x)) → sin((x))

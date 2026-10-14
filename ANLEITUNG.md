@@ -1,120 +1,134 @@
-# 📘 Plotoria – Ausführliche Bedienungsanleitung & Praxis-Tipps
+# 📘 Plotoria 2.0 – Bedienungsanleitung
 
-Willkommen zur offiziellen Benutzeranleitung von **Plotoria**, dem modernen, browserbasierten Funktionsplotter für Schule, Studium, Lehre und Mathematikbegeisterte.
+Plotoria erstellt Graphen für Arbeitsblätter, Schulaufgaben und Präsentationen – maßstabsgetreu und druckfertig.
 
----
-
-## 🚀 Quick-Start
-
-1. Öffne Plotoria im Browser unter [tjrschmidbauer.github.io/Plotoria](https://tjrschmidbauer.github.io/Plotoria/) oder lokal (z. B. `python3 -m http.server 8080` im Projektordner, dann [http://localhost:8080](http://localhost:8080)).
-2. Gib in der Algebra-Spalte oben im Eingabefeld eine Funktion ein, z. B. `x^2 - 4` oder `f(x) = sin(x)`.
-3. Drücke **Enter** oder klicke auf das **+ (Hinzufügen)**.
-4. Der Graph wird sofort in flüssigen 60 FPS gezeichnet.
+**Öffnen:** [tjrschmidbauer.github.io/Plotoria](https://tjrschmidbauer.github.io/Plotoria/). Nach dem ersten Öffnen funktioniert Plotoria auch ohne Internet. In Chrome/Edge lässt es sich über das Installieren-Symbol in der Adressleiste als App einrichten, in Safari über „Teilen → Zum Home-Bildschirm“.
 
 ---
 
-## 🧮 1. Funktionen eingeben & verwalten
+## 🚀 In drei Schritten zur Prüfungsgrafik
 
-### Unterstützte Schreibweisen
-* **Standard-Ausdrücke:** `x^3 - 2*x`, `1/x`, `exp(-x^2)` – der Malpunkt darf fehlen: `2x(x+1)`, `3sin(x)`
-* **Mit Funktionsnamen:** `f(x) = sin(x)`, `g(x) = 2*x + 1` (ein vorhandenes `f` wird neu definiert), `y = 2x + 1`
-* **Ableitungen:** `f'` bzw. `f''` fügt die 1. bzw. 2. Ableitung von `f` hinzu; sie wird bei Änderungen an `f` automatisch aktualisiert
-* **Andere Funktionen verwenden:** `g(x) = f(x - 2) + 1`, `h(x) = f'(x)`
-* **Mathematische Funktionen:** `sin`, `cos`, `tan`, `cot`, `arcsin`, `arccos`, `arctan`, `sinh`, `cosh`, `tanh`, `sqrt`, `root(x, n)`, `abs(x)` bzw. `|x|`, `exp`, `ln` (= `log`), `lg` (Zehnerlogarithmus), `log(b, x)`, `sign`, `floor`, `ceil`, `round`, `min`, `max`, `n!`
-* **Konstanten:** `pi` bzw. `π`, `e`, sowie `°` bzw. `deg` für Winkel im Bogenmaß: `sin(30°)`
-* **Parameter-Terme:** `a*x^2 + b*x + c` – unbekannte Buchstaben werden automatisch zu Parametern
-* **Deutsche Schreibweise & LaTeX:** `0,5x`, `x²`, `2·x`, `\frac{1}{x}`, `\sqrt[3]{x}`
-
-> ⚠️ Das Komma zwischen zwei Ziffern ist immer ein Dezimalkomma. Argumente daher mit Komma **und Leerzeichen** trennen: `log(2, 8)`, `max(x, 1)`.
-
-Fehlerhafte Eingaben werden direkt unter dem Eingabefeld erklärt (z. B. „Schließende Klammer fehlt“); der Text bleibt zum Korrigieren stehen. Beim Tippen erscheint eine Formelvorschau.
-
-### Beispiele-Dropdown
-In der oberen Kopfzeile befindet sich ein **Beispiele-Dropdown** mit vorbereiteten Funktionen:
-* **Polynom 3. Grades:** `x^3 - 2*x`
-* **Sinuskurve:** `sin(x)`
-* **Gaußsche Glockenkurve:** `exp(-x^2)`
-* **Gebrochen-Rational:** `1/x`
-* **Parabel mit Parametern:** `a*x^2 + b*x + c` (legt Parameter $a, b, c$ automatisch an)
+1. **Funktion eingeben:** links oben `f(x) = 0.5x^2 - 2` eintippen, Enter drücken – oder oben **Vorlagen** wählen.
+2. **Gestalten:** Beschriftungen, Punkte, Raster, Achsen anpassen (siehe unten).
+3. **Exportieren:** Oben rechts **Exportieren** → Maßstab „1 Einheit = 1 cm“ → **PNG** für Word oder **Zum Druckbogen** für ein fertiges Blatt.
 
 ---
 
-## 🔍 2. Automatische Kurvendiskussion (Smart Labels)
+## 🧮 1. Eingabe
 
-Wenn der Schalter **Kurvendiskussion** in der Algebra-Spalte aktiviert ist, berechnet Plotoria automatisch alle wichtigen Kennpunkte und zeichnet sie farbig ein:
+| Eingabe | Bedeutung |
+|---|---|
+| `x^2 - 4`, `2x(x+1)`, `0,5x` | Terme; Malpunkt darf fehlen, Dezimalkomma geht |
+| `f(x) = sin(x)` | Funktion mit Namen (überschreibt ein vorhandenes f) |
+| `f(x) = x^2 für 0 ≤ x < 3` | Definitionsbereich (auch `x^2, x > 1` oder `x^2; x ∈ [0; 3[`) |
+| `f'`, `f''` | Ableitung von f – wird bei Änderungen an f mitgeführt |
+| `g(x) = f(x - 2) + 1` | Andere Funktionen verwenden |
+| `A(2|3)`, `P(1|f(1))`, `B = (−1; 2)` | Punkt |
+| `x = 2` | Senkrechte Gerade |
+| `a*x^2 + b` | Unbekannte Buchstaben werden Parameter mit Schieberegler |
+| `sqrt`, `|x|`, `ln`, `lg`, `log(b, x)`, `root(x, n)`, `pi`, `e`, `30°` | Funktionen und Konstanten |
 
-* **N (Nullstellen):** Schnittpunkte der Funktion mit der $x$-Achse $N(x|0)$.
-* **S_y (Y-Achsenabschnitt):** Schnittpunkt mit der $y$-Achse $S_y(0|y_0)$.
-* **H / T (Extrema):** Hochpunkte und Tiefpunkte der Funktion.
-* **W (Wendepunkte):** Punkte, an denen $f''(x) = 0$ gilt (in Lila hervorgehoben).
-* **S (Schnittpunkte):** Schnittpunkte zwischen verschiedenen Funktionsgraphen.
+Fehler werden unter dem Eingabefeld erklärt, darunter erscheint eine Formelvorschau.
 
-> 💡 **Tipp:** Alle Smart Labels lassen sich per Drag & Drop **frei im Koordinatensystem verschieben**. Beim Ziehen bleibt eine gestrichelte Verbindungslinie zum Punkt auf der Kurve bestehen.
+> ⚠️ Ein Komma zwischen zwei Ziffern ist immer ein Dezimalkomma. Argumente daher mit Komma **und Leerzeichen** trennen: `log(2, 8)`.
 
----
-
-## 📊 3. Wertetabelle
-
-Im Tab **Tabelle** kannst du für alle aktiven Funktionen exakte Wertetabellen erzeugen:
-
-1. Klicke oben auf den Tab **Tabelle**.
-2. Wähle den Startwert ($x_{\text{Start}}$), Endwert ($x_{\text{Ende}}$) und die Schrittweite ($\Delta x$).
-3. Klicke auf **Tabelle generieren**.
-4. Über den Button **CSV Export** kannst du die Tabelle direkt für Excel oder LibreOffice Calc herunterladen.
-
----
-
-## 🎛️ 4. Parameter & Animationen
-
-Sobald du eine Funktion mit Variablen wie `a*x^2 + b*x + c` eingibst:
-1. Plotoria erkennt die Parameter $a, b, c$ automatisch und legt Schieberegler an (Startwert 1).
-2. Mit den Reglern kannst du Werte in Echtzeit verändern und die Wirkung auf den Graphen beobachten. Unter jedem Regler lässt sich der Bereich („von … bis …“) einstellen.
-3. Klicke auf den **Play-Button** neben dem Regler, um den Parameter automatisch zwischen Minimum und Maximum schwingen zu lassen.
-4. Automatisch angelegte Parameter verschwinden wieder, sobald keine Funktion sie mehr verwendet.
+### Einstellungen einer Funktion
+Klick auf **›** neben einer Funktion:
+* **Beschriftung:** `G_f` · **Term** (z. B. „f(x) = x² − 2“) · **Text** (eigener Text, z. B. „A“ für Zuordnungsaufgaben) · **Aus**
+* **Linie:** Stärke und Strichart (durchgezogen, gestrichelt, gepunktet)
+* **Definiert:** Grenzen des Definitionsbereichs; das Kästchen „○“ schließt die Grenze aus (offener Randpunkt)
+* **Asymptoten anzeigen:** senkrechte, waagrechte und schiefe Asymptoten mit Gleichung
+* Ein Klick auf den Term bearbeitet ihn direkt; der Farbpunkt ändert die Farbe.
 
 ---
 
-## 💡 Tipps & Tricks für Unterricht & Praxis
+## ✏️ 2. Werkzeuge (schwebende Leiste unten)
 
-### 💡 Tipp 1: Wertsprung & Asymptoten erkennen
-Bei gebrochen-rationalen Funktionen wie $f(x) = \frac{1}{x}$ kannst du den Zoom mit dem Mausrad feinfühlig anpassen, um Polstellen und Asymptoten genau zu analysieren.
+| Werkzeug | Taste | Funktion |
+|---|---|---|
+| Verschieben | `V` | Ansicht ziehen, mit Mausrad zoomen; Objekte und Beschriftungen ziehen |
+| Punkt | `P` | Klick setzt einen Punkt – rastet am Raster und auf Graphen ein |
+| Text | `T` | Klick öffnet ein Textfeld; `G_1` wird tiefgestellt. Doppelklick bearbeitet |
+| Pfeil | `A` | Von Start nach Ziel ziehen |
+| Bereich | `B` | Ausschnitt aufziehen: Export nutzt ihn, Doppelklick zoomt hinein |
+| Tangente | `N` | Tangente, Normale und Steigungsdreieck; Klick hält fest |
 
-### 💡 Tipp 2: Tangenten & Normalen zeichnen
-Klicke in der Werkzeugleiste des Graphen auf das **Tangenten-Icon (Chart-Line)** und bewege den Mauszeiger über einen Graphen. Plotoria berechnet Tangente, Normale und Steigungsdreieck an dieser Stelle live und zeigt die Geradengleichungen an. Ein Klick hält die Tangente fest; sie folgt dann auch Parameteränderungen. `Esc` beendet das Werkzeug.
-
-### 💡 Tipp 3: Flächeninhalte (Integrale) berechnen
-Klicke bei einer Funktion auf **∫**, um das Integral über ein Intervall $[a, b]$ numerisch per Simpson-Verfahren zu berechnen und farbig hervorzuheben. Die Grenzen lassen sich mit der Maus verschieben. Angezeigt werden das orientierte Integral und der Flächeninhalt $A$ (Flächen unterhalb der $x$-Achse positiv gezählt).
-
-### 💡 Tipp 4: Grafik in Word / PowerPoint einfügen
-Klicke in der Werkzeugleiste auf das **Zwischenablage-Icon (Copy)**. Der Graph wird direkt als hochauflösendes Bild kopiert und kann mit `Strg + V` sofort in Word, PowerPoint oder ein Arbeitsblatt eingefügt werden.
-
-### 💡 Tipp 5: Arbeitsstände per Link teilen
-Klicke auf das **Teilen-Icon (Share-Alt)**. Es wird ein kompakter Link generiert, der alle eingegebenen Funktionen, Parameter und Ansichtseinstellungen enthält. Ideal zum Versenden an Schüler oder Kollegen!
-
-### 💡 Tipp 6: Ausschnitt exportieren & hineinzoomen
-Mit dem **Auswahl-Werkzeug (Crop)** ziehst du ein Rechteck auf. Solange es aktiv ist, exportieren SVG, PNG und TikZ nur diesen Ausschnitt. Ein Doppelklick in die Auswahl zoomt hinein.
-
-### 💡 Tipp 7: TikZ für LaTeX-Dokumente
-Der TikZ-Export erzeugt pgfplots-Code mit den aktuellen Farben, Parameterwerten und dem richtigen Winkelmaß (`trig format plots=rad`). Im Präambel wird `\usepackage{pgfplots}` benötigt. Vorhandener pgfplots-Code kann im Export-Tab wieder importiert werden.
-
-### 💡 Tipp 8: Gradmaß
-Mit dem Schalter **RAD/DEG** in der Kopfzeile rechnen alle Winkelfunktionen im Gradmaß (`sin(90) = 1`). Ableitungen bleiben dabei mathematisch korrekt (Faktor $\frac{\pi}{180}$).
+Mit gedrückter **Alt**-Taste wird nicht eingerastet. Ausgewählte Objekte löscht **Entf**. **Esc** beendet jedes Werkzeug.
 
 ---
 
-## 💾 Speichern
+## 🎨 3. Darstellung (Reiter „Darstellung“)
 
-Plotoria speichert den Arbeitsstand automatisch im Browser und stellt ihn beim nächsten Öffnen wieder her. Über **Rückgängig / Wiederholen** in der Kopfzeile (oder `Strg + Z` / `Strg + Y`) lassen sich Änderungen zurücknehmen.
+* **Fenster:** x- und y-Bereich; „Gleiche Einheiten“ hält das Seitenverhältnis 1:1.
+* **Achsen:** Titel (z. B. „t in s“), **Schritt** (z. B. `2` oder `pi/2`), Zahlen als **Dezimal**, **Brüche** oder **Vielfache von π**, Anzahl der Rasterlinien je Schritt.
+* **Raster:** Koordinaten · **Karopapier** (5-mm-Kästchen, 1 Einheit = 1, 2 oder 4 Kästchen) · ohne.
+* **Stil:** Farbthema (Automatisch, Hell, Projektor, Dunkel), **Schwarz-Weiß**, Schriftgröße, Linienstärken, Farben.
+* **Exakte Werte:** Kurvendiskussion, Tangente und Integral zeigen √2, π/2, 1/3 statt Dezimalzahlen.
 
 ---
 
-## ⌨️ Tastatur-Kürzel
+## 📤 4. Exportieren
+
+**Exportieren** oben rechts (oder `Strg + E`) öffnet den Export mit Vorschau.
+
+* **Format:** PNG · SVG · TikZ · PDF (über den Druckbogen)
+* **Größe:** *Maßstab* („1 Einheit x = 1 cm“, x und y getrennt) oder *Breite × Höhe* in cm. Bei Karopapier ist der Maßstab fest.
+* **Bereich:** aktuelle Ansicht oder die mit dem Bereich-Werkzeug gewählte Auswahl.
+* **Auflösung (PNG):** 300 dpi für den Druck. Die Größe ist im Bild gespeichert – Word und LibreOffice fügen es in der richtigen Größe ein.
+* **Inhalt:** Titel, Graph-Beschriftungen, Kurvendiskussion, Schwarz-Weiß, weißer Hintergrund, Wasserzeichen – jeweils ein- oder ausschaltbar.
+* **Kopieren** legt das Bild (bzw. den TikZ-Code) in die Zwischenablage. Das Kopier-Symbol in der Werkzeugleiste kopiert schnell die aktuelle Ansicht.
+
+### Druckbogen (DIN A4) und PDF
+1. Im Export **Zum Druckbogen** wählen (beliebig oft, auch Wertetabellen).
+2. **Druckbogen öffnen** (oder `Strg + P`): Reihenfolge ändern, Bildunterschriften eingeben, Kopfzeile „Name / Klasse / Datum“ und Überschrift festlegen.
+3. **Drucken / PDF** – im Druckdialog „Als PDF sichern“ wählen und die Skalierung auf 100 % lassen, dann stimmen die Zentimeter.
+
+### TikZ für LaTeX
+Der TikZ-Code übernimmt Maßstab (`x=1cm, y=1cm`), Farben, Parameterwerte, Definitionsbereiche, Punkte, Texte, Pfeile und Messwerte. Benötigt wird `\usepackage{pgfplots}`. Vorhandener pgfplots-Code lässt sich im Export unter „TikZ-Code importieren“ einlesen.
+
+---
+
+## 📊 5. Daten (Reiter „Daten“)
+
+### Wertetabelle
+* Bereich und Schrittweite wählen, Ausrichtung **quer** (wie im Schulbuch) oder **hoch**.
+* **Lücken:** Klick auf eine Zelle leert sie; „Alle“, „Zufällig“, „Keine“ für alle Zellen. Ideal für „Fülle die Wertetabelle aus“.
+* Export: **Für Word kopieren** (fertige Tabelle mit Rahmen), **LaTeX**, **CSV**, **Zum Druckbogen**.
+
+### Messwerte & Regression
+1. Wertepaare einfügen – je Zeile `x;y`, direkt aus Excel kopiert oder als zwei Zeilen „quer“.
+2. **Als Messreihe übernehmen** – die Ansicht passt sich an.
+3. In der Algebra-Liste bei der Messreihe **›** → Regressionsart wählen → **Ausgleichskurve**. Das Bestimmtheitsmaß R² wird angezeigt.
+
+---
+
+## 🗂️ 6. Vorlagen und Projekte
+
+* **Vorlagen** (oben): 13 fertige Aufgabenformate, z. B. „Graph ablesen“, „Graphen zuordnen“, „Ableitungsgraph skizzieren“, „Steigungsdreieck“, „Sinus im Gradmaß“, „Wachstum (Sachaufgabe)“, „Messwerte & Ausgleichsgerade“. Eine Vorlage ersetzt die aktuelle Zeichnung – `Strg + Z` holt sie zurück.
+* **Sichern** (`Strg + S`) speichert eine `.plotoria`-Datei mit allem (auch dem Druckbogen) – ideal für ein Aufgabenarchiv. **Öffnen** (`Strg + O`) oder die Datei einfach ins Fenster ziehen.
+* Der aktuelle Stand wird außerdem automatisch im Browser gespeichert. **Teilen** (Symbol unten) kopiert einen Link mit der kompletten Zeichnung.
+
+---
+
+## 💡 Tipps für den Unterricht
+
+* **Zuordnungsaufgaben:** Mehrere Graphen zeichnen, Beschriftung auf **Text** stellen (A, B, C …), Funktionsterme separat ins Arbeitsblatt schreiben.
+* **Erwartungshorizont:** Ableitung `f'` anlegen und ausblenden (Auge-Symbol). Für die Lösung einblenden und erneut zum Druckbogen hinzufügen.
+* **Steigungsdreieck:** Tangenten-Werkzeug auf eine Gerade klicken – oder Vorlage „Steigungsdreieck“ mit Punkten und Pfeilen.
+* **Kopiertauglich:** Vor dem Export **Schwarz-Weiß** einschalten – Graphen werden durch Strichart unterschieden.
+* **Projektor:** Farbthema „Projektor“ und größere Schrift im Reiter Darstellung.
+
+---
+
+## ⌨️ Tastenkürzel
 
 | Kürzel | Funktion |
 |---|---|
-| `Strg + Z` | Rückgängig (Undo) |
-| `Strg + Y` | Wiederholen (Redo) |
-| `Home` | Ansicht auf Standard zurücksetzen |
-| `+` / `-` | Hinein- / Herauszoomen |
-| `?` | Hilfe & Kürzel-Modal öffnen |
-| `Esc` | Aktionsmodus abbrechen |
+| `Strg + Z` / `Strg + Y` | Rückgängig / Wiederholen |
+| `Strg + S` / `Strg + O` | Projekt sichern / öffnen |
+| `Strg + E` / `Strg + P` | Exportieren / Druckbogen |
+| `V` `P` `T` `A` `B` `N` | Werkzeuge |
+| `Pos1`, `+` / `−` | Ansicht zurücksetzen, Zoomen |
+| `Entf` | Ausgewähltes Objekt löschen |
+| `?` | Hilfe |
+| `Esc` | Werkzeug / Dialog beenden |

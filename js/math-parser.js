@@ -533,17 +533,164 @@ const MathParser = (() => {
     return true;
   }
 
+  // ── Definitionsbereich: "x^2 für 0 ≤ x ≤ 3", "x^2, x > 1", "sqrt(x); x ∈ [0; 4[" ──
+  // Liefert { min, max, minOpen, maxOpen } mit Grenzen als Text (oder null = unbeschränkt)
+  function parseDomain(cond, variable) {
+    let c = String(cond).trim();
+    if (variable && variable !== 'x') c = c.replace(new RegExp('\\b' + variable + '\\b', 'g'), 'x');
+    c = c
+      .replace(/≤|=</g, '<=').replace(/≥|=>/g, '>=').replace(/∈/g, ' in ').replace(/[−–]/g, '-')
+      .replace(/^D\s*=\s*/i, 'x in ');
+    const iv = c.match(/^x\s+in\s+([\[\]])\s*(.+?)\s*(?:;|,\s)\s*(.+?)\s*([\[\]])$/i);
+    if (iv) {
+      const lo = iv[2].trim(), hi = iv[3].trim();
+      return {
+        min: /^-\s*(inf|∞|infinity)$/i.test(lo) ? null : lo,
+        max: /^\+?\s*(inf|∞|infinity)$/i.test(hi) ? null : hi,
+        minOpen: iv[1] === ']', maxOpen: iv[4] === '[',
+      };
+    }
+    const OP = '(<=|>=|<|>)';
+    const two = c.match(new RegExp('^(.+?)\\s*' + OP + '\\s*x\\s*' + OP + '\\s*(.+)$'));
+    if (two) {
+      const [, a, o1, o2, b] = two;
+      if (o1[0] === '<' && o2[0] === '<') return { min: a.trim(), max: b.trim(), minOpen: o1 === '<', maxOpen: o2 === '<' };
+      if (o1[0] === '>' && o2[0] === '>') return { min: b.trim(), max: a.trim(), minOpen: o2 === '>', maxOpen: o1 === '>' };
+      return null;
+    }
+    const right = c.match(new RegExp('^x\\s*' + OP + '\\s*(.+)$'));
+    if (right) {
+      const [, o, v] = right;
+      return o[0] === '<' ? { min: null, max: v.trim(), minOpen: false, maxOpen: o === '<' }
+        : { min: v.trim(), max: null, minOpen: o === '>', maxOpen: false };
+    }
+    const left = c.match(new RegExp('^(.+?)\\s*' + OP + '\\s*x$'));
+    if (left) {
+      const [, v, o] = left;
+      return o[0] === '<' ? { min: v.trim(), max: null, minOpen: o === '<', maxOpen: false }
+        : { min: null, max: v.trim(), minOpen: false, maxOpen: o === '>' };
+    }
+    return null;
+  }
+
+  // Trennt eine Bedingung (Definitionsbereich) vom Term ab, nur auf oberster Klammerebene
+  function splitDomain(body, variable) {
+    let depth = 0;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (ch === '(' || ch === '[') depth++;
+      else if (ch === ')' || ch === ']') depth--;
+      if (depth !== 0) continue;
+      let sepLen = 0;
+      if (ch === ';' || (ch === ',' && /\s/.test(body[i + 1] || ''))) sepLen = 1;
+      else {
+        const w = body.slice(i).match(/^\s+(für|fuer|for|mit|wobei)\s+/i);
+        if (w) sepLen = w[0].length;
+      }
+      if (!sepLen) continue;
+      const rest = body.slice(i + sepLen).trim();
+      if (!/[<>≤≥∈]|\bin\b|^D\s*=/i.test(rest)) continue;
+      const dom = parseDomain(rest, variable);
+      if (dom) return { body: body.slice(0, i).trim(), domain: dom };
+    }
+    return { body, domain: null };
+  }
+
+  // Punktkoordinaten "2|3", "2; 3" oder "2, 3" (Komma mit Leerzeichen)
+  function splitPair(inner) {
+    const parts = [];
+    let depth = 0, last = 0;
+    const seps = [];
+    for (let i = 0; i < inner.length; i++) {
+      const ch = inner[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (depth === 0 && (ch === '|' || ch === ';' || (ch === ',' && /\s/.test(inner[i + 1] || '')))) seps.push([i, ch]);
+    }
+    const pick = seps.find(s => s[1] === ';') || (seps.filter(s => s[1] === '|').length === 1 && seps.find(s => s[1] === '|')) ||
+      (seps.length === 1 && seps[0][1] === ',' && seps[0]);
+    if (!pick) return null;
+    parts.push(inner.slice(last, pick[0]).trim(), inner.slice(pick[0] + 1).trim());
+    return parts[0] && parts[1] ? parts : null;
+  }
+
   // ── Eingabezeile zerlegen ──
-  // "f(x) = …", "y = …", "f'" / "f''", oder nur ein Term
+  // "f(x) = …", "y = …", "f'" / "f''", "A(2|3)", "x = 2", oder nur ein Term
   function parseDefinition(raw) {
     const s = String(raw).trim();
     const d = s.match(/^([a-zA-Z])\s*('+)\s*(?:\(\s*x\s*\))?$/);
     if (d) return { kind: 'derivative', of: d[1], order: d[2].length };
+    const pt = s.match(/^([A-Z](?:_?\d+|'*))\s*=?\s*\((.+)\)$/);
+    if (pt) {
+      const pair = splitPair(pt[2]);
+      if (pair) return { kind: 'point', name: pt[1].replace('_', ''), x: pair[0], y: pair[1] };
+    }
+    const vl = s.match(/^x\s*=\s*(.+)$/);
+    if (vl) return { kind: 'vline', x: vl[1].trim() };
+    let res;
     const m = s.match(/^([a-zA-Z])(?:_?\{?([0-9]+)\}?)?\s*\(\s*([a-zA-Z])\s*\)\s*=\s*(.+)$/);
-    if (m && m[1] !== 'x' || m && m[2]) return { kind: 'function', letter: m[1] + (m[2] ? m[2] : ''), variable: m[3], body: m[4].trim() };
     const y = s.match(/^y\s*=\s*(.+)$/);
-    if (y) return { kind: 'function', letter: null, variable: 'x', body: y[1].trim() };
-    return { kind: 'function', letter: null, variable: 'x', body: s };
+    if (m && (m[1] !== 'x' || m[2])) res = { kind: 'function', letter: m[1] + (m[2] ? m[2] : ''), variable: m[3], body: m[4].trim() };
+    else if (y) res = { kind: 'function', letter: null, variable: 'x', body: y[1].trim() };
+    else res = { kind: 'function', letter: null, variable: 'x', body: s };
+    const sd = splitDomain(res.body, res.variable);
+    res.body = sd.body;
+    res.domain = sd.domain;
+    return res;
+  }
+
+  // Wert eines konstanten Ausdrucks (z. B. Grenze "pi/2"); NaN bei Fehler
+  function evalConst(expr, params) {
+    try {
+      return compile(parse(String(expr)), params || {})(0);
+    } catch (e) {
+      return NaN;
+    }
+  }
+
+  // ── Unicode-Darstellung für Beschriftungen im Graphen: x² − 2·x + 0,5 ──
+  const GREEK_CHARS = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
+    kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', rho: 'ρ', sigma: 'σ', tau: 'τ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω' };
+  const SUP = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' };
+  function toNice(ast) {
+    const num = (v) => fmtNum(v).replace('.', ',');
+    const atomic = (n) => n.t === 'num' && n.v >= 0 || n.t === 'var' || n.t === 'const' || n.t === 'call';
+    const pr = (n) => {
+      switch (n.t) {
+        case 'num': return n.v < 0 ? '−' + num(-n.v) : num(n.v);
+        case 'var': return GREEK_CHARS[n.n] || n.n;
+        case 'const': return n.n === 'pi' ? 'π' : n.n === 'deg' ? '°' : 'e';
+        case 'neg': return '−' + wrap(n.a, PREC.neg);
+        case 'fact': return wrap(n.a, 5) + '!';
+        case 'call': {
+          const a = n.args.map(pr);
+          if (n.f === 'abs') return '|' + a[0] + '|';
+          if (n.f === 'sqrt') return '√' + (atomic(n.args[0]) && n.args[0].t !== 'call' ? a[0] : '(' + a[0] + ')');
+          if (n.f === 'cbrt') return '∛(' + a[0] + ')';
+          return n.f + '(' + a.join('; ') + ')';
+        }
+        case 'bin': {
+          if (n.op === '^') {
+            const base = wrap(n.a, 5);
+            if (n.b.t === 'num' && Number.isInteger(n.b.v) && Math.abs(n.b.v) < 100) return base + String(n.b.v).replace(/./g, ch => SUP[ch]);
+            if (n.b.t === 'neg' && n.b.a.t === 'num' && Number.isInteger(n.b.a.v)) return base + ('-' + n.b.a.v).replace(/./g, ch => SUP[ch]);
+            return base + '^(' + pr(n.b) + ')';
+          }
+          if (n.op === '*') {
+            const l = wrap(n.a, 2), r = wrap(n.b, 2);
+            const implicit = n.a.t === 'num' && n.a.v >= 0 && n.b.t !== 'num' && !(n.b.t === 'bin' && n.b.op !== '^' && prec(n.b) >= 2) && n.b.t !== 'neg';
+            return l + (implicit ? '' : '·') + r;
+          }
+          if (n.op === '/') return wrap(n.a, 2) + '/' + wrap(n.b, 3);
+          let op = n.op, b = n.b;
+          if (op === '+' && b.t === 'neg') { op = '-'; b = b.a; }
+          if (op === '+' && b.t === 'num' && b.v < 0) { op = '-'; b = { t: 'num', v: -b.v }; }
+          return wrap(n.a, 1) + (op === '-' ? ' − ' : ' + ') + wrap(b, op === '-' ? 2 : 1);
+        }
+      }
+    };
+    const wrap = (n, minPrec) => prec(n) < minPrec ? '(' + pr(n) + ')' : pr(n);
+    return pr(ast);
   }
 
   const LETTERS = ['f', 'g', 'h', 'k', 'p', 'q', 'r', 's', 'u', 'v', 'w'];
@@ -554,7 +701,7 @@ const MathParser = (() => {
 
   return {
     ParseError, FUNCS, normalize, tokenize, parse, compile, freeVars, substitute,
-    derivative, radianize, toPlain, toNerdamer, toPgf, toTeX, parseDefinition, nextLetter, realPow,
+    derivative, radianize, toPlain, toNerdamer, toPgf, toTeX, toNice, parseDefinition, parseDomain, evalConst, nextLetter, realPow,
   };
 })();
 
