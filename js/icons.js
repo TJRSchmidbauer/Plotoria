@@ -1,4 +1,4 @@
-// Linien-Icons im Stil der SF Symbols (24×24, Strichstärke über CSS).
+// Eigene, frei gezeichnete Linien-Icons (24×24) – keine SF Symbols oder fremden Icon-Sätze.
 // Verwendung im HTML: <i data-icon="home"></i> – wird beim Start durch SVG ersetzt.
 const Icons = (() => {
   const P = {

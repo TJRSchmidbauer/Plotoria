@@ -75,11 +75,20 @@ Version 1.0 ist im Branch [`version/1.0`](https://github.com/TJRSchmidbauer/Plot
 
 ---
 
+## 🔒 Datenschutz
+
+* **Keine Cookies**, kein Tracking, keine Analyse- oder Werbedienste, keine Anmeldung.
+* **Keine Daten an Dritte:** Alle Bibliotheken und Schriften liegen im Projekt; es werden keine externen Server (CDNs, Google Fonts o. Ä.) aufgerufen.
+* **Nur lokale Speicherung im Browser:** der aktuelle Arbeitsstand und der Druckbogen (`localStorage`) sowie die App-Dateien für den Offline-Betrieb (Service-Worker-Cache). Diese Daten verlassen das Gerät nicht und lassen sich über die Browser-Einstellungen („Websitedaten löschen“) jederzeit entfernen.
+* Beim Aufruf über GitHub Pages gelten für den Server die [Datenschutzbestimmungen von GitHub](https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement).
+
+---
+
 ## 📄 Lizenz & Rechtliche Hinweise (CC BY-NC 4.0)
 
 Dieses Werk ist unter der **[Creative Commons Namensnennung - Nicht-kommerziell 4.0 International Lizenz (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.de)** lizenziert.
 
-Die Lizenzbestimmungen sind in der Datei **[LICENSE](LICENSE)** hinterlegt.
+Die Lizenzbestimmungen sind in der Datei **[LICENSE](LICENSE)** hinterlegt. Mitgelieferte Bibliotheken im Ordner `vendor/` (d3, KaTeX, nerdamer mit big.js und BigInteger.js) stehen unter ihren eigenen Lizenzen (ISC, MIT, Unlicense) – siehe [vendor/README.md](vendor/README.md).
 
 ### 📜 Lizenz-Statuten im Überblick:
 * **Namensnennung (BY):** Sie müssen angemessene Urheber- und Rechteangaben machen (Urheber: **Tobias Schmidbauer**), einen Link zur Lizenz beifügen und angeben, ob Änderungen vorgenommen wurden.
