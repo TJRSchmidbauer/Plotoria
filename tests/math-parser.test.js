@@ -82,6 +82,35 @@ test('Definitionen', () => {
   assert.strictEqual(MP.nextLetter(['f', 'g']), 'h');
 });
 
+test('Punkte, senkrechte Geraden, Definitionsbereiche', () => {
+  assert.deepStrictEqual(MP.parseDefinition('A(2|3)'), { kind: 'point', name: 'A', x: '2', y: '3' });
+  assert.deepStrictEqual(MP.parseDefinition('P_1 = (1,5; f(2))'), { kind: 'point', name: 'P1', x: '1,5', y: 'f(2)' });
+  assert.deepStrictEqual(MP.parseDefinition('B(-1, 2)'), { kind: 'point', name: 'B', x: '-1', y: '2' });
+  assert.deepStrictEqual(MP.parseDefinition('x = 2'), { kind: 'vline', x: '2' });
+  const d = MP.parseDefinition('f(x) = x^2 für 0 ≤ x < 3');
+  assert.strictEqual(d.body, 'x^2');
+  assert.deepStrictEqual(d.domain, { min: '0', max: '3', minOpen: false, maxOpen: true });
+  assert.deepStrictEqual(MP.parseDefinition('sqrt(x), x > 1').domain, { min: '1', max: null, minOpen: true, maxOpen: false });
+  assert.deepStrictEqual(MP.parseDefinition('x^2; x ∈ ]-1; pi]').domain, { min: '-1', max: 'pi', minOpen: true, maxOpen: false });
+  assert.deepStrictEqual(MP.parseDefinition('2x; x ∈ [0; ∞[').domain, { min: '0', max: null, minOpen: false, maxOpen: true });
+  assert.deepStrictEqual(MP.parseDefinition('N(t) = 2*1.5^t für 0 ≤ t ≤ 8').domain, { min: '0', max: '8', minOpen: false, maxOpen: false });
+  // Komma in Funktionsargumenten ist keine Bedingung
+  assert.strictEqual(MP.parseDefinition('log(2, x)').domain, null);
+  assert.strictEqual(MP.parseDefinition('max(x, 1)').body, 'max(x, 1)');
+  close(MP.evalConst('pi/2'), Math.PI / 2);
+  assert.ok(Number.isNaN(MP.evalConst('2+')));
+});
+
+test('Unicode-Darstellung', () => {
+  const n = (s) => MP.toNice(MP.parse(s));
+  assert.strictEqual(n('x^2 - 2x + 0.5'), 'x² − 2x + 0,5');
+  assert.strictEqual(n('a*x^(-1)'), 'a·x⁻¹');
+  assert.strictEqual(n('sqrt(x)/(x+1)'), '√x/(x + 1)');
+  assert.strictEqual(n('|x-1| + pi'), '|x − 1| + π');
+  assert.strictEqual(n('e^(2x)'), 'e^(2x)');
+  assert.strictEqual(n('alpha*x'), 'α·x');
+});
+
 test('Ausgabe: Klartext, TeX, pgfplots', () => {
   assert.strictEqual(MP.toPlain(MP.parse('x^2+-3')), 'x^2 - 3');
   assert.strictEqual(MP.toPlain(MP.parse('a-(b-c)')), 'a - (b - c)');
