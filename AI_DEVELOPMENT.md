@@ -29,6 +29,12 @@ Plotoria kombiniert moderne Webtechnologien mit agentischer KI-Unterstützung:
 * **RAD / DEG Umschaltung:** Unterstützung für Bogen- und Gradmaß bei trigonometrischen Funktionen.
 * **Exporte:** PNG, Zwischenablage, SVG, TikZ/LaTeX und URL-State-Sharing.
 
+### 📌 Überarbeitung (Version 2.1)
+* **Eigener Ausdrucks-Parser:** Terme werden in einen Syntaxbaum zerlegt und zu JavaScript kompiliert; nerdamer dient nur noch für symbolische Ableitungen (mit numerischer Gegenprobe). Behoben u. a.: `ln(x)` wurde als `ln·x` gelesen, `\frac{…}{…}` und `\sqrt{…}` funktionierten nicht, `x^23` wurde zu `x^2·3`, `|x|` war ungültig.
+* **Fehlerbehebungen:** Max/Min wurde nach dem Vorzeichen von $y$ statt der Ableitung bestimmt; doppelte Funktions-IDs nach dem Löschen; $x_{min}=0$ wurde in den Einstellungen ignoriert; TikZ-Export enthielt `f(x) = …` und rechnete Winkelfunktionen im Gradmaß; Polstellen wurden als senkrechte Linien gezeichnet; SVG-Export ohne Dateiendung.
+* **Neue bzw. vervollständigte Funktionen:** Wertetabelle mit CSV-Export, Wendepunkte, Parameter-Erkennung und -Animation, Ableitungen `f'`/`f''`, Funktionsverweise, RAD/DEG, Undo/Redo, Autospeichern, Teilen-Link, PNG-Export und Bild kopieren, Beispiele, Hilfe-Dialog, Tastenkürzel, KaTeX-Formelsatz, Touch-Bedienung.
+* **Tests:** `npm test` prüft den Parser (Node.js-Testrunner).
+
 ---
 
 ## 👨‍💻 Mitwirkende & Credits

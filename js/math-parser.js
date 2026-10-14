@@ -1,143 +1,561 @@
-const MathParser = {
-  latexToPlain(expr) {
-    let s = expr.trim();
+// Plotoria Ausdrucks-Parser
+// Wandelt Eingaben (Klartext oder einfaches LaTeX) in einen Syntaxbaum um und
+// kompiliert ihn zu einer schnellen JavaScript-Funktion. nerdamer wird nur noch
+// für symbolische Ableitungen verwendet.
+const MathParser = (() => {
+  // ── Funktionstabelle ──
+  // nd: Schreibweise für nerdamer, pgf: Schreibweise für pgfplots, tex: LaTeX-Befehl
+  const FUNCS = {
+    sin:   { n: 1, tex: '\\sin' },  cos: { n: 1, tex: '\\cos' },  tan: { n: 1, tex: '\\tan' },
+    cot:   { n: 1, tex: '\\cot' },  sec: { n: 1, tex: '\\sec' },  csc: { n: 1, tex: '\\csc', pgf: 'cosec' },
+    asin:  { n: 1, tex: '\\arcsin' }, acos: { n: 1, tex: '\\arccos' }, atan: { n: 1, tex: '\\arctan' },
+    sinh:  { n: 1, tex: '\\sinh' }, cosh: { n: 1, tex: '\\cosh' }, tanh: { n: 1, tex: '\\tanh' },
+    coth:  { n: 1, tex: '\\coth' }, asinh: { n: 1, tex: '\\operatorname{arsinh}' },
+    acosh: { n: 1, tex: '\\operatorname{arcosh}' }, atanh: { n: 1, tex: '\\operatorname{artanh}' },
+    sqrt:  { n: 1 }, cbrt: { n: 1 }, root: { n: 2 },
+    abs:   { n: 1 }, exp: { n: 1, tex: '\\exp' },
+    ln:    { n: 1, tex: '\\ln' }, log: { n: [1, 2], tex: '\\log' },
+    lg:    { n: 1, tex: '\\lg' }, log2: { n: 1, tex: '\\log_2' },
+    sign:  { n: 1, tex: '\\operatorname{sgn}' },
+    floor: { n: 1 }, ceil: { n: 1 }, round: { n: 1, tex: '\\operatorname{round}' },
+    min:   { n: 2, tex: '\\min' }, max: { n: 2, tex: '\\max' },
+  };
+  const ALIASES = {
+    arcsin: 'asin', arccos: 'acos', arctan: 'atan', cosec: 'csc',
+    arsinh: 'asinh', arcosh: 'acosh', artanh: 'atanh',
+    log10: 'lg', sgn: 'sign', nthroot: 'root', wurzel: 'sqrt', betrag: 'abs',
+  };
+  // deg = π/180 (Grad-Faktor): sin(30deg) bzw. sin(30°) im Bogenmaß
+  const CONSTS = { pi: 'pi', 'π': 'pi', e: 'e', deg: 'deg' };
+  const GREEK = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta',
+    'kappa', 'lambda', 'mu', 'nu', 'xi', 'rho', 'sigma', 'tau', 'phi', 'chi', 'psi', 'omega'];
+  const TRIG_IN = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc']);
+  const TRIG_OUT = new Set(['asin', 'acos', 'atan']);
+
+  // Bekannte Namen, längste zuerst – damit wird "sinx" zu sin·x und "cosh" nicht zu cos·h
+  const NAMES = [...Object.keys(FUNCS), ...Object.keys(ALIASES), ...Object.keys(CONSTS), ...GREEK]
+    .sort((a, b) => b.length - a.length);
+
+  class ParseError extends Error {}
+
+  // ── Vorverarbeitung: LaTeX, Unicode, deutsches Dezimalkomma ──
+  function matchBrace(s, open) {
+    let depth = 0;
+    for (let i = open; i < s.length; i++) {
+      if (s[i] === '{') depth++;
+      else if (s[i] === '}' && --depth === 0) return i;
+    }
+    return -1;
+  }
+
+  // Ersetzt \cmd{A}{B} (auch verschachtelt) über eine Callback-Funktion
+  function replaceBraced(s, cmd, nArgs, build) {
+    let idx;
+    while ((idx = s.indexOf(cmd)) !== -1) {
+      let p = idx + cmd.length;
+      let opt = null;
+      if (s[p] === '[') {
+        const e = s.indexOf(']', p);
+        if (e === -1) break;
+        opt = s.slice(p + 1, e); p = e + 1;
+      }
+      const args = [];
+      for (let k = 0; k < nArgs; k++) {
+        while (s[p] === ' ') p++;
+        if (s[p] !== '{') {
+          // \frac12 oder \sqrt x: einzelnes Zeichen als Argument
+          if (p < s.length) { args.push(s[p]); p++; continue; }
+          break;
+        }
+        const e = matchBrace(s, p);
+        if (e === -1) break;
+        args.push(s.slice(p + 1, e)); p = e + 1;
+      }
+      if (args.length !== nArgs) break;
+      s = s.slice(0, idx) + build(args, opt) + s.slice(p);
+    }
+    return s;
+  }
+
+  function normalize(expr) {
+    let s = String(expr).trim();
     if (!s) return '';
 
-    s = s.replace(/\\,/g, ' ');
-    s = s.replace(/\\;/g, ';');
-    s = s.replace(/\\:/g, ':');
-    s = s.replace(/\\!/g, '!');
-    s = s.replace(/\\(?!\w)/g, '');
+    s = s.replace(/\\left|\\right|\\big[lr]?|\\Big[lr]?|\\bigg[lr]?|\\Bigg[lr]?/g, '');
+    s = replaceBraced(s, '\\dfrac', 2, a => `((${a[0]})/(${a[1]}))`);
+    s = replaceBraced(s, '\\tfrac', 2, a => `((${a[0]})/(${a[1]}))`);
+    s = replaceBraced(s, '\\frac', 2, a => `((${a[0]})/(${a[1]}))`);
+    s = replaceBraced(s, '\\sqrt', 1, (a, n) => n ? `root(${a[0]},${n})` : `sqrt(${a[0]})`);
+    s = replaceBraced(s, '\\operatorname', 1, a => a[0]);
+    s = s.replace(/\\cdot|\\times|\\ast/g, '*').replace(/\\div/g, '/');
+    s = s.replace(/\\[,;:! ]/g, ' ');
+    s = s.replace(/\\(?=[a-zA-Z])/g, '');        // \sin → sin, \pi → pi
+    s = s.replace(/[{]/g, '(').replace(/[}]/g, ')');
 
-    const greek = {
-      '\\pi': 'pi', '\\Pi': 'pi',
-      '\\alpha': 'alpha', '\\beta': 'beta',
-      '\\gamma': 'gamma', '\\delta': 'delta',
-      '\\theta': 'theta', '\\lambda': 'lambda',
-      '\\mu': 'mu', '\\nu': 'nu',
-      '\\omega': 'omega', '\\phi': 'phi',
-      '\\psi': 'psi', '\\rho': 'rho',
-      '\\sigma': 'sigma', '\\tau': 'tau',
-      '\\epsilon': 'epsilon', '\\varepsilon': 'epsilon',
-      '\\zeta': 'zeta', '\\eta': 'eta',
-      '\\xi': 'xi',
+    s = s.replace(/[·×∙⋅]/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-');
+    s = s.replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/°/g, 'deg');
+    // Deutsches Dezimalkomma: 0,5 → 0.5 (nur zwischen Ziffern ohne Leerzeichen)
+    s = s.replace(/(\d),(\d)/g, '$1.$2');
+    return s.trim();
+  }
+
+  // ── Tokenizer ──
+  function tokenize(s) {
+    const toks = [];
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (/[0-9.]/.test(c)) {
+        const m = s.slice(i).match(/^(\d+\.?\d*|\.\d+)/);
+        if (!m) throw new ParseError('Ungültige Zahl');
+        toks.push({ t: 'num', v: parseFloat(m[1]), pos: i });
+        i += m[1].length;
+        continue;
+      }
+      if (/[a-zA-Zα-ωΑ-Ωπ]/.test(c)) {
+        let run = s.slice(i).match(/^[a-zA-Zα-ωΑ-Ωπ]+/)[0];
+        // log10, log2 als ein Name
+        const dm = s.slice(i + run.length).match(/^\d+/);
+        if (dm && /log$/.test(run) && (dm[0] === '10' || dm[0] === '2')) run += dm[0];
+        let j = 0;
+        while (j < run.length) {
+          const rest = run.slice(j);
+          const name = NAMES.find(n => rest.startsWith(n));
+          if (name) { toks.push({ t: 'id', v: name, pos: i + j }); j += name.length; }
+          else { toks.push({ t: 'id', v: rest[0], pos: i + j }); j += 1; }
+        }
+        i += run.length;
+        continue;
+      }
+      if ('+-*/^(),|!\'[]'.includes(c)) {
+        const v = c === '[' ? '(' : c === ']' ? ')' : c;
+        toks.push({ t: 'op', v, pos: i }); i++;
+        continue;
+      }
+      throw new ParseError('Unerwartetes Zeichen „' + c + '“');
+    }
+    return toks;
+  }
+
+  // ── Parser (rekursiver Abstieg) ──
+  // AST-Knoten: num, var, const, neg, bin(op,a,b), call(f,args), fact(a)
+  function parse(input, ctx) {
+    ctx = ctx || {};
+    const ufns = ctx.functions || {};   // benutzerdefinierte Funktionen zum Einsetzen
+    const variable = ctx.variable || 'x';
+    const toks = tokenize(normalize(input));
+    if (!toks.length) throw new ParseError('Leerer Ausdruck');
+    let p = 0, absDepth = 0;
+    const peek = () => toks[p];
+    const isOp = (v) => toks[p] && toks[p].t === 'op' && toks[p].v === v;
+    const expect = (v) => {
+      if (!isOp(v)) throw new ParseError(v === ')' ? 'Schließende Klammer fehlt' : '„' + v + '“ erwartet');
+      p++;
     };
-    for (const [latex, plain] of Object.entries(greek)) {
-      while (s.includes(latex)) s = s.replace(latex, plain);
+
+    function parseExpr() {
+      let a = parseTerm();
+      while (isOp('+') || isOp('-')) {
+        const op = toks[p++].v;
+        a = { t: 'bin', op, a, b: parseTerm() };
+      }
+      return a;
     }
 
-    const funcs = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc',
-      'sinh', 'cosh', 'tanh', 'coth',
-      'arcsin', 'arccos', 'arctan',
-      'ln', 'log', 'lg', 'exp', 'sqrt', 'frac'];
-    for (const f of funcs) {
-      while (s.includes('\\' + f)) s = s.replace('\\' + f, f);
+    function startsPrimary() {
+      const t = peek();
+      if (!t) return false;
+      if (t.t === 'num' || t.t === 'id') return true;
+      if (t.t === 'op' && t.v === '(') return true;
+      if (t.t === 'op' && t.v === '|' && absDepth === 0) return true;
+      return false;
     }
 
-    s = s.replace(/\^\{([^}]+)\}/g, '^($1)');
-    s = s.replace(/\^([a-zA-Z0-9π])/g, '^($1)');
-    s = s.replace(/_{([^}]+)}/g, '_($1)');
-    s = s.replace(/_([a-zA-Z0-9])/g, '_($1)');
-
-    while (s.includes('\\frac')) {
-      s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/, '($1)/($2)');
-    }
-    while (s.includes('\\sqrt')) {
-      s = s.replace(/\\sqrt(?:\[([^\]]+)\])?\{([^}]+)\}/, (_, n, v) =>
-        n ? `(${v})^(1/(${n}))` : `sqrt(${v})`);
-    }
-
-    s = s.replace(/\\cdot/g, '*');
-    s = s.replace(/\\times/g, '*');
-    s = s.replace(/\\div/g, '/');
-    s = s.replace(/\\pm/g, '+');
-    s = s.replace(/\\mp/g, '-');
-    s = s.replace(/\\infty/g, 'infinity');
-    s = s.replace(/\\abs\{([^}]+)\}/g, 'abs($1)');
-
-    s = s.replace(/\\left|\\right|\\big[lr]?|\\Big[lr]?|\\Bigg[lr]?/g, '');
-    s = s.replace(/\\([a-zA-Z]+)/g, '');
-    s = s.replace(/\s+/g, ' ').trim();
-
-    return s;
-  },
-
-  parseFunction(fnStr) {
-    let s = fnStr.trim();
-
-    let name = 'f';
-    let expr = s;
-
-    const fnMatch = s.match(/^([a-zA-Z])\s*\(([^)]*)\)\s*=\s*(.*)/);
-    if (fnMatch) {
-      name = fnMatch[1];
-      expr = fnMatch[3].trim();
+    function parseTerm() {
+      let a = parseUnary();
+      for (;;) {
+        if (isOp('*') || isOp('/')) {
+          const op = toks[p++].v;
+          a = { t: 'bin', op, a, b: parseUnary() };
+        } else if (startsPrimary()) {
+          a = { t: 'bin', op: '*', a, b: parsePower() };   // implizite Multiplikation: 2x, 3(x+1)
+        } else break;
+      }
+      return a;
     }
 
-    const plain = this.latexToPlain(expr);
-    const cleaned = this.validate(plain);
-
-    return { name, param: 'x', original: expr, cleaned, valid: cleaned !== null };
-  },
-
-  validate(expr) {
-    if (!expr || expr.length === 0) return null;
-
-    let s = expr.trim();
-    s = s.replace(/\s+/g, '');
-
-    if (s.length === 0) return null;
-
-    const openP = (s.match(/\(/g) || []).length;
-    const closeP = (s.match(/\)/g) || []).length;
-    if (openP !== closeP) return null;
-
-    const allowed = /^[a-zA-Z0-9π+\-*/^().,%!|]+$/;
-    if (!allowed.test(s)) return null;
-
-    try {
-      nerdamer(s.replace(/\bpi\b/g, '1'));
-      return s;
-    } catch (e) {
-      return null;
+    function parseUnary() {
+      if (isOp('-')) { p++; return { t: 'neg', a: parseUnary() }; }
+      if (isOp('+')) { p++; return parseUnary(); }
+      return parsePower();
     }
-  },
 
-  isDerivativeNotation(input) {
-    const t = input.trim();
-    return /^([a-zA-Z])\s*'+$/.test(t);
-  },
+    function parsePower() {
+      const base = parsePostfix();
+      if (isOp('^')) { p++; return { t: 'bin', op: '^', a: base, b: parseUnary() }; }
+      return base;
+    }
 
-  derivativeOf(fn) {
-    const fMatch = fn.orig.match(/^([a-zA-Z])\s*\(([^)]*)\)\s*=\s*(.*)/);
-    if (fMatch) {
-      const param = fMatch[2].trim();
-      const expr = fMatch[3].trim();
-      try {
-        const plain = this.latexToPlain(expr);
-        return nerdamer.diff(plain, param).toString();
-      } catch (e) {
-        return null;
+    function parsePostfix() {
+      let a = parsePrimary();
+      while (isOp('!')) { p++; a = { t: 'fact', a }; }
+      return a;
+    }
+
+    function parseArgs() {
+      expect('(');
+      const args = [parseExpr()];
+      while (isOp(',')) { p++; args.push(parseExpr()); }
+      expect(')');
+      return args;
+    }
+
+    function parsePrimary() {
+      const t = peek();
+      if (!t) throw new ParseError('Ausdruck unvollständig');
+      if (t.t === 'num') { p++; return { t: 'num', v: t.v }; }
+      if (t.t === 'op' && t.v === '(') {
+        p++; const e = parseExpr(); expect(')'); return e;
+      }
+      if (t.t === 'op' && t.v === '|') {
+        p++; absDepth++;
+        const e = parseExpr();
+        absDepth--;
+        expect('|');
+        return { t: 'call', f: 'abs', args: [e] };
+      }
+      if (t.t === 'id') {
+        p++;
+        const name = ALIASES[t.v] || t.v;
+        if (FUNCS[name]) {
+          const spec = FUNCS[name];
+          let args;
+          if (isOp('(')) args = parseArgs();
+          else args = [parsePower()];          // sin x
+          const ok = Array.isArray(spec.n) ? spec.n.includes(args.length) : spec.n === args.length;
+          if (!ok) throw new ParseError(name + ' erwartet ' + (Array.isArray(spec.n) ? spec.n.join(' oder ') : spec.n) + ' Argument(e)');
+          return { t: 'call', f: name, args };
+        }
+        if (CONSTS[name]) return { t: 'const', n: CONSTS[name] };
+        // Benutzerfunktion f(…), f'(…)
+        if (ufns[name] && name !== variable) {
+          if (!ufns[name].ast) throw new ParseError(name === ctx.self ? 'Funktion ' + name + ' darf sich nicht selbst verwenden' : 'Funktion ' + name + ' ist fehlerhaft oder nicht definiert');
+          let order = 0;
+          while (isOp('\'')) { p++; order++; }
+          if (isOp('(')) {
+            const args = parseArgs();
+            if (args.length !== 1) throw new ParseError(name + ' erwartet ein Argument');
+            let body = ufns[name].ast;
+            for (let k = 0; k < order; k++) {
+              body = derivative(body);
+              if (!body) throw new ParseError('Ableitung von ' + name + ' nicht möglich');
+            }
+            return substitute(body, 'x', args[0]);
+          }
+          if (order) throw new ParseError('„(“ nach ' + name + "' erwartet");
+        }
+        if (isOp('\'')) throw new ParseError('Unbekannte Funktion ' + name);
+        return { t: 'var', n: name === variable ? 'x' : name };
+      }
+      if (t.t === 'op' && t.v === ')') throw new ParseError('Klammer zu viel');
+      throw new ParseError('Unerwartetes „' + t.v + '“');
+    }
+
+    const ast = parseExpr();
+    if (p < toks.length) {
+      const t = toks[p];
+      throw new ParseError(t.v === ')' ? 'Klammer zu viel' : 'Unerwartetes „' + t.v + '“');
+    }
+    return ast;
+  }
+
+  function substitute(ast, name, repl) {
+    const walk = (n) => {
+      switch (n.t) {
+        case 'var': return n.n === name ? repl : n;
+        case 'neg': case 'fact': return { ...n, a: walk(n.a) };
+        case 'bin': return { ...n, a: walk(n.a), b: walk(n.b) };
+        case 'call': return { ...n, args: n.args.map(walk) };
+        default: return n;
+      }
+    };
+    return walk(ast);
+  }
+
+  function freeVars(ast, out) {
+    out = out || new Set();
+    switch (ast.t) {
+      case 'var': if (ast.n !== 'x') out.add(ast.n); break;
+      case 'neg': case 'fact': freeVars(ast.a, out); break;
+      case 'bin': freeVars(ast.a, out); freeVars(ast.b, out); break;
+      case 'call': ast.args.forEach(a => freeVars(a, out)); break;
+    }
+    return out;
+  }
+
+  // ── Laufzeitfunktionen ──
+  function realPow(b, e) {
+    if (b >= 0 || Number.isInteger(e)) return Math.pow(b, e);
+    // negative Basis mit gebrochenem Exponenten: reelle ungerade Wurzel, z. B. (-8)^(1/3) = -2
+    for (let q = 3; q < 100; q += 2) {
+      const pq = e * q;
+      if (Math.abs(pq - Math.round(pq)) < 1e-9) {
+        const r = Math.pow(-b, e);
+        return Math.round(pq) % 2 === 0 ? r : -r;
       }
     }
+    return NaN;
+  }
+  function fact(n) {
+    if (n < 0 || !Number.isInteger(n)) return NaN;
+    if (n > 170) return Infinity;
+    let r = 1; for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  }
+  const D2R = Math.PI / 180;
+  function makeRuntime(deg) {
+    const a = deg ? (x) => x * D2R : (x) => x;
+    const o = deg ? (x) => x / D2R : (x) => x;
+    return {
+      sin: x => Math.sin(a(x)), cos: x => Math.cos(a(x)), tan: x => Math.tan(a(x)),
+      cot: x => 1 / Math.tan(a(x)), sec: x => 1 / Math.cos(a(x)), csc: x => 1 / Math.sin(a(x)),
+      asin: x => o(Math.asin(x)), acos: x => o(Math.acos(x)), atan: x => o(Math.atan(x)),
+      sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, coth: x => 1 / Math.tanh(x),
+      asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
+      sqrt: Math.sqrt, cbrt: Math.cbrt, root: (x, n) => realPow(x, 1 / n),
+      abs: Math.abs, exp: Math.exp, ln: Math.log,
+      log: (x, y) => y === undefined ? Math.log(x) : Math.log(y) / Math.log(x),
+      lg: Math.log10, log2: Math.log2, sign: Math.sign,
+      floor: Math.floor, ceil: Math.ceil, round: Math.round, min: Math.min, max: Math.max,
+      pow: realPow, fact,
+    };
+  }
+  const RT_RAD = makeRuntime(false), RT_DEG = makeRuntime(true);
+
+  function toJS(n) {
+    switch (n.t) {
+      case 'num': return '(' + n.v + ')';
+      case 'var': return n.n === 'x' ? 'x' : 'P[' + JSON.stringify(n.n) + ']';
+      case 'const': return n.n === 'pi' ? 'Math.PI' : n.n === 'deg' ? '(Math.PI/180)' : 'Math.E';
+      case 'neg': return '(-' + toJS(n.a) + ')';
+      case 'fact': return 'F.fact(' + toJS(n.a) + ')';
+      case 'bin':
+        if (n.op === '^') return 'F.pow(' + toJS(n.a) + ',' + toJS(n.b) + ')';
+        return '(' + toJS(n.a) + n.op + toJS(n.b) + ')';
+      case 'call': return 'F.' + n.f + '(' + n.args.map(toJS).join(',') + ')';
+    }
+    throw new ParseError('Interner Fehler');
+  }
+
+  // Liefert f(x) – Parameterwerte werden live aus dem übergebenen Objekt gelesen
+  function compile(ast, params, opts) {
+    const F = opts && opts.deg ? RT_DEG : RT_RAD;
+    const raw = new Function('x', 'P', 'F', '"use strict"; return ' + toJS(ast) + ';');
+    const P = params || {};
+    return (x) => {
+      const y = raw(x, P, F);
+      return typeof y === 'number' && isFinite(y) ? y : NaN;
+    };
+  }
+
+  // ── Ausgabe ──
+  const PREC = { '+': 1, '-': 1, '*': 2, '/': 2, neg: 3, '^': 4 };
+  function prec(n) {
+    if (n.t === 'bin') return PREC[n.op];
+    if (n.t === 'neg') return PREC.neg;
+    if (n.t === 'num' && n.v < 0) return PREC.neg;
+    return 5;
+  }
+  function fmtNum(v) {
+    if (Number.isInteger(v)) return String(v);
+    return String(parseFloat(v.toPrecision(12)));
+  }
+
+  // Generischer Klartext-Drucker (für Anzeige, nerdamer und pgfplots)
+  function printer(map) {
+    const pr = (n) => {
+      switch (n.t) {
+        case 'num': return fmtNum(n.v);
+        case 'var': return map.var ? map.var(n.n) : n.n;
+        case 'const': return map.const ? map.const(n.n) : n.n;
+        case 'neg': return '-' + wrap(n.a, PREC.neg + (n.a.t === 'bin' && n.a.op === '^' ? -1 : 0));
+        case 'fact': return map.fact ? map.fact(pr(n.a)) : wrap(n.a, 5) + '!';
+        case 'call': return map.call(n.f, n.args.map(pr), n.args);
+        case 'bin': {
+          const p0 = PREC[n.op];
+          if (n.op === '^') return wrap(n.a, 5) + '^' + wrap(n.b, 5);
+          let op = n.op, b = n.b;
+          if (op === '+' && b.t === 'neg') { op = '-'; b = b.a; }
+          const right = (op === '-' || op === '/') ? p0 + 1 : p0;
+          // a*(-b), a/(-b) immer klammern
+          const rb = (op === '*' || op === '/') && b.t === 'neg' ? '(' + pr(b) + ')' : wrap(b, right);
+          return wrap(n.a, p0) + (map.mulSpaced && (op === '+' || op === '-') ? ' ' + op + ' ' : op) + rb;
+        }
+      }
+    };
+    const wrap = (n, minPrec) => prec(n) < minPrec ? '(' + pr(n) + ')' : pr(n);
+    return pr;
+  }
+
+  const toPlain = printer({
+    mulSpaced: true,
+    call: (f, a) => f + '(' + a.join(', ') + ')',
+  });
+
+  const toNerdamer = printer({
+    call: (f, a) => {
+      switch (f) {
+        case 'ln': return 'log(' + a[0] + ')';
+        case 'log': return a.length === 2 ? '(log(' + a[1] + ')/log(' + a[0] + '))' : 'log(' + a[0] + ')';
+        case 'lg': return '(log(' + a[0] + ')/log(10))';
+        case 'log2': return '(log(' + a[0] + ')/log(2))';
+        case 'cbrt': return '((' + a[0] + ')^(1/3))';
+        case 'root': return '((' + a[0] + ')^(1/(' + a[1] + ')))';
+        default: return f + '(' + a.join(',') + ')';
+      }
+    },
+    fact: (s) => 'factorial(' + s + ')',
+  });
+
+  function toPgf(ast, params) {
+    const sub = { ...params };
+    return printer({
+      var: (v) => v === 'x' ? 'x' : (v in sub ? '(' + fmtNum(sub[v]) + ')' : v),
+      const: (c) => c === 'deg' ? '(pi/180)' : c,
+      call: (f, a) => {
+        switch (f) {
+          case 'ln': return 'ln(' + a[0] + ')';
+          case 'log': return a.length === 2 ? '(ln(' + a[1] + ')/ln(' + a[0] + '))' : 'ln(' + a[0] + ')';
+          case 'lg': return 'log10(' + a[0] + ')';
+          case 'cbrt': return '(sign(' + a[0] + ')*abs(' + a[0] + ')^(1/3))';
+          case 'root': return '((' + a[0] + ')^(1/(' + a[1] + ')))';
+          case 'csc': return 'cosec(' + a[0] + ')';
+          default: return f + '(' + a.join(',') + ')';
+        }
+      },
+      fact: (s) => 'factorial(' + s + ')',
+    })(ast);
+  }
+
+  function toTeX(ast) {
+    const greek = (v) => GREEK.includes(v) ? '\\' + v : v;
+    const tex = (n) => {
+      switch (n.t) {
+        case 'num': return fmtNum(n.v).replace('.', '{,}');
+        case 'var': return greek(n.n);
+        case 'const': return n.n === 'pi' ? '\\pi ' : n.n === 'deg' ? '\\frac{\\pi}{180}' : 'e';
+        case 'neg': return '-' + wrap(n.a, PREC.neg);
+        case 'fact': return wrap(n.a, 5) + '!';
+        case 'call': {
+          const a = n.args.map(tex);
+          switch (n.f) {
+            case 'sqrt': return '\\sqrt{' + a[0] + '}';
+            case 'cbrt': return '\\sqrt[3]{' + a[0] + '}';
+            case 'root': return '\\sqrt[' + a[1] + ']{' + a[0] + '}';
+            case 'abs': return '\\left|' + a[0] + '\\right|';
+            case 'floor': return '\\lfloor ' + a[0] + '\\rfloor ';
+            case 'ceil': return '\\lceil ' + a[0] + '\\rceil ';
+            case 'exp': return 'e^{' + a[0] + '}';
+            case 'log': if (a.length === 2) return '\\log_{' + a[0] + '}\\left(' + a[1] + '\\right)';
+          }
+          return FUNCS[n.f].tex + '\\left(' + a.join(', ') + '\\right)';
+        }
+        case 'bin': {
+          if (n.op === '/') return '\\frac{' + tex(n.a) + '}{' + tex(n.b) + '}';
+          if (n.op === '^') {
+            const paren = (n.a.t === 'call' && n.a.f !== 'abs' && n.a.f !== 'sqrt') || (n.a.t === 'const' && n.a.n === 'deg');
+            const base = paren ? '\\left(' + tex(n.a) + '\\right)' : wrap(n.a, 5);
+            return base + '^{' + tex(n.b) + '}';
+          }
+          if (n.op === '*') {
+            const l = wrap(n.a, 2), r = wrap(n.b, 2);
+            // 2x, 3\sin(x), a x – aber 2 · 3 ausschreiben
+            const implicit = n.b.t !== 'num' && !(n.b.t === 'bin' && n.b.op === '^' && n.b.a.t === 'num') && n.b.t !== 'neg';
+            return l + (implicit ? ' ' : ' \\cdot ') + r;
+          }
+          let op = n.op, b = n.b;
+          if (op === '+' && b.t === 'neg') { op = '-'; b = b.a; }
+          return wrap(n.a, 1) + ' ' + op + ' ' + wrap(b, op === '-' ? 2 : 1);
+        }
+      }
+    };
+    const wrap = (n, minPrec) => prec(n) < minPrec ? '\\left(' + tex(n) + '\\right)' : tex(n);
+    return tex(ast);
+  }
+
+  // Gradmaß explizit machen: sin(u) → sin(u·deg), asin(u) → asin(u)/deg (deg = π/180).
+  // Das Ergebnis wird im Bogenmaß ausgewertet (für korrekte Ableitungen im DEG-Modus).
+  function radianize(ast) {
+    const walk = (n) => {
+      switch (n.t) {
+        case 'neg': case 'fact': return { ...n, a: walk(n.a) };
+        case 'bin': return { ...n, a: walk(n.a), b: walk(n.b) };
+        case 'call': {
+          const c = { ...n, args: n.args.map(walk) };
+          const DEG = { t: 'const', n: 'deg' };
+          if (TRIG_IN.has(n.f)) c.args = [{ t: 'bin', op: '*', a: c.args[0], b: DEG }];
+          if (TRIG_OUT.has(n.f)) return { t: 'bin', op: '/', a: c, b: DEG };
+          return c;
+        }
+        default: return n;
+      }
+    };
+    return walk(ast);
+  }
+
+  // ── Symbolische Ableitung über nerdamer ──
+  // nerdamers simplify() liefert teils falsche Ergebnisse (tan → tan²) und wird daher nicht verwendet.
+  function derivative(ast) {
+    if (typeof nerdamer === 'undefined' || !nerdamer.diff) return null;
     try {
-      const plain = this.latexToPlain(fn.expr);
-      return nerdamer.diff(plain, 'x').toString();
+      const out = nerdamer.diff(toNerdamer(ast), 'x').toString();
+      if (/factorial|Si\(|Ci\(|erf|Ei\(|undefined|\b(asec|acsc|acot|sech|csch|acoth|asech|acsch|Shi|Chi|dirac|heaviside)\(/i.test(out)) return null;
+      const d = parse(out);
+      return agreesNumerically(ast, d) ? d : null;
     } catch (e) {
       return null;
     }
-  },
-
-  extractName(raw) {
-    const m = raw.match(/^([a-zA-Z])\s*\(/);
-    return m ? m[1] : null;
-  },
-
-  nextLetter(used) {
-    const letters = ['f','g','h','i','k','l','m','o','p','q','r','s','t','u','w','x','z'];
-    for (const l of letters) {
-      if (!used.includes(l)) return l;
-    }
-    return 'f';
   }
-};
+
+  // Sicherheitsnetz: symbolische Ableitung an einigen Stellen mit dem Differenzenquotienten vergleichen
+  function agreesNumerically(ast, dAst) {
+    const P = {};
+    freeVars(ast).forEach((v, i) => { P[v] = 0.7 + 0.13 * i; });
+    freeVars(dAst).forEach((v) => { if (!(v in P)) P[v] = 0.7; });
+    const f = compile(ast, P), d = compile(dAst, P);
+    for (const x of [0.37, 1.23, -0.81, 2.17, -1.9, 0.05, 3.3]) {
+      const h = 1e-5 * Math.max(1, Math.abs(x));
+      const num = (f(x + h) - f(x - h)) / (2 * h), sym = d(x);
+      if (!isFinite(num) || !isFinite(sym) || !isFinite(f(x))) continue;
+      if (Math.abs(num - sym) > 1e-4 * Math.max(1, Math.abs(num), Math.abs(sym))) return false;
+    }
+    return true;
+  }
+
+  // ── Eingabezeile zerlegen ──
+  // "f(x) = …", "y = …", "f'" / "f''", oder nur ein Term
+  function parseDefinition(raw) {
+    const s = String(raw).trim();
+    const d = s.match(/^([a-zA-Z])\s*('+)\s*(?:\(\s*x\s*\))?$/);
+    if (d) return { kind: 'derivative', of: d[1], order: d[2].length };
+    const m = s.match(/^([a-zA-Z])(?:_?\{?([0-9]+)\}?)?\s*\(\s*([a-zA-Z])\s*\)\s*=\s*(.+)$/);
+    if (m && m[1] !== 'x' || m && m[2]) return { kind: 'function', letter: m[1] + (m[2] ? m[2] : ''), variable: m[3], body: m[4].trim() };
+    const y = s.match(/^y\s*=\s*(.+)$/);
+    if (y) return { kind: 'function', letter: null, variable: 'x', body: y[1].trim() };
+    return { kind: 'function', letter: null, variable: 'x', body: s };
+  }
+
+  const LETTERS = ['f', 'g', 'h', 'k', 'p', 'q', 'r', 's', 'u', 'v', 'w'];
+  function nextLetter(used) {
+    for (const l of LETTERS) if (!used.includes(l)) return l;
+    for (let i = 1; ; i++) if (!used.includes('f' + i)) return 'f' + i;
+  }
+
+  return {
+    ParseError, FUNCS, normalize, tokenize, parse, compile, freeVars, substitute,
+    derivative, radianize, toPlain, toNerdamer, toPgf, toTeX, parseDefinition, nextLetter, realPow,
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = MathParser;
