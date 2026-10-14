@@ -197,6 +197,7 @@
       E.exact.addEventListener('change', () => { this.style.exact = E.exact.checked; this.repaint(); this.commit(); });
       this.segmented(E.gridMode, (v) => this.setGridMode(v), 'value');
       E.karo.addEventListener('change', () => { this.style.karo = +E.karo.value; this.setGridMode('karo'); });
+      $('karo-actual').addEventListener('click', () => this.showPrintSize());
       E.theme.addEventListener('change', () => { this.applyTheme(E.theme.value); this.commit(); });
 
       // Zeichenfläche: Zeiger-Ereignisse
@@ -1084,7 +1085,7 @@
 
     _syncControls() {
       const E = this.els, v = this._viewObj(true), s = this.style;
-      const r = (n) => +n.toPrecision(5);
+      const r = (n) => { const v = +n.toPrecision(4); return Math.abs(v) < 1e-9 ? 0 : v; };
       const active = document.activeElement;
       const set = (el, val) => { if (el !== active) el.value = val; };
       set(E.xminI, r(v.xMin)); set(E.xmaxI, r(v.xMax)); set(E.yminI, r(v.yMin)); set(E.ymaxI, r(v.yMax));
@@ -1105,13 +1106,25 @@
     setGridMode(mode) {
       this.style.gridMode = mode;
       if (mode === 'karo') {
-        // Karopapier: gleiche Einheiten, Raster in 5-mm-Kästchen
+        // Karopapier: gleiche Einheiten, Ansicht in Druckgröße (Kästchen ≈ 5 mm)
         this.proportional = true;
-        this._takeCurrentView(); this._applyProportional(); this._rebuildView();
+        this.showPrintSize(true);
       }
       this._syncControls();
       this.repaint();
       this.commit();
+    },
+
+    // Ansicht so zoomen, dass 1 Einheit am Bildschirm ungefähr so groß ist wie auf Papier
+    // (Karopapier: 1 Einheit = karo · 5 mm). Die Bildschirmgröße ist nur näherungsweise exakt.
+    showPrintSize(silent) {
+      const unitCm = this.style.gridMode === 'karo' ? this.style.karo * 0.5 : (this.exp ? this.exp.ux : 1);
+      const ppu = unitCm * CM;
+      const v = this._viewObj(true);
+      const cx = (v.xMin + v.xMax) / 2, cy = (v.yMin + v.yMax) / 2;
+      const hw = (this.W - this.pad.l - this.pad.r) / ppu / 2, hh = (this.H - this.pad.t - this.pad.b) / ppu / 2;
+      this.setView({ xMin: cx - hw, xMax: cx + hw, yMin: cy - hh, yMax: cy + hh }, { exact: true });
+      if (!silent) this._toast('Druckgröße: 1 Einheit ≈ ' + String(unitCm).replace('.', ',') + ' cm');
     },
 
     _applyProportional() {

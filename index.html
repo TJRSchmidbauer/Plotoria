@@ -201,7 +201,7 @@
                 <div class="row"><label for="set-yfmt">Zahlen</label>
                   <select id="set-yfmt" class="field"><option value="dec">Dezimal</option><option value="pi">Vielfache von π</option><option value="frac">Brüche</option></select></div>
                 <div class="row"><label for="set-sub">Rasterlinien</label>
-                  <select id="set-sub" class="field"><option value="1">je Schritt</option><option value="2">2 je Schritt</option><option value="4">4 je Schritt</option><option value="5">5 je Schritt</option><option value="10">10 je Schritt</option></select></div>
+                  <select id="set-sub" class="field"><option value="auto">automatisch</option><option value="1">je Schritt</option><option value="2">2 je Schritt</option><option value="4">4 je Schritt</option><option value="5">5 je Schritt</option><option value="10">10 je Schritt</option></select></div>
               </div>
             </section>
 
@@ -209,9 +209,16 @@
               <div class="group-head"><h3>Raster</h3></div>
               <div class="group-body form">
                 <div class="segmented" id="grid-mode"><button data-value="grid" class="active">Koordinaten</button><button data-value="karo">Karopapier</button><button data-value="none">Ohne</button></div>
-                <div class="row" id="karo-row" hidden><label for="set-karo">1 Einheit =</label>
-                  <select id="set-karo" class="field"><option value="1">1 Kästchen (0,5 cm)</option><option value="2" selected>2 Kästchen (1 cm)</option><option value="4">4 Kästchen (2 cm)</option></select></div>
-                <p class="hint" id="karo-hint" hidden>Kästchen sind 5 mm groß. Beim Export ist der Maßstab dadurch festgelegt.</p>
+                <div class="row" id="karo-row" hidden><label for="set-karo">1 Einheit auf Papier</label>
+                  <select id="set-karo" class="field">
+                    <option value="1">0,5 cm = 1 Kästchen</option>
+                    <option value="2" selected>1 cm = 2 Kästchen</option>
+                    <option value="4">2 cm = 4 Kästchen</option>
+                  </select></div>
+                <div id="karo-hint" hidden>
+                  <p class="hint">Ein Kästchen ist auf Papier immer 5 mm groß. „1 Einheit“ ist der Abstand von 0 bis 1 auf der Achse. Am Bildschirm hängt die Größe vom Zoom ab.</p>
+                  <button class="link-btn" id="karo-actual">In Druckgröße anzeigen</button>
+                </div>
               </div>
             </section>
 

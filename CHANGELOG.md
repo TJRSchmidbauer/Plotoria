@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## Version 2.0.3
+- **Karopapier verständlicher:** Die Auswahl heißt jetzt „1 Einheit auf Papier“ und nennt zuerst die gedruckte Länge (z. B. „2 cm = 4 Kästchen“). Beim Wechsel auf Karopapier zeigt Plotoria die Kästchen am Bildschirm ungefähr in Druckgröße (5 mm); der Knopf „In Druckgröße anzeigen“ stellt das wieder her.
+- Auswahl „Rasterlinien“ zeigte bei „automatisch“ ein leeres Feld – behoben.
+
 ## Version 2.0.2
 - **Absturz beim Tangenten-Werkzeug behoben:** Nahe Polstellen und an Hoch-/Tiefpunkten entstanden Linien mit Koordinaten von bis zu 10¹⁴ Pixeln, an denen Browser abstürzten bzw. die Seite neu luden. Tangente und Normale werden jetzt auf den sichtbaren Bereich zugeschnitten.
 - Gleiche Absicherung für Integralgrenzen, schiefe Asymptoten, Pfeile und senkrechte Geraden beim starken Zoomen.
