@@ -61,7 +61,7 @@ Mit gedrückter **Alt**-Taste wird nicht eingerastet. Ausgewählte Objekte lösc
 
 * **Fenster:** x- und y-Bereich; „Gleiche Einheiten“ hält das Seitenverhältnis 1:1.
 * **Achsen:** Titel (z. B. „t in s“), **Schritt** (z. B. `2` oder `pi/2`), Zahlen als **Dezimal**, **Brüche** oder **Vielfache von π**, Anzahl der Rasterlinien je Schritt.
-* **Raster:** Koordinaten · **Karopapier** (5-mm-Kästchen, 1 Einheit = 1, 2 oder 4 Kästchen) · ohne.
+* **Raster:** Koordinaten · **Karopapier** · ohne. Beim Karopapier ist ein Kästchen auf Papier immer 5 mm groß; unter „1 Einheit auf Papier“ wählst du, wie lang eine Einheit (von 0 bis 1) gedruckt wird: 0,5 cm (1 Kästchen), 1 cm (2 Kästchen) oder 2 cm (4 Kästchen). Plotoria zeigt das Karopapier dann am Bildschirm ungefähr in Druckgröße; „In Druckgröße anzeigen“ stellt das nach dem Zoomen wieder her.
 * **Stil:** Farbthema (Automatisch, Hell, Projektor, Dunkel), **Schwarz-Weiß**, Schriftgröße, Linienstärken, Farben.
 * **Exakte Werte:** Kurvendiskussion, Tangente und Integral zeigen √2, π/2, 1/3 statt Dezimalzahlen.
 
