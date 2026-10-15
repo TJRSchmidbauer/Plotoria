@@ -26,7 +26,7 @@
       <div class="toolbar-brand">
         <img src="icons/icon.svg" alt="" class="brand-icon" width="26" height="26">
         <span class="brand-name">Plotoria</span>
-        <span class="brand-version">2.0</span>
+        <span class="brand-version">3.0</span>
       </div>
       <input type="text" id="header-title" class="title-field" placeholder="Titel der Grafik" maxlength="100" aria-label="Titel der Grafik">
       <div class="toolbar-spacer"></div>
@@ -429,9 +429,14 @@
         <tr><td><code>x^2 - 4</code>, <code>2x(x+1)</code></td><td>Terme, Malpunkt darf fehlen</td></tr>
         <tr><td><code>f(x) = sin(x)</code></td><td>Funktion mit Namen (überschreibt vorhandenes f)</td></tr>
         <tr><td><code>f(x) = x^2 für 0 ≤ x ≤ 3</code></td><td>Definitionsbereich (auch <code>x ∈ [0; 3[</code>, <code>, x > 1</code>)</td></tr>
+        <tr><td><code>f(x) = x^2 für x &lt; 1; 2x − 1 für x ≥ 1</code></td><td>Abschnittsweise definiert (auch <code>…; 3 sonst</code>), Sprungstellen mit ● / ○</td></tr>
+        <tr><td><code>f_a(x) = a·x^2 für a = 1, 2, 3</code></td><td>Funktionsschar (auch <code>a ∈ {−1; 0; 1}</code>, <code>a = −2 … 2</code>)</td></tr>
         <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
+        <tr><td>Funktion › <em>Stammfunktion</em> / <em>Umkehrfunktion</em></td><td>F mit Konstante C (auch mehrere: <code>−1; 0; 1</code>) bzw. Spiegelung an y = x</td></tr>
+        <tr><td>Funktion › <em>Kurvendiskussion</em></td><td>Lösung als Text für Word, LaTeX oder den Druckbogen</td></tr>
+        <tr><td>Integral-Symbol ∫</td><td>Fläche, Unter-, Ober- oder Mittelsumme mit n Rechtecken</td></tr>
         <tr><td><code>g(x) = f(x - 2) + 1</code></td><td>Andere Funktionen verwenden</td></tr>
-        <tr><td><code>A(2|3)</code>, <code>P(1|f(1))</code></td><td>Punkt (auch <code>A = (2; 3)</code>)</td></tr>
+        <tr><td><code>A(2|3)</code>, <code>P(1|f(1))</code></td><td>Punkt (auch <code>A = (2; 3)</code>); › „Hilfslinien zu den Achsen“ zum Ablesen</td></tr>
         <tr><td><code>x = 2</code></td><td>Senkrechte Gerade</td></tr>
         <tr><td><code>a*x^2 + b</code></td><td>Unbekannte Buchstaben werden Parameter</td></tr>
         <tr><td><code>sqrt</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
@@ -455,7 +460,7 @@
       </table>
       <h3>Datenschutz</h3>
       <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen, eigene Vorlagen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
-      <p class="hint">Plotoria 2.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
+      <p class="hint">Plotoria 3.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
     </div>
   </dialog>
 

@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Zeichenobjekte: Punkte, Texte, Pfeile, senkrechte Geraden
+// Plotoria 3.0 – Zeichenobjekte: Punkte, Texte, Pfeile, senkrechte Geraden
 (() => {
   const MP = MathParser;
   const P = window.Plotoria;

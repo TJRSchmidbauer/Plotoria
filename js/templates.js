@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Aufgabenvorlagen für Arbeitsblätter und Prüfungen
+// Plotoria 3.0 – Aufgabenvorlagen für Arbeitsblätter und Prüfungen
 (() => {
   const P = window.Plotoria;
   const $ = id => document.getElementById(id);

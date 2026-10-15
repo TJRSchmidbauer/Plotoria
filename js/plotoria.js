@@ -1,10 +1,10 @@
-// Plotoria 2.0 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
+// Plotoria 3.0 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
 // Module (objects.js, data.js, export.js, templates.js) erweitern dieses Objekt per Object.assign.
 (() => {
   const $ = id => document.getElementById(id);
   const MP = MathParser;
 
-  const VERSION = '2.0';
+  const VERSION = '3.0';
   const COLORS = ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FF2D55', '#5856D6'];
   const STORAGE_KEY = 'plotoria-state-v1';
   const DEFAULT_VIEW = { xMin: -4, xMax: 5, yMin: -10, yMax: 10 };
@@ -1836,7 +1836,10 @@
     // Farbe einer Scharkurve: Abstufung der Grundfarbe
     _memberColor(fn, i) {
       const col = this._col(fn), n = fn.members ? fn.members.length : 1;
-      return this._ctx().bw || n < 2 ? col : d3.color(d3.interpolateRgb(col, '#000')(0.45 * i / (n - 1))).formatHex();
+      if (this._ctx().bw || n < 2) return col;
+      // auf hellem Grund abdunkeln, auf dunklem aufhellen
+      const toward = d3.hsl(this._ctx().bg || '#fff').l < 0.5 ? '#fff' : '#000';
+      return d3.color(d3.interpolateRgb(col, toward)(0.45 * i / (n - 1))).formatHex();
     },
 
     // Beschriftung einer Scharkurve („a = 2“) an einer freien Stelle nahe dem Kurvenende

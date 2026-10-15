@@ -1,5 +1,26 @@
 # Änderungsprotokoll
 
+## Version 3.0 – mehr Mathematik für Arbeitsblätter
+
+### Funktionen
+- **Abschnittsweise definierte Funktionen:** `f(x) = x² für x < 1; 2x − 1 für x ≥ 1`, auch mit `sonst` oder Intervallen `x ∈ [0; 1[`. An Sprungstellen zeigt Plotoria gefüllte ● und offene ○ Randpunkte, an stetigen Übergängen keine. Ableitung je Abschnitt; im Export als `cases` (LaTeX) bzw. je Abschnitt ein eigenes `\addplot` (TikZ).
+- **Funktionsscharen:** `f_a(x) = a·x² für a = 1, 2, 3` (auch `a ∈ {−1; 0; 1}` oder `a = −2 … 2`). Jede Kurve wird in einer Abstufung der Grundfarbe gezeichnet und mit „a = 2“ bzw. dem Term beschriftet. Ableitungen einer Schar sind wieder Scharen.
+- **Umkehrfunktion:** Funktion › *Umkehrfunktion* spiegelt den Graphen an y = x; die Winkelhalbierende wird gestrichelt eingeblendet. Ist f im Bereich nicht umkehrbar, weist Plotoria darauf hin.
+- **Stammfunktion:** Funktion › *Stammfunktion* zeichnet F mit wählbarer Konstante C – mehrere Werte (z. B. `−1; 0; 1`) ergeben eine Schar von Stammfunktionen. Der Term wird exakt bestimmt (ln|x| statt ln x) oder, wenn es keinen geschlossenen Term gibt, numerisch berechnet.
+
+### Aufgaben gestalten
+- **Hilfslinien zum Ablesen:** Bei Punkten zeichnet die Option „Hilfslinien zu den Achsen“ gestrichelte Lote auf beide Achsen (auch im TikZ-Export).
+- **Riemann-Summen:** Im Integral-Werkzeug zwischen Fläche, Untersumme, Obersumme und Mittelsumme wählen; die Anzahl der Rechtecke ist einstellbar (1–200). Angezeigt werden z. B. U₈ und der Wert des Integrals.
+- **Kurvendiskussion als Text:** Funktion › *Kurvendiskussion* erstellt ein Lösungsblatt mit Definitionsbereich, Symmetrie, Nullstellen, y-Achsenabschnitt, Ableitungen, Extrem- und Wendepunkten, Monotonie- und Krümmungsintervallen, Grenzverhalten und Asymptoten – exakt (√3, 1 − √2) oder gerundet. Ausgabe für Word, als LaTeX oder auf den Druckbogen.
+- **Mehrere Koordinatensysteme auf einem Blatt:** Im Export „Leeres Koordinatensystem“ wählen oder im Druckbogen „Leeres Koordinatensystem daneben“ – z. B. links der Graph von f, rechts das Raster für „Skizziere f′“. Mit „⇥“ stehen Grafiken nebeneinander, wenn sie zusammen auf die Seitenbreite passen. Abbildungen und Tabellen werden getrennt nummeriert.
+- **Eigene Vorlagen:** Im Vorlagen-Fenster den aktuellen Stand unter einem Namen sichern, später mit einem Klick laden, löschen oder alle als Datei weitergeben und wieder einlesen. Gespeichert wird im Browser nur mit Zustimmung.
+- **Fünf neue Vorlagen:** Abschnittsweise definiert, Funktionsschar, Ober- und Untersumme, Umkehrfunktion, Stammfunktionen.
+
+### Verbesserungen
+- **Lesbarere Ableitungen:** `x² − 1` statt `−1 + x²`, `(x² − 2x − 1)/(x − 1)²`, `1/(2√x)`, `2^x·ln(2)` statt gerundeter Brüche. Jede Umformung wird numerisch geprüft.
+- Tests verwenden die mitgelieferte nerdamer-Version; `npm test` braucht keine Installation mehr.
+- Version 2.0.5 ist im Branch `version/2.0` gesichert.
+
 ## Version 2.0.5
 - **Gleichmäßige Strichlinien:** Gestrichelte, gepunktete und strichpunktierte Graphen werden entlang der Kurvenlänge berechnet. Alle Striche, Punkte und Lücken sind gleich lang – auch an Hoch- und Tiefpunkten, am Bildschirm wie in PNG, SVG und Druck.
 

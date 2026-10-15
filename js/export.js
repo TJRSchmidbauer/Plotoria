@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Export (maßstabsgetreu), Druckbogen DIN A4, Projektdateien
+// Plotoria 3.0 – Export (maßstabsgetreu), Druckbogen DIN A4, Projektdateien
 (() => {
   const P = window.Plotoria;
   const { esc, fmtDE, CM } = P;

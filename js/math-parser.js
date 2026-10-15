@@ -812,11 +812,19 @@ const MathParser = (() => {
   }
 
   // Abschnitte mit Zahlengrenzen (nur wenn die Bedingung direkt von x abhängt)
+  // Bedingung über u = αx + β (z. B. f(x − 1)) wird nach x umgerechnet; sonst null
   function pieces(ast, params) {
     const pw = ast && liftPw(ast);
-    if (!pw || pw.v.t !== 'var' || pw.v.n !== 'x') return null;
-    const val = (b) => (b ? compile(b, params)(0) : NaN);
-    return pw.parts.map(q => ({ e: q.e, lo: q.lo ? val(q.lo) : -Infinity, hi: q.hi ? val(q.hi) : Infinity, loOpen: !!q.loOpen, hiOpen: !!q.hiOpen, other: !q.lo && !q.hi }));
+    if (!pw) return null;
+    const u = compile(pw.v, params);
+    const b0 = u(0), al = u(1) - b0;
+    if (!isFinite(b0) || !isFinite(al) || al === 0 || [2, -3, 7.5].some(x => Math.abs(u(x) - (al * x + b0)) > 1e-9 * Math.max(1, Math.abs(u(x))))) return null;
+    const val = (b) => (b ? (compile(b, params)(0) - b0) / al : NaN);
+    return pw.parts.map(q => {
+      let lo = q.lo ? val(q.lo) : -Infinity, hi = q.hi ? val(q.hi) : Infinity, loOpen = !!q.loOpen, hiOpen = !!q.hiOpen;
+      if (al < 0) { [lo, hi] = [hi === Infinity ? -Infinity : hi, lo === -Infinity ? Infinity : lo]; [loOpen, hiOpen] = [hiOpen, loOpen]; }
+      return { e: q.e, lo, hi, loOpen, hiOpen, other: !q.lo && !q.hi };
+    });
   }
 
   // Sicherheitsnetz: symbolische Ableitung an einigen Stellen mit dem Differenzenquotienten vergleichen
@@ -919,7 +927,7 @@ const MathParser = (() => {
   // "f(x) = …", "y = …", "f'" / "f''", "A(2|3)", "x = 2", oder nur ein Term
   function parseDefinition(raw) {
     const s = String(raw).trim();
-    const d = s.match(/^([a-zA-Z])\s*('+)\s*(?:\(\s*x\s*\))?$/);
+    const d = s.match(/^([a-zA-Z](?:_[a-zA-Z])?)\s*('+)\s*(?:\(\s*x\s*\))?$/);
     if (d) return { kind: 'derivative', of: d[1], order: d[2].length };
     const pt = s.match(/^([A-Z](?:_?\d+|'*))\s*=?\s*\((.+)\)$/);
     if (pt) {

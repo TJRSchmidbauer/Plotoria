@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
+// Plotoria 3.0 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
 (() => {
   const P = window.Plotoria;
 
