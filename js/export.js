@@ -387,12 +387,12 @@
         const row = document.createElement('div'); row.className = 'item-row';
         const th = document.createElement('div'); th.className = 'print-thumb';
         if (it.kind === 'svg') { th.innerHTML = it.svg; const s = th.querySelector('svg'); s.removeAttribute('width'); s.removeAttribute('height'); s.querySelectorAll('[id]').forEach(n => n.removeAttribute('id')); }
-        else th.innerHTML = Icons.svg('table');
+        else th.innerHTML = Icons.svg(it.kind === 'text' ? 'doc' : 'table');
         const main = document.createElement('div'); main.className = 'item-main';
         const cap = document.createElement('input'); cap.className = 'field'; cap.placeholder = 'Bildunterschrift'; cap.value = it.caption || '';
         cap.addEventListener('input', () => { it.caption = cap.value; this._savePrint(); this.renderPrintPreview(); });
         const sub = document.createElement('div'); sub.className = 'item-sub';
-        sub.textContent = it.kind === 'svg' ? fmtCm(it.wcm) + ' × ' + fmtCm(it.hcm) + ' cm' : 'Tabelle';
+        sub.textContent = it.kind === 'svg' ? fmtCm(it.wcm) + ' × ' + fmtCm(it.hcm) + ' cm' : it.kind === 'text' ? 'Text' : 'Tabelle';
         main.append(cap, sub);
         const acts = document.createElement('div'); acts.className = 'item-actions';
         const btn = (label, title, cb, dis) => { const b = document.createElement('button'); b.className = 'icon-btn'; b.innerHTML = label; b.title = title; b.disabled = !!dis; b.addEventListener('click', cb); acts.appendChild(b); };
@@ -418,7 +418,8 @@
       };
       newPage();
       this.printItems.forEach((it, i) => {
-        const h = it.kind === 'svg' ? Math.min(it.hcm * 10 * (it.wcm > 17.4 ? 17.4 / it.wcm : 1), avail - 10) + 13 : 8 * (it.html.match(/<tr/g) || []).length + 16;
+        const h = it.kind === 'svg' ? Math.min(it.hcm * 10 * (it.wcm > 17.4 ? 17.4 / it.wcm : 1), avail - 10) + 13
+          : it.kind === 'text' ? 6.2 * (it.lines || (it.html.match(/<p/g) || []).length) + 14 : 8 * (it.html.match(/<tr/g) || []).length + 16;
         if (used + h > avail && cur.length) newPage();
         cur.push({ it, n: i + 1 });
         used += h;
@@ -428,9 +429,10 @@
         if (p === 0 && o.header) h += '<div class="page-header"><span>Name:</span><span>Klasse:</span><span>Datum:</span></div>';
         if (p === 0 && o.heading) h += '<h1>' + esc(o.heading) + '</h1>';
         items.forEach(({ it, n }) => {
-          const cap = (o.numbers ? (it.kind === 'svg' ? 'Abbildung ' : 'Tabelle ') + n + (it.caption ? ': ' : '') : '') + (it.caption || '');
+          const cap = (o.numbers && it.kind !== 'text' ? (it.kind === 'svg' ? 'Abbildung ' : 'Tabelle ') + n + (it.caption ? ': ' : '') : '') + (it.caption || '');
           let body = it.svg || it.html;
           if (it.kind === 'svg' && it.wcm > 17.4) body = body.replace(/width="[^"]*cm"/, 'width="174mm"').replace(/height="[^"]*cm"/, 'height="' + (it.hcm * 174 / it.wcm).toFixed(1) + 'mm"');
+          if (it.kind === 'text') { h += '<div class="page-item page-text">' + (cap ? '<p class="page-text-title">' + esc(cap) + '</p>' : '') + body + '</div>'; return; }
           h += '<div class="page-item"><figure>' + body + (cap ? '<figcaption>' + esc(cap) + '</figcaption>' : '') + '</figure></div>';
         });
         return h + '</div>';

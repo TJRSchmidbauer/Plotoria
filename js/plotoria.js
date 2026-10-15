@@ -73,7 +73,7 @@
   }
 
   window.Plotoria = {
-    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf,
+    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf, bisect,
     fns: [], objs: [], datasets: [], ci: 0, nextId: 1,
     ...DEFAULT_VIEW,
     home: { ...DEFAULT_VIEW },
@@ -244,7 +244,7 @@
       }
 
       // Module
-      ['initObjects', 'initData', 'initExport', 'initTemplates'].forEach(n => this[n] && this[n]());
+      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion'].forEach(n => this[n] && this[n]());
 
       const st = this._loadStartupState();
       requestAnimationFrame(() => {
@@ -1901,8 +1901,8 @@
     },
 
     // ── Kurvendiskussion ──
-    _analyze(fn) {
-      const [x0, x1] = this.xs.domain();
+    _analyze(fn, range) {
+      const [x0, x1] = range || this.xs.domain();
       const key = [fn.id, fn.version, x0, x1, this.deg, JSON.stringify(this.params)].join('|');
       this._anaCache = this._anaCache || new Map();
       if (this._anaCache.has(key)) return this._anaCache.get(key);

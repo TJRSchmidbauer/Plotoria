@@ -348,6 +348,41 @@
     </div>
   </dialog>
 
+  <!-- ── Kurvendiskussion als Text ── -->
+  <dialog class="sheet sheet-wide" id="disc-sheet" aria-labelledby="disc-title">
+    <div class="sheet-head">
+      <span></span>
+      <h2 id="disc-title">Kurvendiskussion</h2>
+      <button class="link-btn link-strong" data-close>Fertig</button>
+    </div>
+    <div class="sheet-body disc-layout">
+      <div class="disc-options">
+        <section class="group">
+          <div class="group-body form">
+            <div class="row"><label>Bereich</label><span class="pair"><input type="text" id="disc-a" class="field field-mono" aria-label="von"><span>bis</span><input type="text" id="disc-b" class="field field-mono" aria-label="bis"></span></div>
+            <div class="row"><label for="disc-inf">Ränder als ±∞</label><input type="checkbox" class="switch" id="disc-inf"></div>
+            <div class="row"><label for="disc-exact">Exakte Werte (√2, π/2)</label><input type="checkbox" class="switch" id="disc-exact"></div>
+          </div>
+        </section>
+        <section class="group">
+          <div class="group-body form">
+            <div class="row"><label for="disc-derivs">Ableitungen</label><input type="checkbox" class="switch" id="disc-derivs"></div>
+            <div class="row"><label for="disc-mono">Monotonie</label><input type="checkbox" class="switch" id="disc-mono"></div>
+            <div class="row"><label for="disc-curv">Krümmung</label><input type="checkbox" class="switch" id="disc-curv"></div>
+            <div class="row"><label for="disc-limits">Grenzverhalten &amp; Asymptoten</label><input type="checkbox" class="switch" id="disc-limits"></div>
+          </div>
+        </section>
+        <div class="disc-actions">
+          <button class="btn btn-gray btn-sm" id="disc-word"><i data-icon="doc"></i>Für Word kopieren</button>
+          <button class="btn btn-gray btn-sm" id="disc-latex"><i data-icon="copy"></i>LaTeX kopieren</button>
+          <button class="btn btn-gray btn-sm" id="disc-print"><i data-icon="print"></i>Zum Druckbogen</button>
+        </div>
+        <p class="hint">„Ränder als ±∞“: Ist der Graph am Rand des Bereichs unbeschränkt definiert, wird ]−∞; …] bzw. […; +∞[ geschrieben. Bitte die Ergebnisse vor dem Austeilen prüfen – sie werden numerisch im gewählten Bereich ermittelt.</p>
+      </div>
+      <div class="disc-out" id="disc-out"></div>
+    </div>
+  </dialog>
+
   <!-- ── Vorlagen-Sheet ── -->
   <dialog class="sheet" id="templates-sheet" aria-labelledby="tpl-title">
     <div class="sheet-head">
@@ -439,6 +474,7 @@
   <script src="js/data.js"></script>
   <script src="js/export.js"></script>
   <script src="js/templates.js"></script>
+  <script src="js/discussion.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

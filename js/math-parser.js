@@ -480,7 +480,7 @@ const MathParser = (() => {
         case 'num': return fmtNum(n.v).replace('.', '{,}');
         case 'var': return greek(n.n);
         case 'const': return n.n === 'pi' ? '\\pi ' : n.n === 'deg' ? '\\frac{\\pi}{180}' : 'e';
-        case 'neg': return '-' + wrap(n.a, PREC.neg);
+        case 'neg': return '-' + wrap(n.a, n.a.t === 'bin' && (n.a.op === '*' || n.a.op === '/') ? 2 : PREC.neg);
         case 'fact': return wrap(n.a, 5) + '!';
         case 'call': {
           const a = n.args.map(tex);
@@ -550,6 +550,31 @@ const MathParser = (() => {
 
   // ── Symbolische Ableitung über nerdamer ──
   // nerdamers simplify() liefert teils falsche Ergebnisse (tan → tan²) und wird daher nicht verwendet.
+  // Zahlen als Basis (2^x) durch Platzhalter ersetzen, sonst rundet nerdamer ln 2 zu einem Bruch
+  function shieldBases(ast) {
+    const used = freeVars(ast), map = {};
+    const free = GREEK.filter(g => !used.has(g) && !['beta', 'gamma', 'zeta', 'eta', 'delta', 'psi'].includes(g));   // keine nerdamer-Funktionsnamen
+    const walk = (n) => {
+      switch (n.t) {
+        case 'neg': case 'fact': return { ...n, a: walk(n.a) };
+        case 'call': return { ...n, args: n.args.map(walk) };
+        case 'bin': {
+          const a = walk(n.a), b = walk(n.b);
+          if (n.op === '^' && a.t === 'num' && a.v > 0 && !isConstNode(b) && free.length) {
+            const key = String(a.v);
+            if (!map[key]) map[key] = free.shift();
+            return { ...n, a: { t: 'var', n: map[key] }, b };
+          }
+          return { ...n, a, b };
+        }
+        default: return n;
+      }
+    };
+    const out = walk(ast);
+    const restore = (r) => Object.entries(map).reduce((acc, [v, name]) => substitute(acc, name, { t: 'num', v: +v }), r);
+    return { ast: out, restore };
+  }
+
   function derivative(ast) {
     if (typeof nerdamer === 'undefined' || !nerdamer.diff) return null;
     // abschnittsweise: jeden Abschnitt einzeln ableiten
@@ -564,13 +589,170 @@ const MathParser = (() => {
       return { ...lifted, parts };
     }
     try {
-      const out = nerdamer.diff(toNerdamer(ast), 'x').toString();
+      const sh = shieldBases(ast);
+      const out = nerdamer.diff(toNerdamer(sh.ast), 'x').toString();
       if (/factorial|Si\(|Ci\(|erf|Ei\(|undefined|\b(asec|acsc|acot|sech|csch|acoth|asech|acsch|Shi|Chi|dirac|heaviside)\(/i.test(out)) return null;
-      const d = parse(out);
-      return agreesNumerically(ast, d) ? d : null;
+      const d = sh.restore(parse(out));
+      return agreesNumerically(ast, d) ? nicer(d) : null;
     } catch (e) {
       return null;
     }
+  }
+
+  // ── Terme aufräumen (für Ableitungen und Stammfunktionen) ──
+  // Polynome absteigend ordnen, negative Exponenten als Bruch, x^(1/2) als Wurzel, Faktor x nach vorn
+  const isConstNode = (n) => n.t === 'num' || n.t === 'const' || (n.t === 'neg' && isConstNode(n.a)) ||
+    (n.t === 'bin' && isConstNode(n.a) && isConstNode(n.b));
+  const constVal = (n) => { try { return compile(n, {})(0); } catch (e) { return NaN; } };
+  const num = (v) => (v < 0 ? { t: 'neg', a: { t: 'num', v: -v } } : { t: 'num', v });
+  // −e für einen konstanten Exponenten, ohne Rundung (−2/3 → 2/3)
+  function negConst(n) {
+    if (n.t === 'neg') return n.a;
+    if (n.t === 'num') return num(-n.v);
+    if (n.t === 'bin' && (n.op === '/' || n.op === '*')) return { ...n, a: negConst(n.a) };
+    return { t: 'neg', a: n };
+  }
+  // Summe mit führendem Minus? Dann −(…) herausziehen
+  const leadNeg = (t) => (t.t === 'bin' && (t.op === '+' || t.op === '-') ? leadNeg(t.a) : t.t === 'neg');
+  const negSum = (t) => tidy({ t: 'neg', a: t });
+
+  function polyDeg(n) {
+    switch (n.t) {
+      case 'num': case 'const': return 0;
+      case 'var': return n.n === 'x' ? 1 : 0;
+      case 'neg': return polyDeg(n.a);
+      case 'bin':
+        if (n.op === '*') { const a = polyDeg(n.a), b = polyDeg(n.b); return a === null || b === null ? null : a + b; }
+        if (n.op === '/') { const b = polyDeg(n.b); return b === 0 ? polyDeg(n.a) : null; }
+        if (n.op === '^' && n.a.t === 'var' && n.a.n === 'x' && isConstNode(n.b)) { const e = constVal(n.b); return Number.isInteger(e) && e >= 0 ? e : null; }
+        if (n.op === '^') return polyDeg(n.a) === 0 && polyDeg(n.b) === 0 ? 0 : null;
+        return null;
+      case 'call': return n.args.every(a => polyDeg(a) === 0) ? 0 : null;
+      default: return null;
+    }
+  }
+  function tidy(n) {
+    switch (n.t) {
+      case 'neg': { const a = tidy(n.a); return a.t === 'neg' ? a.a : a.t === 'num' ? num(-a.v) : { t: 'neg', a }; }
+      case 'fact': return { ...n, a: tidy(n.a) };
+      case 'call': return n.f === 'log' && n.args.length === 1 ? { t: 'call', f: 'ln', args: [tidy(n.args[0])] } : { ...n, args: n.args.map(tidy) };
+      case 'pw': return { ...n, parts: n.parts.map(q => ({ ...q, e: tidy(q.e) })) };
+      case 'bin': break;
+      default: return n;
+    }
+    if (n.op === '+' || n.op === '-') {
+      const terms = [];
+      const flat = (m, sg) => {
+        if (m.t === 'bin' && (m.op === '+' || m.op === '-')) { flat(m.a, sg); flat(m.b, m.op === '-' ? -sg : sg); return; }
+        const t = tidy(m);
+        if (t.t === 'neg') terms.push({ sg: -sg, e: t.a });
+        else if (t.t === 'num' && t.v < 0) terms.push({ sg: -sg, e: { t: 'num', v: -t.v } });
+        else terms.push({ sg, e: t });
+      };
+      flat(n, 1);
+      const degs = terms.map(t => polyDeg(t.e));
+      const order = terms.map((t, i) => i);
+      if (degs.every(d => d !== null)) order.sort((i, j) => degs[j] - degs[i] || i - j);
+      else {
+        order.sort((i, j) => (degs[i] === 0) - (degs[j] === 0) || i - j);   // Konstanten ans Ende
+        const k = order.findIndex(i => terms[i].sg > 0);                     // mit positivem Term beginnen
+        if (k > 0) order.unshift(order.splice(k, 1)[0]);
+      }
+      let out = null;
+      order.forEach(i => {
+        const { sg, e } = terms[i];
+        if (!out) out = sg < 0 ? { t: 'neg', a: e } : e;
+        else out = { t: 'bin', op: sg < 0 ? '-' : '+', a: out, b: e };
+      });
+      return out;
+    }
+    if (n.op === '*' || n.op === '/') {
+      let p = 1, q = 1;
+      const top = [], bot = [];
+      const flat = (m, den) => {
+        if (m.t === 'bin' && m.op === '*') { flat(m.a, den); flat(m.b, den); return; }
+        if (m.t === 'bin' && m.op === '/') { flat(m.a, den); flat(m.b, !den); return; }
+        if (m.t === 'neg') { p = -p; flat(m.a, den); return; }
+        const t = tidy(m);
+        if (t.t === 'neg') { p = -p; flat(t.a, den); return; }
+        if (t.t === 'num') { if (den) q *= t.v; else p *= t.v; return; }
+        if (t.t === 'bin' && (t.op === '*' || t.op === '/')) { flat(t, den); return; }
+        if (t.t === 'bin' && t.op === '^' && isConstNode(t.b)) {
+          const e = constVal(t.b);
+          if (e < 0) {
+            const f = e === -1 ? t.a : e === -0.5 ? { t: 'call', f: 'sqrt', args: [t.a] } : { t: 'bin', op: '^', a: t.a, b: negConst(t.b) };
+            (den ? top : bot).push(f); return;
+          }
+          if (e === 0.5) { (den ? bot : top).push({ t: 'call', f: 'sqrt', args: [t.a] }); return; }
+        }
+        if (leadNeg(t)) { p = -p; (den ? bot : top).push(negSum(t)); return; }
+        (den ? bot : top).push(t);
+      };
+      flat(n, false);
+      const isX = (f) => (f.t === 'var' && f.n === 'x') || (f.t === 'bin' && f.op === '^' && f.a.t === 'var' && f.a.n === 'x');
+      const isPar = (f) => f.t === 'var' && f.n !== 'x';
+      const sortF = (arr) => arr.map((f, i) => [f, i]).sort((a, b) => (isPar(b[0]) - isPar(a[0])) || (isX(b[0]) - isX(a[0])) || a[1] - b[1]).map(a => a[0]);
+      const prod = (arr) => arr.reduce((acc, f) => (acc ? { t: 'bin', op: '*', a: acc, b: f } : f), null);
+      const neg = p < 0;
+      p = Math.abs(p);
+      // ganzzahlige Brüche kürzen
+      if (Number.isInteger(p) && Number.isInteger(q) && q !== 0) { let a = p, b = q; while (b) [a, b] = [b, a % b]; if (a > 1) { p /= a; q /= a; } }
+      else if (q !== 1) { p /= q; q = 1; }
+      const T = sortF(top), B = sortF(bot);
+      if (p !== 1 || !T.length) T.unshift({ t: 'num', v: p });
+      const numer = prod(T);
+      if (q !== 1) B.unshift({ t: 'num', v: q });
+      let res = B.length ? { t: 'bin', op: '/', a: numer, b: prod(B) } : numer;
+      // 1/2·x statt x/2 bei einfachem Zähler bleibt lesbar: x/2
+      return neg ? { t: 'neg', a: res } : res;
+    }
+    if (n.op === '^') {
+      const a = tidy(n.a), b = tidy(n.b);
+      if (isConstNode(b)) {
+        const e = constVal(b);
+        if (e === 1) return a;
+        if (e === 0.5) return { t: 'call', f: 'sqrt', args: [a] };
+        if (e < 0) return tidy({ t: 'bin', op: '/', a: { t: 'num', v: 1 }, b: { t: 'bin', op: '^', a, b: negConst(b) } });
+      }
+      return { t: 'bin', op: '^', a, b };
+    }
+    return n;
+  }
+
+  // gleiche Funktion (auch gleiche Definitionslücken)?
+  function sameFunction(u, v) {
+    const P = {};
+    [...freeVars(u), ...freeVars(v)].forEach((n, i) => { P[n] = 0.7 + 0.13 * i; });
+    const f = compile(u, P), g = compile(v, P);
+    for (const x of [0.37, 1.23, -0.81, 2.17, -1.9, 0.05, 3.3, -2.6, 0.9, 5.1]) {
+      const a = f(x), b = g(x);
+      if (isFinite(a) !== isFinite(b)) return false;
+      if (isFinite(a) && Math.abs(a - b) > 1e-8 * Math.max(1, Math.abs(a))) return false;
+    }
+    return true;
+  }
+
+  // Lesbarste gleichwertige Form: nerdamers simplify/expand/factor als Kandidaten, jeweils geprüft
+  function nicer(ast) {
+    if (typeof nerdamer === 'undefined' || findPw(ast)) return tidy(ast);
+    const cands = [tidy(ast)];
+    const src = toNerdamer(ast);
+    if (src.length < 400) {
+      // factor kann sich aufhängen; simplify nur bei rationalen Termen (dort entsteht der Hauptnenner)
+      const rational = !/[a-z]{2,}\(/i.test(src);
+      (rational ? ['expand', 'simplify'] : ['expand']).forEach(fn => {
+        try {
+          const out = nerdamer(fn + '(' + src + ')').toString();
+          if (/[a-z]+\(/i.test(out) && /\b(Si|Ci|Ei|erf|dirac|heaviside)\(/i.test(out)) return;
+          if (/\d{7,}/.test(out) && !/\d{7,}/.test(src)) return;   // gerundete Konstanten (z. B. ln 2)
+          const c = tidy(parse(out));
+          if (sameFunction(ast, c)) cands.push(c);
+        } catch (e) { /* Kandidat verwerfen */ }
+      });
+    }
+    let best = cands[0], bl = toNice(best).length;
+    cands.slice(1).forEach(c => { const l = toNice(c).length; if (l < bl) { best = c; bl = l; } });
+    return best;
   }
 
   // ── Stammfunktion über nerdamer (ohne Konstante) ──
@@ -579,7 +761,8 @@ const MathParser = (() => {
   function antiderivative(ast) {
     if (typeof nerdamer === 'undefined' || !nerdamer.integrate || findPw(ast)) return null;
     try {
-      const out = nerdamer.integrate(toNerdamer(ast), 'x').toString();
+      const sh = shieldBases(ast);
+      const out = nerdamer.integrate(toNerdamer(sh.ast), 'x').toString();
       if (/integrate|erf|Si\(|Ci\(|Ei\(|Shi|Chi|gamma|\bi\b|undefined|factorial|\b(asec|acsc|acot|sech|csch|acoth|asech|acsch)\(/i.test(out)) return null;
       const lnAbs = (n) => {
         switch (n.t) {
@@ -595,8 +778,8 @@ const MathParser = (() => {
           default: return n;
         }
       };
-      const F = lnAbs(parse(out));
-      return agreesNumerically(F, ast) ? F : null;
+      const F = lnAbs(sh.restore(parse(out)));
+      return agreesNumerically(F, ast) ? nicer(F) : null;
     } catch (e) {
       return null;
     }
@@ -874,7 +1057,7 @@ const MathParser = (() => {
         case 'num': return n.v < 0 ? '−' + num(-n.v) : num(n.v);
         case 'var': return GREEK_CHARS[n.n] || n.n;
         case 'const': return n.n === 'pi' ? 'π' : n.n === 'deg' ? '°' : 'e';
-        case 'neg': return '−' + wrap(n.a, PREC.neg);
+        case 'neg': return '−' + wrap(n.a, n.a.t === 'bin' && (n.a.op === '*' || n.a.op === '/') ? 2 : PREC.neg);
         case 'fact': return wrap(n.a, 5) + '!';
         case 'call': {
           const a = n.args.map(pr);
@@ -889,12 +1072,12 @@ const MathParser = (() => {
             const base = wrap(n.a, 5);
             if (n.b.t === 'num' && Number.isInteger(n.b.v) && Math.abs(n.b.v) < 100) return base + String(n.b.v).replace(/./g, ch => SUP[ch]);
             if (n.b.t === 'neg' && n.b.a.t === 'num' && Number.isInteger(n.b.a.v)) return base + ('-' + n.b.a.v).replace(/./g, ch => SUP[ch]);
-            return base + '^(' + pr(n.b) + ')';
+            return base + (n.b.t === 'var' || n.b.t === 'const' ? '^' + pr(n.b) : '^(' + pr(n.b) + ')');
           }
           if (n.op === '*') {
             const l = wrap(n.a, 2), r = wrap(n.b, 2);
             const implicit = n.a.t === 'num' && n.a.v >= 0 && n.b.t !== 'num' && !(n.b.t === 'bin' && n.b.op !== '^' && prec(n.b) >= 2) && n.b.t !== 'neg';
-            return l + (implicit ? '' : '·') + r;
+            return l + (implicit && !/^[0-9]/.test(r) ? '' : '·') + r;
           }
           if (n.op === '/') return wrap(n.a, 2) + '/' + wrap(n.b, 3);
           let op = n.op, b = n.b;
@@ -916,7 +1099,7 @@ const MathParser = (() => {
 
   return {
     ParseError, FUNCS, familyValues, normalize, tokenize, parse, compile, freeVars, substitute,
-    derivative, antiderivative, radianize, liftPw, pieces, parseFunction, toPlain: (a) => toPlain(liftPw(a) || a), toNerdamer, toPgf, toTeX, toNice, parseDefinition, parseDomain, evalConst, nextLetter, realPow,
+    derivative, antiderivative, nicer, tidy, radianize, liftPw, pieces, parseFunction, toPlain: (a) => toPlain(liftPw(a) || a), toNerdamer, toPgf, toTeX, toNice, parseDefinition, parseDomain, evalConst, nextLetter, realPow,
   };
 })();
 
