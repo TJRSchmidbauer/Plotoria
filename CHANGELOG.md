@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Version 2.0.5
+- **Gleichmäßige Strichlinien:** Gestrichelte, gepunktete und strichpunktierte Graphen werden entlang der Kurvenlänge berechnet. Alle Striche, Punkte und Lücken sind gleich lang – auch an Hoch- und Tiefpunkten, am Bildschirm wie in PNG, SVG und Druck.
+
 ## Version 2.0.4
 - **Karopapier-Maßstab eindeutig:** Auswahl „1 Einheit = 2 Kästchen (1 cm)“ usw. mit einer Skizze, die zeigt, wie viele 5-mm-Kästchen von 0 bis 1 reichen. Auf den Achsen hat jede Einheit einen Strich; die Zahlen stehen so dicht wie lesbar.
 

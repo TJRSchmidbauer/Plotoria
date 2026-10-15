@@ -13,7 +13,6 @@
     xLabel: 'x', yLabel: 'y', xStep: '', yStep: '', xFmt: 'dec', yFmt: 'dec', sub: 'auto',
     gridMode: 'grid', karo: 2, bw: false, exact: false,
   };
-  const DASHES = { solid: null, dash: [3, 2], dot: [0.1, 1.6], dashdot: [3, 1.5, 0.1, 1.5] };
   const BW_DASHES = ['solid', 'dash', 'dot', 'dashdot'];
   const CM = 96 / 2.54;   // Pixel pro Zentimeter (CSS-Pixel)
 
@@ -1218,6 +1217,7 @@
 
     _col(fn) { return (this.rc ? this.rc.bw : this.style.bw) ? '#000000' : fn.col; },
 
+    // Strichmuster einer Funktion als sichtbare Längen in Pixeln (Strich, Lücke, …) oder null
     _dash(fn, sw) {
       let kind = fn.dash || 'solid';
       const bw = this.rc ? this.rc.bw : this.style.bw;
@@ -1225,8 +1225,49 @@
         const vis = this.fns.filter(f => f.vis && f.f);
         kind = BW_DASHES[Math.max(0, vis.indexOf(fn)) % BW_DASHES.length];
       }
-      const d = DASHES[kind];
-      return d ? d.map(v => Math.max(0.1, v * Math.max(2, sw) * 2)).join(',') : null;
+      const dash = 4.5 * sw + 4, gap = 2.5 * sw + 3;
+      return {
+        dash: [dash, gap],
+        dot: [0, 2 * sw + 3],
+        dashdot: [dash, gap, 0, gap],
+      }[kind] || null;
+    },
+
+    // Striche selbst entlang der Kurvenlänge berechnen statt stroke-dasharray:
+    // Der Browser verschiebt das Muster an den vielen kleinen Teilstücken einer Kurve,
+    // so entstanden unterschiedlich lange Striche und Lücken. Hier ist jeder Strich gleich lang.
+    // pat: sichtbare Längen; runde Enden verlängern jeden Strich um sw, daher hier abziehen.
+    _dashPath(segs, pat, sw) {
+      const P = pat.map((v, i) => (i % 2 === 0 ? Math.max(0, v - sw) : v + sw));
+      const out = [];
+      let k = 0, rem = P[0], cur = [];
+      const r = (v) => Math.round(v * 100) / 100;
+      const next = (x, y, dx, dy) => {
+        // Intervall beenden und das nächste beginnen
+        if (k % 2 === 0) { cur.push([x, y]); if (cur.length === 1 || (cur.length === 2 && cur[0][0] === x && cur[0][1] === y)) cur = [[x, y], [x + dx * 0.01, y + dy * 0.01]]; out.push(cur); cur = []; }
+        k = (k + 1) % P.length; rem = P[k];
+        if (k % 2 === 0) cur = [[x, y]];
+      };
+      segs.forEach(seg => {
+        if (k % 2 === 0) cur = [seg[0]];
+        for (let i = 1; i < seg.length; i++) {
+          const [ax, ay] = seg[i - 1], [bx, by] = seg[i];
+          const len = Math.hypot(bx - ax, by - ay);
+          if (!(len > 0)) continue;
+          const dx = (bx - ax) / len, dy = (by - ay) / len;
+          let t = 0;
+          while (len - t >= rem) {
+            t += rem;
+            next(ax + dx * t, ay + dy * t, dx, dy);
+            if (out.length > 20000) return;   // Sicherheitsgrenze
+          }
+          rem -= len - t;
+          if (k % 2 === 0) cur.push([bx, by]);
+        }
+        if (k % 2 === 0 && cur.length > 1) out.push(cur);
+        cur = [];
+      });
+      return out.map(pts => 'M' + pts.map(p => r(p[0]) + ',' + r(p[1])).join('L')).join('');
     },
 
     repaint() {
@@ -1457,10 +1498,10 @@
       vis.forEach(fn => {
         const segs = this._segments(fn);
         const sw = fn.strokeWidth || 3, col = this._col(fn);
-        const p = g.append('path').attr('d', segs.map(s => ln(s)).join('')).attr('fill', 'none')
+        const pat = this._dash(fn, sw);
+        const d = pat ? this._dashPath(segs, pat, sw) : segs.map(s => ln(s)).join('');
+        g.append('path').attr('d', d).attr('fill', 'none')
           .attr('stroke', col).attr('stroke-width', sw).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round');
-        const dash = this._dash(fn, sw);
-        if (dash) p.attr('stroke-dasharray', dash);
         this._endpoints(g, fn, col, sw);
         if (this._ctx().labels && fn.labelMode !== 'none') this._graphLabel(lg, fn, segs);
       });
