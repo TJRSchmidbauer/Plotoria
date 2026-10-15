@@ -213,17 +213,73 @@
 
     _tikz(r) {
       const x = this.exp;
-      const fns = this.fns.filter(f => f.vis && f.ast).map(f => {
-        const bd = f.bounds ? f.bounds() : null;
-        const o = { ...f, letterTeX: P.letterTeX(f.letter), lo: bd ? bd.lo : NaN, hi: bd ? bd.hi : NaN, loOpen: bd && bd.loOpen, hiOpen: bd && bd.hiOpen };
-        if (x.labels && f.labelMode !== 'none' && f.labelX != null) {
-          o.inlineLabel = f.labelMode === 'name' ? '$G_{' + f.letter + '}$' : TikZ.label(this._labelText(f) || '');
-          o.lx = f.labelX; o.ly = f.labelY;
+      const b = r ? r.bounds : this._exportBounds(x);
+      const deg = this.deg && !this.fns.some(f => f.vis && f.rad);
+      const rad = (f, a) => (this.deg && !deg && !f.rad ? MathParser.radianize(a) : a);
+      // Kurve abtasten (für numerische Funktionen und Spiegelbilder)
+      const sample = (fn, f, param) => {
+        const out = [], N = 300;
+        let cur = [];
+        const lo = param ? b.yMin : b.xMin, hi = param ? b.yMax : b.xMax;
+        for (let i = 0; i <= N; i++) {
+          const t = lo + (hi - lo) * i / N, v = f(t);
+          if (!isFinite(v)) { if (cur.length > 1) out.push(cur); cur = []; continue; }
+          cur.push(param ? [v, t] : [t, v]);
         }
-        return o;
+        if (cur.length > 1) out.push(cur);
+        return out;
+      };
+      const fns = [];
+      this.fns.filter(f => f.vis && f.f).forEach(f => {
+        const bd = f.bounds ? f.bounds() : null;
+        const members = f.members || [null];
+        members.forEach((m, i) => {
+          const params = { ...this.params, ...(m ? Object.assign({}, m.P) : {}) };
+          if (f.anti && !('C' in params)) params.C = (f.anti.c && f.anti.c[0]) || 0;
+          const o = {
+            letter: f.letter, col: m ? this._memberColor(f, i) : f.col, strokeWidth: f.strokeWidth, dash: f.dash, params,
+            letterTeX: P.letterTeX(f.letter), ast: f.ast, lo: bd ? bd.lo : NaN, hi: bd ? bd.hi : NaN,
+            dots: this._endpointList(f, m, b.xMin, b.xMax),
+          };
+          const fx = m ? m.f : f.f;
+          const pcs = m ? m.pieces : f.pieces;
+          if (f.param) o.coords = sample(f, f.param, true);
+          else if (!f.ast) o.coords = sample(f, fx, false);
+          else if (pcs) {
+            // ein \addplot je Abschnitt, damit Sprungstellen nicht verbunden werden
+            const lo0 = Math.max(b.xMin, isFinite(o.lo) ? o.lo : -Infinity), hi0 = Math.min(b.xMax, isFinite(o.hi) ? o.hi : Infinity);
+            const spec = pcs.filter(q => !q.other);
+            o.parts = [];
+            pcs.forEach(q => {
+              let iv = [[Math.max(lo0, q.lo), Math.min(hi0, q.hi)]];
+              if (q.other) {
+                iv = [[lo0, hi0]];
+                spec.forEach(sq => { iv = iv.flatMap(([a, c]) => [[a, Math.min(c, sq.lo)], [Math.max(a, sq.hi), c]]); });
+              }
+              iv.filter(([a, c]) => c > a).forEach(([a, c]) => o.parts.push({ ast: rad(f, q.e), lo: a, hi: c }));
+            });
+          } else o.ast = rad(f, f.ast);
+          if (x.labels && f.labelMode !== 'none') {
+            if (m) {
+              const pts = sample(f, fx, false).flat().filter(([px, py]) => py > b.yMin && py < b.yMax && px < b.xMax - (b.xMax - b.xMin) * 0.05);
+              if (pts.length) {
+                const pt = pts[pts.length - 1];
+                o.inlineLabel = '$' + f.family.p + ' = ' + this.fmtPt(m.v).replace('−', '-').replace(',', '{,}') + '$';
+                o.lx = pt[0]; o.ly = pt[1]; o.anchor = 'south east';
+              }
+            } else if (f.labelX != null) {
+              o.inlineLabel = f.labelMode === 'name' ? '$G_{' + P.letterTeX(f.letter) + '}$' : TikZ.label(this._labelText(f) || '');
+              o.lx = f.labelX; o.ly = f.labelY;
+            }
+          }
+          fns.push(o);
+        });
+        if (f.inv && f.diag !== false) {
+          const a = Math.max(b.xMin, b.yMin), c = Math.min(b.xMax, b.yMax);
+          if (c > a) fns.push({ letter: 'y=x', col: '#8E8E93', strokeWidth: 1.2, dash: 'dash', params: {}, ast: { t: 'var', n: 'x' }, lo: a, hi: c, dots: [], diag: true });
+        }
       });
-      const deg = this.deg && !fns.some(f => f.rad);
-      const list = deg || !this.deg ? fns : fns.map(f => (f.rad ? f : { ...f, ast: MathParser.radianize(f.ast) }));
+      const list = fns;
       const objects = this.objs.filter(o => o.vis).map(o => {
         const pos = this._objPos(o);
         if (!pos) return null;
@@ -232,7 +288,7 @@
         return o;
       }).filter(Boolean);
       const sc = r && this.exp.sizeMode !== 'fixed';
-      return TikZ.generate(list, r ? r.bounds : this._exportBounds(x), {
+      return TikZ.generate(list, b, {
         version: this.VERSION, title: x.title ? this.graphTitle : '', xLabel: this.style.xLabel, yLabel: this.style.yLabel,
         params: this.params, deg, bw: x.bw, ux: sc ? r.ux : null, uy: sc ? r.uy : null,
         width: r ? r.wcm : 12, height: r ? r.hcm : 8,

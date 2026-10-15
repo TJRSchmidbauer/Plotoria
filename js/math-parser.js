@@ -277,6 +277,7 @@ const MathParser = (() => {
         case 'neg': case 'fact': return { ...n, a: walk(n.a) };
         case 'bin': return { ...n, a: walk(n.a), b: walk(n.b) };
         case 'call': return { ...n, args: n.args.map(walk) };
+        case 'pw': return { ...n, v: walk(n.v), parts: n.parts.map(q => ({ ...q, e: walk(q.e) })) };
         default: return n;
       }
     };
@@ -290,6 +291,10 @@ const MathParser = (() => {
       case 'neg': case 'fact': freeVars(ast.a, out); break;
       case 'bin': freeVars(ast.a, out); freeVars(ast.b, out); break;
       case 'call': ast.args.forEach(a => freeVars(a, out)); break;
+      case 'pw':
+        freeVars(ast.v, out);
+        ast.parts.forEach(q => { freeVars(q.e, out); if (q.lo) freeVars(q.lo, out); if (q.hi) freeVars(q.hi, out); });
+        break;
     }
     return out;
   }
@@ -344,6 +349,16 @@ const MathParser = (() => {
         if (n.op === '^') return 'F.pow(' + toJS(n.a) + ',' + toJS(n.b) + ')';
         return '(' + toJS(n.a) + n.op + toJS(n.b) + ')';
       case 'call': return 'F.' + n.f + '(' + n.args.map(toJS).join(',') + ')';
+      case 'pw': {
+        // erster passender Abschnitt gewinnt; außerhalb aller Abschnitte NaN
+        const v = toJS(n.v);
+        return n.parts.reduceRight((rest, q) => {
+          const c = [];
+          if (q.lo) c.push(toJS(q.lo) + (q.loOpen ? '<' : '<=') + v);
+          if (q.hi) c.push(v + (q.hiOpen ? '<' : '<=') + toJS(q.hi));
+          return c.length ? '((' + c.join('&&') + ')?' + toJS(q.e) + ':' + rest + ')' : toJS(q.e);
+        }, 'NaN');
+      }
     }
     throw new ParseError('Interner Fehler');
   }
@@ -382,6 +397,9 @@ const MathParser = (() => {
         case 'neg': return '-' + wrap(n.a, PREC.neg + (n.a.t === 'bin' && n.a.op === '^' ? -1 : 0));
         case 'fact': return map.fact ? map.fact(pr(n.a)) : wrap(n.a, 5) + '!';
         case 'call': return map.call(n.f, n.args.map(pr), n.args);
+        case 'pw':
+          if (!map.pw) throw new ParseError('Abschnittsweise Funktion hier nicht möglich');
+          return map.pw(n, pr);
         case 'bin': {
           const p0 = PREC[n.op];
           if (n.op === '^') return wrap(n.a, 5) + '^' + wrap(n.b, 5);
@@ -398,9 +416,19 @@ const MathParser = (() => {
     return pr;
   }
 
+  // Bedingung eines Abschnitts als Text: "0 ≤ x < 1", "x ≥ 1"
+  function condText(q, v, pr, sym) {
+    sym = sym || { lt: ' < ', le: ' ≤ ', gt: ' > ', ge: ' ≥ ' };
+    if (q.lo && q.hi) return pr(q.lo) + (q.loOpen ? sym.lt : sym.le) + v + (q.hiOpen ? sym.lt : sym.le) + pr(q.hi);
+    if (q.lo) return v + (q.loOpen ? sym.gt : sym.ge) + pr(q.lo);
+    if (q.hi) return v + (q.hiOpen ? sym.lt : sym.le) + pr(q.hi);
+    return null;
+  }
+
   const toPlain = printer({
     mulSpaced: true,
     call: (f, a) => f + '(' + a.join(', ') + ')',
+    pw: (n, pr) => n.parts.map(q => { const c = condText(q, pr(n.v), pr); return pr(q.e) + (c ? ' für ' + c : ' sonst'); }).join('; '),
   });
 
   const toNerdamer = printer({
@@ -435,6 +463,13 @@ const MathParser = (() => {
         }
       },
       fact: (s) => 'factorial(' + s + ')',
+      // außerhalb aller Abschnitte ein großer Wert, den „restrict y to domain“ ausblendet
+      pw: (n, pr) => n.parts.reduceRight((rest, q) => {
+        const v = '(' + pr(n.v) + ')', c = [];
+        if (q.lo) c.push('(' + pr(q.lo) + ')' + (q.loOpen ? '<' : '<=') + v);
+        if (q.hi) c.push(v + (q.hiOpen ? '<' : '<=') + '(' + pr(q.hi) + ')');
+        return c.length ? 'ifthenelse(' + c.join(' && ') + ', ' + pr(q.e) + ', ' + rest + ')' : pr(q.e);
+      }, '1e10'),
     })(ast);
   }
 
@@ -461,6 +496,14 @@ const MathParser = (() => {
           }
           return FUNCS[n.f].tex + '\\left(' + a.join(', ') + '\\right)';
         }
+        case 'pw': {
+          const sym = { lt: ' < ', le: ' \\le ', gt: ' > ', ge: ' \\ge ' };
+          const rows = n.parts.map(q => {
+            const c = condText(q, tex(n.v), tex, sym);
+            return tex(q.e) + ' & ' + (c ? '\\text{für } ' + c : '\\text{sonst}');
+          });
+          return '\\begin{cases} ' + rows.join(' \\\\ ') + ' \\end{cases}';
+        }
         case 'bin': {
           if (n.op === '/') return '\\frac{' + tex(n.a) + '}{' + tex(n.b) + '}';
           if (n.op === '^') {
@@ -481,7 +524,7 @@ const MathParser = (() => {
       }
     };
     const wrap = (n, minPrec) => prec(n) < minPrec ? '\\left(' + tex(n) + '\\right)' : tex(n);
-    return tex(ast);
+    return tex(liftPw(ast) || ast);
   }
 
   // Gradmaß explizit machen: sin(u) → sin(u·deg), asin(u) → asin(u)/deg (deg = π/180).
@@ -498,6 +541,7 @@ const MathParser = (() => {
           if (TRIG_OUT.has(n.f)) return { t: 'bin', op: '/', a: c, b: DEG };
           return c;
         }
+        case 'pw': return { ...n, v: walk(n.v), parts: n.parts.map(q => ({ ...q, e: walk(q.e), lo: q.lo && walk(q.lo), hi: q.hi && walk(q.hi) })) };
         default: return n;
       }
     };
@@ -508,6 +552,17 @@ const MathParser = (() => {
   // nerdamers simplify() liefert teils falsche Ergebnisse (tan → tan²) und wird daher nicht verwendet.
   function derivative(ast) {
     if (typeof nerdamer === 'undefined' || !nerdamer.diff) return null;
+    // abschnittsweise: jeden Abschnitt einzeln ableiten
+    const lifted = liftPw(ast);
+    if (lifted) {
+      const parts = [];
+      for (const q of lifted.parts) {
+        const e = derivative(q.e);
+        if (!e) return null;
+        parts.push({ ...q, e });
+      }
+      return { ...lifted, parts };
+    }
     try {
       const out = nerdamer.diff(toNerdamer(ast), 'x').toString();
       if (/factorial|Si\(|Ci\(|erf|Ei\(|undefined|\b(asec|acsc|acot|sech|csch|acoth|asech|acsch|Shi|Chi|dirac|heaviside)\(/i.test(out)) return null;
@@ -516,6 +571,69 @@ const MathParser = (() => {
     } catch (e) {
       return null;
     }
+  }
+
+  // ── Stammfunktion über nerdamer (ohne Konstante) ──
+  // ln(u) wird zu ln|u|; das Ergebnis wird numerisch gegen f geprüft. Abschnittsweise
+  // Funktionen und nicht elementare Integrale (erf, Si …) liefern null → numerisch.
+  function antiderivative(ast) {
+    if (typeof nerdamer === 'undefined' || !nerdamer.integrate || findPw(ast)) return null;
+    try {
+      const out = nerdamer.integrate(toNerdamer(ast), 'x').toString();
+      if (/integrate|erf|Si\(|Ci\(|Ei\(|Shi|Chi|gamma|\bi\b|undefined|factorial|\b(asec|acsc|acot|sech|csch|acoth|asech|acsch)\(/i.test(out)) return null;
+      const lnAbs = (n) => {
+        switch (n.t) {
+          case 'neg': case 'fact': return { ...n, a: lnAbs(n.a) };
+          case 'bin': return { ...n, a: lnAbs(n.a), b: lnAbs(n.b) };
+          case 'call': {
+            const args = n.args.map(lnAbs);
+            if ((n.f === 'ln' || (n.f === 'log' && args.length === 1)) && !(args[0].t === 'call' && args[0].f === 'abs')) {
+              return { t: 'call', f: 'ln', args: [{ t: 'call', f: 'abs', args }] };
+            }
+            return { ...n, args };
+          }
+          default: return n;
+        }
+      };
+      const F = lnAbs(parse(out));
+      return agreesNumerically(F, ast) ? F : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Abschnittsweise Funktion nach außen ziehen: 2·f(x) + 1 → { 2·x² + 1 für x < 1; … }
+  function findPw(n) {
+    switch (n.t) {
+      case 'pw': return n;
+      case 'neg': case 'fact': return findPw(n.a);
+      case 'bin': return findPw(n.a) || findPw(n.b);
+      case 'call': for (const a of n.args) { const r = findPw(a); if (r) return r; } return null;
+      default: return null;
+    }
+  }
+  function liftPw(ast) {
+    const pw = findPw(ast);
+    if (!pw) return null;
+    if (pw === ast) return ast;
+    const repl = (n, by) => {
+      if (n === pw) return by;
+      switch (n.t) {
+        case 'neg': case 'fact': return { ...n, a: repl(n.a, by) };
+        case 'bin': return { ...n, a: repl(n.a, by), b: repl(n.b, by) };
+        case 'call': return { ...n, args: n.args.map(a => repl(a, by)) };
+        default: return n;
+      }
+    };
+    return { ...pw, parts: pw.parts.map(q => ({ ...q, e: repl(ast, q.e) })) };
+  }
+
+  // Abschnitte mit Zahlengrenzen (nur wenn die Bedingung direkt von x abhängt)
+  function pieces(ast, params) {
+    const pw = ast && liftPw(ast);
+    if (!pw || pw.v.t !== 'var' || pw.v.n !== 'x') return null;
+    const val = (b) => (b ? compile(b, params)(0) : NaN);
+    return pw.parts.map(q => ({ e: q.e, lo: q.lo ? val(q.lo) : -Infinity, hi: q.hi ? val(q.hi) : Infinity, loOpen: !!q.loOpen, hiOpen: !!q.hiOpen, other: !q.lo && !q.hi }));
   }
 
   // Sicherheitsnetz: symbolische Ableitung an einigen Stellen mit dem Differenzenquotienten vergleichen
@@ -628,15 +746,111 @@ const MathParser = (() => {
     const vl = s.match(/^x\s*=\s*(.+)$/);
     if (vl) return { kind: 'vline', x: vl[1].trim() };
     let res;
-    const m = s.match(/^([a-zA-Z])(?:_?\{?([0-9]+)\}?)?\s*\(\s*([a-zA-Z])\s*\)\s*=\s*(.+)$/);
+    const m = s.match(/^([a-zA-Z])(?:_\{?([a-zA-Z])\}?|_?\{?([0-9]+)\}?)?\s*\(\s*([a-zA-Z])\s*\)\s*=\s*(.+)$/);
     const y = s.match(/^y\s*=\s*(.+)$/);
-    if (m && (m[1] !== 'x' || m[2])) res = { kind: 'function', letter: m[1] + (m[2] ? m[2] : ''), variable: m[3], body: m[4].trim() };
-    else if (y) res = { kind: 'function', letter: null, variable: 'x', body: y[1].trim() };
+    if (m && (m[1] !== 'x' || m[3]) && m[2] !== m[4]) {
+      res = { kind: 'function', letter: m[1] + (m[3] ? m[3] : ''), variable: m[4], body: m[5].trim() };
+      if (m[2]) res.famVar = m[2];
+    } else if (y) res = { kind: 'function', letter: null, variable: 'x', body: y[1].trim() };
     else res = { kind: 'function', letter: null, variable: 'x', body: s };
+    // Funktionsschar: "… für a = 1, 2, 3", "…; a ∈ {−1; 0; 1}", "… mit k = −2 … 2"
+    const fam = splitFamily(res.body, res.variable);
+    if (fam) {
+      if (res.famVar && res.famVar !== fam.p) throw new ParseError('Index ' + res.famVar + ' passt nicht zum Scharparameter ' + fam.p);
+      res.body = fam.body;
+      res.family = { p: fam.p, vals: fam.vals };
+    } else if (res.famVar) {
+      res.family = { p: res.famVar, vals: null };   // Werte fehlen noch
+    }
+    if (res.family && res.letter) res.letter = res.letter + '_' + res.family.p;
+    const pcs = splitPieces(res.body, res.variable);
+    if (pcs) { res.pieces = pcs; res.domain = null; return res; }
     const sd = splitDomain(res.body, res.variable);
     res.body = sd.body;
     res.domain = sd.domain;
     return res;
+  }
+
+  // Werte eines Scharparameters: "1, 2, 3", "1; 2; 3", "{1; 2}", "-2 … 2", "-2..2"
+  function familyValues(txt) {
+    let t = txt.trim().replace(/^\{\s*|\s*\}$/g, '').replace(/[−–]/g, '-');
+    const rg = t.match(/^(.+?)\s*(?:\.\.\.?|…|bis)\s*(.+)$/);
+    if (rg) {
+      const a = evalConst(rg[1]), b = evalConst(rg[2]);
+      if (!isFinite(a) || !isFinite(b) || b < a) return null;
+      const step = b - a > 12 ? Math.ceil((b - a) / 12) : 1;
+      const out = [];
+      for (let v = a; v <= b + 1e-9; v += step) out.push(+v.toPrecision(12));
+      return out;
+    }
+    let parts = t.split(/\s*;\s*|,\s+/);
+    if (parts.length === 1 && (t.match(/,/g) || []).length > 1) parts = t.split(',');
+    const vals = parts.map(v => v.trim()).filter(Boolean).map(v => evalConst(v));
+    return vals.length && vals.length <= 12 && vals.every(isFinite) ? vals : null;
+  }
+
+  function splitFamily(body, variable) {
+    const m = body.match(/^(.+?)(?:\s+(?:für|fuer|for|mit)\s+|\s*[;,]\s*)([a-zA-Z])\s*(?:=|∈|\s+in\s+)\s*([^<>≤≥\[\]=]+)$/i);
+    if (!m || m[2] === variable || m[2] === 'x' || m[2] === 'e') return null;
+    const vals = familyValues(m[3]);
+    return vals ? { body: m[1].trim(), p: m[2], vals } : null;
+  }
+
+  // Abschnittsweise Definition: "x^2 für x < 1; 2x - 1 für x ≥ 1" (auch "…, 2x - 1 sonst")
+  // Liefert [{ body, domain }] (domain null = „sonst“) oder null
+  const KW = /^\s+(für|fuer|for|wenn|falls|if)\s+/i;
+  function splitPieces(body, variable) {
+    const kws = [], seps = [];
+    let depth = 0;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (ch === '(' || ch === '{') depth++;
+      else if (ch === ')' || ch === '}') depth--;
+      if (depth !== 0) continue;
+      if (ch === ';' || ch === '\n' || (ch === ',' && /\s/.test(body[i + 1] || ''))) seps.push(i);
+      const w = body.slice(i).match(KW);
+      if (w && /\S/.test(body[i - 1] || '')) kws.push([i, w[0].length]);
+    }
+    if (!kws.length) return null;
+    // „sonst“-Abschnitt am Ende
+    let other = null, end = body.length;
+    const o = body.match(/[;,\n]\s*(?:sonst|andernfalls|otherwise|else)\s+(.+)$/i) || body.match(/[;,\n]\s*([^;,\n]+?)\s+(?:sonst|andernfalls|otherwise|else)\s*$/i);
+    if (o && o.index > kws[kws.length - 1][0]) { other = o[1].trim(); end = o.index; }
+    if (kws.length < 2 && !other) return null;
+    const out = [];
+    let start = 0;
+    for (let k = 0; k < kws.length; k++) {
+      const [pos, len] = kws[k];
+      const next = k + 1 < kws.length ? kws[k + 1][0] : end;
+      // Ende der Bedingung: letztes Trennzeichen vor dem nächsten Schlüsselwort
+      let stop = end;
+      if (k + 1 < kws.length) {
+        const cand = seps.filter(s => s > pos + len && s < next);
+        if (!cand.length) return null;
+        stop = cand[cand.length - 1];
+      }
+      const term = body.slice(start, pos).trim();
+      const dom = parseDomain(body.slice(pos + len, stop).trim(), variable);
+      if (!term || !dom) return null;
+      out.push({ body: term, domain: dom });
+      start = stop + 1;
+    }
+    if (other) out.push({ body: other, domain: null });
+    return out;
+  }
+
+  // Syntaxbaum einer Funktionsdefinition (mit Abschnitten)
+  function parseFunction(d, ctx) {
+    if (!d.pieces) return parse(d.body, ctx);
+    const bound = (b) => (b === null ? null : parse(b, { ...ctx, variable: '\u0000' }));
+    return {
+      t: 'pw', v: { t: 'var', n: 'x' },
+      parts: d.pieces.map(q => ({
+        e: parse(q.body, ctx),
+        lo: q.domain ? bound(q.domain.min) : null, hi: q.domain ? bound(q.domain.max) : null,
+        loOpen: !!(q.domain && q.domain.minOpen), hiOpen: !!(q.domain && q.domain.maxOpen),
+      })),
+    };
   }
 
   // Wert eines konstanten Ausdrucks (z. B. Grenze "pi/2"); NaN bei Fehler
@@ -669,6 +883,7 @@ const MathParser = (() => {
           if (n.f === 'cbrt') return '∛(' + a[0] + ')';
           return n.f + '(' + a.join('; ') + ')';
         }
+        case 'pw': return n.parts.map(q => { const c = condText(q, pr(n.v), pr); return pr(q.e) + (c ? ' für ' + c : ' sonst'); }).join('; ');
         case 'bin': {
           if (n.op === '^') {
             const base = wrap(n.a, 5);
@@ -690,7 +905,7 @@ const MathParser = (() => {
       }
     };
     const wrap = (n, minPrec) => prec(n) < minPrec ? '(' + pr(n) + ')' : pr(n);
-    return pr(ast);
+    return pr(liftPw(ast) || ast);
   }
 
   const LETTERS = ['f', 'g', 'h', 'k', 'p', 'q', 'r', 's', 'u', 'v', 'w'];
@@ -700,8 +915,8 @@ const MathParser = (() => {
   }
 
   return {
-    ParseError, FUNCS, normalize, tokenize, parse, compile, freeVars, substitute,
-    derivative, radianize, toPlain, toNerdamer, toPgf, toTeX, toNice, parseDefinition, parseDomain, evalConst, nextLetter, realPow,
+    ParseError, FUNCS, familyValues, normalize, tokenize, parse, compile, freeVars, substitute,
+    derivative, antiderivative, radianize, liftPw, pieces, parseFunction, toPlain: (a) => toPlain(liftPw(a) || a), toNerdamer, toPgf, toTeX, toNice, parseDefinition, parseDomain, evalConst, nextLetter, realPow,
   };
 })();
 
