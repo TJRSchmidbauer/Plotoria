@@ -375,7 +375,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: none;
 .item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-sub { font-size: 11.5px; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-error { font-size: 11.5px; color: var(--red); white-space: normal; }
-.item-sub { font-size: 11.5px; color: var(--label-2, #8E8E93); white-space: normal; margin-top: 1px; }
+.item-sub { font-size: 11.5px; color: var(--label-2, #8E8E93); white-space: pre-line; margin-top: 1px; }
 .item-actions { display: flex; align-items: center; flex: none; }
 .item-edit { height: 28px; }
 
@@ -572,6 +572,13 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 }
 .template-card:hover { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1); }
 .template-card:active { transform: scale(0.97); }
+.own-templates .row { gap: 8px; }
+.own-templates .row .field { flex: 1; min-width: 0; max-width: none; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--label-2); margin: 18px 0 0; }
+.template-card.own { position: relative; cursor: pointer; }
+.template-card.own .icon-btn { position: absolute; top: 4px; right: 4px; background: var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.template-card img { width: 100%; aspect-ratio: 8 / 5; border-radius: 8px; background: #fff; display: block; object-fit: contain; }
+.thumb-empty { width: 100%; aspect-ratio: 8 / 5; border-radius: 8px; background: var(--fill); }
 .template-card svg { width: 100%; height: auto; border-radius: 8px; background: #fff; display: block; }
 .template-card strong { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
 .template-card span { font-size: 11.5px; color: var(--label-2); line-height: 1.35; }

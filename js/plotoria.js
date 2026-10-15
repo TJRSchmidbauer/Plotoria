@@ -894,6 +894,11 @@
         const body = f.antiAst ? MP.toTeX(f.antiAst) + c : '\\int ' + letterTeX(parent.letter) + '(t)\\,dt' + c;
         this._renderTeX(t, name + body, f.letter + '(x) = Stammfunktion von ' + parent.letter);
         sub = 'Stammfunktion von ' + parent.letter + (f.numeric ? ' (numerisch)' : '') + (sub ? ', ' + sub : '');
+      } else if (f.ast && MP.liftPw(f.ast)) {
+        // abschnittsweise: Abschnitte als eigene Zeilen (passt in die schmale Liste)
+        const pw = MP.liftPw(f.ast);
+        this._renderTeX(t, name + '\\left\\{\\;\\text{abschnittsweise}\\right.', f.letter + '(x) abschnittsweise');
+        sub = (sub ? sub + '\n' : '') + MP.toNice(pw).split('; ').join('\n');
       } else if (f.ast) {
         let tex = name + MP.toTeX(f.ast);
         if (f.domain && !f.deriv) tex += ',\\; ' + this._domainTeX(f.domain);

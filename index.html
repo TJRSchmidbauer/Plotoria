@@ -397,6 +397,21 @@
     </div>
     <div class="sheet-body">
       <p class="hint">Eine Vorlage ersetzt die aktuelle Zeichnung. Mit Rückgängig (Strg+Z) kommst du zurück.</p>
+      <section class="group own-templates">
+        <div class="group-head"><h3>Eigene Vorlagen</h3></div>
+        <div class="group-body form">
+          <div class="row"><input type="text" id="tpl-name" class="field" placeholder="Name, z. B. „Parabel 9b – Schulaufgabe“" aria-label="Name der Vorlage">
+            <button class="btn btn-tinted btn-sm" id="tpl-save">Aktuellen Stand sichern</button></div>
+        </div>
+      </section>
+      <p class="hint" id="tpl-storage-hint"></p>
+      <div class="template-grid" id="own-template-grid"></div>
+      <div class="btn-row btn-row-wrap">
+        <button class="btn btn-gray btn-sm" id="tpl-export" title="Alle eigenen Vorlagen als Datei sichern, z. B. für Kolleginnen und Kollegen">Als Datei sichern</button>
+        <button class="btn btn-gray btn-sm" id="tpl-import">Aus Datei laden</button>
+        <input type="file" id="tpl-file" accept=".json,.plotoria-vorlagen,application/json" hidden>
+      </div>
+      <h3 class="section-title">Mitgelieferte Vorlagen</h3>
       <div class="template-grid" id="template-grid"></div>
     </div>
   </dialog>
@@ -439,7 +454,7 @@
         <tr><td><kbd>?</kbd>, <kbd>Esc</kbd></td><td>Hilfe, Werkzeug / Dialog beenden</td></tr>
       </table>
       <h3>Datenschutz</h3>
-      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
+      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen, eigene Vorlagen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
       <p class="hint">Plotoria 2.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
     </div>
   </dialog>
@@ -452,7 +467,7 @@
       <p id="consent-text">Plotoria verwendet <strong>keine Cookies</strong> und sendet keine Daten an Dritte. Damit nach dem Neuladen nichts verloren geht, kann Plotoria Folgendes <strong>nur lokal in diesem Browser</strong> speichern:</p>
       <ul>
         <li>den aktuellen Arbeitsstand (Funktionen, Einstellungen),</li>
-        <li>den Druckbogen,</li>
+        <li>den Druckbogen und eigene Vorlagen,</li>
         <li>die App-Dateien für die Nutzung ohne Internet.</li>
       </ul>
       <p class="hint">Bei „Ablehnen“ wird nichts gespeichert und bereits gespeicherte Plotoria-Daten werden gelöscht. Sichern als Datei (Strg+S) und Teilen per Link funktionieren trotzdem. Diese Frage erscheint bei jedem Start.</p>
