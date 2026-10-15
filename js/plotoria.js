@@ -143,6 +143,12 @@
       // Werkzeuge
       this.segmented(E.toolSeg, (v) => this.setTool(v), 'tool');
       E.hintClose.addEventListener('click', () => this._escape());
+      // Integral: Fläche oder Riemann-Summe mit n Rechtecken
+      this.segmented($('int-mode'), (v) => { if (this.integral) { this.integral.mode = v; this._syncIntegralCtl(); this.repaint(); } });
+      const setN = (n) => { if (!this.integral) return; this.integral.n = clamp(Math.round(n) || 1, 1, 200); this._syncIntegralCtl(); this.repaint(); };
+      $('int-n').addEventListener('change', (e) => setN(+e.target.value));
+      $('int-n-minus').addEventListener('click', () => this.integral && setN(this.integral.n > 10 ? this.integral.n - (this.integral.n > 40 ? 10 : 2) : this.integral.n - 1));
+      $('int-n-plus').addEventListener('click', () => this.integral && setN(this.integral.n >= 10 ? this.integral.n + (this.integral.n >= 40 ? 10 : 2) : this.integral.n + 1));
       E.rst.addEventListener('click', () => this.resetView());
       E.zin.addEventListener('click', () => this.zoomBy(1.4));
       E.zout.addEventListener('click', () => this.zoomBy(1 / 1.4));
@@ -370,6 +376,7 @@
       this.fns.forEach(f => { [f.deriv, f.anti, f.inv].forEach(r => { if (r) r.of = ids[r.of]; }); });
       this.ci = this.fns.length;
       this.integral = null; this.tangent = null; this.labelOffsets = {}; this.selected = null;
+      if (this.els.hint) this._syncIntegralCtl();
       if (this.els.hint && this.tool === 'move') this.els.hint.hidden = true;
       if (this._loadExtra) this._loadExtra(st);
       if (Array.isArray(st.home)) [this.home.xMin, this.home.xMax, this.home.yMin, this.home.yMax] = st.home;
@@ -2307,15 +2314,52 @@
       if (!f.f) { this._toast('Funktion ist fehlerhaft'); return; }
       const [d0, d1] = this.xs.domain();
       const span = (d1 - d0) / 4, mid = (d0 + d1) / 2, s = niceStep(span / 2);
-      this.integral = { fnId: f.id, a: Math.round((mid - span / 2) / s) * s, b: Math.round((mid + span / 2) / s) * s };
+      const prev = this.integral || {};
+      this.integral = { fnId: f.id, a: Math.round((mid - span / 2) / s) * s, b: Math.round((mid + span / 2) / s) * s, mode: prev.mode || 'area', n: prev.n || 4 };
       if (this.integral.a === this.integral.b) this.integral.b += s;
       this.els.hint.hidden = false;
-      this.els.hintText.textContent = 'Integral: Grenzen a und b mit der Maus verschieben';
+      this.els.hintText.textContent = 'Grenzen a, b ziehen';
+      this._syncIntegralCtl();
       this.repaint();
+    },
+
+    _syncIntegralCtl() {
+      const on = !!this.integral;
+      $('integral-ctl').hidden = !on;
+      if (!on) return;
+      this.setSegmented($('int-mode'), this.integral.mode || 'area');
+      $('int-n-wrap').hidden = (this.integral.mode || 'area') === 'area';
+      $('int-n').value = this.integral.n || 4;
+    },
+
+    // Riemann-Summe: Rechtecke [x0, x1, Höhe] und Summe der orientierten Flächen
+    _riemann(f, a, b, n, mode) {
+      const h = (b - a) / n, rects = [];
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const x0 = a + i * h, x1 = x0 + h;
+        let y;
+        if (mode === 'mid') y = f((x0 + x1) / 2);
+        else {
+          // kleinster bzw. größter Funktionswert im Streifen (Ränder exakt, dazwischen abgetastet)
+          let lo = Infinity, hi = -Infinity;
+          for (let k = 0; k <= 32; k++) {
+            const v = f(x0 + h * k / 32);
+            if (!isFinite(v)) { lo = hi = NaN; break; }
+            lo = Math.min(lo, v); hi = Math.max(hi, v);
+          }
+          y = mode === 'lower' ? lo : hi;
+        }
+        if (!isFinite(y)) return { rects: [], sum: NaN };
+        rects.push([x0, x1, y]);
+        sum += h * y;
+      }
+      return { rects, sum };
     },
 
     _hideIntegral() {
       this.integral = null;
+      this._syncIntegralCtl();
       if (this.tool === 'move') this.els.hint.hidden = true;
       this.repaint();
     },
@@ -2345,7 +2389,19 @@
       // Fläche nur im sichtbaren Teil zeichnen (keine riesigen Koordinaten beim Zoomen)
       const [d0, d1] = xs.domain();
       const va = Math.max(a, d0 - (d1 - d0)), vb = Math.min(b, d1 + (d1 - d0));
-      if (vb > va) {
+      const mode = this.integral.mode || 'area';
+      const rs = mode !== 'area' ? this._riemann(fn.f, a, b, this.integral.n || 4, mode) : null;
+      if (rs) {
+        // Rechtecke der Riemann-Summe
+        const lim = (py) => clamp(py, this.PT - 2 * H, this.PB + 2 * H);
+        rs.rects.forEach(([x0, x1, y]) => {
+          if (x1 < d0 || x0 > d1) return;
+          const px0 = xs(Math.max(x0, d0 - 1e-9 * (d1 - d0))), px1 = xs(Math.min(x1, d1)), py = lim(ys(y));
+          clip.append('rect').attr('x', Math.min(px0, px1)).attr('y', Math.min(py, y0)).attr('width', Math.abs(px1 - px0)).attr('height', Math.abs(y0 - py))
+            .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.5 : 0.2)
+            .attr('stroke', col).attr('stroke-width', 1.3).attr('stroke-linejoin', 'round');
+        });
+      } else if (vb > va) {
         const pts = [[xs(va), y0]];
         for (let i = 0; i <= N; i++) {
           const x = va + (vb - va) * i / N, y = fn.f(x);
@@ -2364,7 +2420,14 @@
       const midX = clamp((clamp(pxA, this.PL, this.PR) + clamp(pxB, this.PL, this.PR)) / 2, this.PL + 90, this.PR - 90);
       const txt = this._halo(g.append('text').attr('x', midX).attr('y', this.PT + fs + 30)
         .attr('text-anchor', 'middle').attr('fill', col).attr('font-size', fs).attr('font-weight', '650'));
-      if (isFinite(value)) {
+      if (rs) {
+        const n = this.integral.n || 4, name = { lower: 'U', upper: 'O', mid: 'M' }[mode];
+        const t1 = txt.append('tspan').attr('x', midX);
+        t1.append('tspan').text(name);
+        t1.append('tspan').attr('dy', fs * 0.25).attr('font-size', fs * 0.72).text(n);
+        t1.append('tspan').attr('dy', -fs * 0.25).text(' = ' + (isFinite(rs.sum) ? fmtDE(rs.sum, 4) : '–'));
+        if (isFinite(value)) txt.append('tspan').attr('x', midX).attr('dy', fs * 1.25).attr('font-weight', '500').text('∫ ' + fn.letter + '(x) dx = ' + this.fmtPt(+value.toPrecision(10)));
+      } else if (isFinite(value)) {
         txt.append('tspan').attr('x', midX).text('∫ ' + fn.letter + '(x) dx = ' + this.fmtPt(+value.toPrecision(10)));
         txt.append('tspan').attr('x', midX).attr('dy', fs * 1.25).attr('font-weight', '500').text('Fläche A = ' + this.fmtPt(+area.toPrecision(10)));
       } else txt.text('Integral existiert nicht (Definitionslücke)');

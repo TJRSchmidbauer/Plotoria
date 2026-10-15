@@ -55,6 +55,19 @@
         <div id="coord-display" class="hud coord-display" aria-live="polite"></div>
         <div id="tool-hint" class="hud tool-hint" hidden>
           <span id="tool-hint-text"></span>
+          <span id="integral-ctl" class="integral-ctl" hidden>
+            <span class="segmented segmented-sm" id="int-mode" role="radiogroup" aria-label="Darstellung">
+              <button data-value="area" class="active" title="Fläche unter dem Graphen">Fläche</button>
+              <button data-value="lower" title="Untersumme: kleinster Funktionswert je Streifen">Untersumme</button>
+              <button data-value="upper" title="Obersumme: größter Funktionswert je Streifen">Obersumme</button>
+              <button data-value="mid" title="Mittelsumme: Funktionswert in der Streifenmitte">Mitte</button>
+            </span>
+            <span class="int-n" id="int-n-wrap" title="Anzahl der Rechtecke">
+              <button class="hud-step" id="int-n-minus" aria-label="Weniger Rechtecke">−</button>
+              <input type="number" id="int-n" class="field field-mono" min="1" max="200" value="4" aria-label="Anzahl der Rechtecke">
+              <button class="hud-step" id="int-n-plus" aria-label="Mehr Rechtecke">+</button>
+            </span>
+          </span>
           <button id="tool-hint-close" class="hud-close" title="Beenden (Esc)"><i data-icon="close"></i></button>
         </div>
         <div class="tool-capsule" role="toolbar" aria-label="Werkzeuge">

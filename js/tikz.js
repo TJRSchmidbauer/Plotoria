@@ -103,6 +103,7 @@ const TikZ = {
     (opts.objects || []).forEach(o => {
       const col = opts.bw ? 'black' : `{rgb,255:red,${parseInt(this.hex(o.col).slice(0, 2), 16)};green,${parseInt(this.hex(o.col).slice(2, 4), 16)};blue,${parseInt(this.hex(o.col).slice(4, 6), 16)}}`;
       if (o.type === 'point') {
+        if (o.guides) L.push(`    \\draw[color=${col}, dashed, line width=0.5pt] (axis cs:${this.num(o.px)},0) -- (axis cs:${this.num(o.px)},${this.num(o.py)}) -- (axis cs:0,${this.num(o.py)});`);
         L.push(`    \\fill[color=${col}] (axis cs:${this.num(o.px)},${this.num(o.py)}) circle (2.2pt)` + (o.text ? ` node[anchor=south west, color=${col}] {${this.label(o.text)}}` : '') + ';');
       } else if (o.type === 'vline') {
         L.push(`    \\draw[color=${col}, ${o.dash === 'solid' ? '' : 'dashed, '}line width=0.8pt] (axis cs:${this.num(o.px)},${this.num(b.yMin)}) -- (axis cs:${this.num(o.px)},${this.num(b.yMax)});`);
