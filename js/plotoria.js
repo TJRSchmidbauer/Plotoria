@@ -1489,6 +1489,11 @@
       this.paintGrid();
       this.paintAxes();
       this.paintLabels();
+      if (c.empty) {   // leeres Koordinatensystem für Arbeitsblätter
+        if (c.title) this.paintTitle();
+        if (c.mark) this.paintWatermark();
+        return;
+      }
       this.paintIntegral();
       if (this.paintData) this.paintData();
       this.paintAsymptotes();

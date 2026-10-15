@@ -299,6 +299,7 @@
         <section class="group">
           <div class="group-head"><h3>Inhalt</h3></div>
           <div class="group-body form">
+            <div class="row"><label for="exp-empty">Leeres Koordinatensystem<small class="row-note">nur Achsen und Raster, z. B. für „Skizziere f′“</small></label><input type="checkbox" class="switch" id="exp-empty"></div>
             <div class="row"><label for="exp-title">Titel</label><input type="checkbox" class="switch" id="exp-title"></div>
             <div class="row"><label for="exp-labels">Graph-Beschriftungen</label><input type="checkbox" class="switch" id="exp-labels" checked></div>
             <div class="row"><label for="exp-smart">Kurvendiskussion</label><input type="checkbox" class="switch" id="exp-smart"></div>
@@ -341,7 +342,11 @@
         </section>
         <div class="list group-body" id="print-items"></div>
         <p class="hint" id="print-empty">Noch leer. Im Export „Zum Druckbogen“ wählen, um Grafiken oder Tabellen zu sammeln.</p>
-        <button class="btn btn-gray btn-sm" id="print-clear">Alle entfernen</button>
+        <div class="btn-row btn-row-wrap">
+          <button class="btn btn-gray btn-sm" id="print-blank" title="Koordinatensystem der aktuellen Ansicht ohne Graphen, neben das letzte Bild">Leeres Koordinatensystem daneben</button>
+          <button class="btn btn-gray btn-sm" id="print-clear">Alle entfernen</button>
+        </div>
+        <p class="hint">„⇥“ stellt eine Grafik neben die vorige, wenn beide zusammen auf die Seitenbreite passen.</p>
         <p class="hint">Tipp: Im Druckdialog „Als PDF sichern“ wählen und die Skalierung auf 100 % lassen – dann stimmen die Zentimeter.</p>
       </div>
       <div class="print-preview-wrap"><div class="a4" id="print-preview"></div></div>

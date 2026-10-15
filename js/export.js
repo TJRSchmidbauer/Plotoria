@@ -10,7 +10,7 @@
 
   Object.assign(P, {
     initExport() {
-      this.exp = { format: 'png', sizeMode: 'scale', ux: 1, uy: 1, w: 12, h: 8, range: 'view', dpi: 300, title: false, labels: true, smart: false, bw: false, white: true, mark: false };
+      this.exp = { format: 'png', sizeMode: 'scale', ux: 1, uy: 1, w: 12, h: 8, range: 'view', dpi: 300, title: false, labels: true, smart: false, bw: false, white: true, mark: false, empty: false };
       this.printItems = [];
       this.printOpts = { header: true, heading: '', numbers: true };
 
@@ -18,7 +18,7 @@
       Object.assign(E, {
         expSheet: $('export-sheet'), expPreview: $('exp-preview'), expSize: $('exp-size'), expFormat: $('exp-format'), expSizeMode: $('exp-size-mode'),
         expUx: $('exp-ux'), expUy: $('exp-uy'), expW: $('exp-w'), expH: $('exp-h'), expRange: $('exp-range'), expDpi: $('exp-dpi'),
-        expTitle: $('exp-title'), expLabels: $('exp-labels'), expSmart: $('exp-smart'), expBw: $('exp-bw'), expWhite: $('exp-white'), expMark: $('exp-mark'),
+        expEmpty: $('exp-empty'), expTitle: $('exp-title'), expLabels: $('exp-labels'), expSmart: $('exp-smart'), expBw: $('exp-bw'), expWhite: $('exp-white'), expMark: $('exp-mark'),
         printSheet: $('print-sheet'), printItems: $('print-items'), printPreview: $('print-preview'), printEmpty: $('print-empty'), printCount: $('print-count'),
         prHeader: $('pr-header'), prHeading: $('pr-heading'), prNumbers: $('pr-numbers'),
         tza: $('tikz-area'), fileInput: $('file-input'),
@@ -30,6 +30,7 @@
       $('exp-to-print').addEventListener('click', () => this.exportToPrint());
       $('print-open').addEventListener('click', () => { E.expSheet.close(); this.openPrint(); });
       $('print-go').addEventListener('click', () => this.printNow());
+      $('print-blank').addEventListener('click', () => this.addBlankToPrint());
       $('print-clear').addEventListener('click', () => { this.printItems = []; this._savePrint(); this.renderPrint(); });
       $('tikz-import').addEventListener('click', () => this.importTikZ());
       $('open-btn').addEventListener('click', () => this.openProject());
@@ -48,7 +49,7 @@
       bind(E.expH, 'h', v => Math.max(2, +v || 8));
       bind(E.expRange, 'range', v => v);
       bind(E.expDpi, 'dpi', v => +v);
-      ['Title', 'Labels', 'Smart', 'Bw', 'White', 'Mark'].forEach(k => bind(E['exp' + k], k.toLowerCase(), v => v));
+      ['Empty', 'Title', 'Labels', 'Smart', 'Bw', 'White', 'Mark'].forEach(k => bind(E['exp' + k], k.toLowerCase(), v => v));
 
       const optBind = (el, key) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
         this.printOpts[key] = el.type === 'checkbox' ? el.checked : el.value; this._savePrint(); this.renderPrintPreview();
@@ -87,7 +88,7 @@
       E.expRange.value = x.range; E.expRange.querySelector('[value="selection"]').disabled = !this.selectionRect;
       E.expDpi.value = String(x.dpi);
       E.expTitle.checked = x.title; E.expLabels.checked = x.labels; E.expSmart.checked = x.smart;
-      E.expBw.checked = x.bw; E.expWhite.checked = x.white; E.expMark.checked = x.mark;
+      E.expBw.checked = x.bw; E.expWhite.checked = x.white; E.expMark.checked = x.mark; E.expEmpty.checked = x.empty;
       this.setSegmented(E.expFormat, x.format);
       this.setSegmented(E.expSizeMode, x.sizeMode);
       this.openSheet('export-sheet');
@@ -166,7 +167,7 @@
         this.ys = d3.scaleLinear().domain([b.yMin, b.yMax]).range([H - usePad.b, usePad.t]);
         this._setFrame();
         this.rc = {
-          labels: x.labels, smart: x.smart, title: x.title, mark: x.mark, bw: x.bw,
+          labels: x.labels, smart: x.smart && !x.empty, title: x.title, mark: x.mark, bw: x.bw, empty: x.empty,
           bg: x.white ? '#FFFFFF' : this._theme().plotBg, lightOverride: x.white && dark,
         };
         this.repaint();
@@ -230,7 +231,7 @@
         return out;
       };
       const fns = [];
-      this.fns.filter(f => f.vis && f.f).forEach(f => {
+      if (!x.empty) this.fns.filter(f => f.vis && f.f).forEach(f => {
         const bd = f.bounds ? f.bounds() : null;
         const members = f.members || [null];
         members.forEach((m, i) => {
@@ -280,7 +281,7 @@
         }
       });
       const list = fns;
-      const objects = this.objs.filter(o => o.vis).map(o => {
+      const objects = this.objs.filter(o => o.vis && !x.empty).map(o => {
         const pos = this._objPos(o);
         if (!pos) return null;
         if (o.type === 'point') return { ...o, px: pos.x, py: pos.y, text: (o.showName ? o.name : '') + (o.showCoords ? '(' + this.fmtPt(pos.x) + ' | ' + this.fmtPt(pos.y) + ')' : '') };
@@ -294,7 +295,7 @@
         width: r ? r.wcm : 12, height: r ? r.hcm : 8,
         karo: this.style.gridMode === 'karo' ? this.style.karo : 0, grid: this.style.gridMode !== 'none',
         xStep: this.style.xStep ? MathParser.evalConst(this.style.xStep) : 0, yStep: this.style.yStep ? MathParser.evalConst(this.style.yStep) : 0,
-        objects, datasets: this.datasets.filter(d => d.vis), legend: false,
+        objects, datasets: x.empty ? [] : this.datasets.filter(d => d.vis), legend: false,
       });
     },
 
@@ -396,6 +397,10 @@
         main.append(cap, sub);
         const acts = document.createElement('div'); acts.className = 'item-actions';
         const btn = (label, title, cb, dis) => { const b = document.createElement('button'); b.className = 'icon-btn'; b.innerHTML = label; b.title = title; b.disabled = !!dis; b.addEventListener('click', cb); acts.appendChild(b); };
+        if (it.kind === 'svg' && i > 0) {
+          btn('⇥', it.beside ? 'Wieder darunter setzen' : 'Neben das vorige Bild setzen', () => { it.beside = !it.beside; this._savePrint(); this.renderPrint(); });
+          if (it.beside) acts.lastChild.classList.add('on');
+        }
         btn('↑', 'Nach oben', () => { [this.printItems[i - 1], this.printItems[i]] = [this.printItems[i], this.printItems[i - 1]]; this._savePrint(); this.renderPrint(); }, i === 0);
         btn('↓', 'Nach unten', () => { [this.printItems[i + 1], this.printItems[i]] = [this.printItems[i], this.printItems[i + 1]]; this._savePrint(); this.renderPrint(); }, i === this.printItems.length - 1);
         btn(Icons.svg('trash'), 'Entfernen', () => { this.printItems.splice(i, 1); this._savePrint(); this.renderPrint(); });
@@ -406,34 +411,57 @@
       this.renderPrintPreview();
     },
 
-    // Seiten zusammenstellen (Höhen in mm, A4 hoch mit 16 mm Rand oben/unten)
+    // Leeres Koordinatensystem (aktuelle Ansicht und Exportgröße) neben das letzte Bild
+    addBlankToPrint() {
+      const r = this.renderExport(this.exp, { format: 'svg', empty: true, smart: false });
+      if (r.error) { this._toast(r.error); return; }
+      const last = this.printItems[this.printItems.length - 1];
+      const beside = !!(last && last.kind === 'svg' && (Math.min(last.wcm, 17.4) + r.wcm) * 10 + 6 <= 174);
+      this.addPrintItem({ kind: 'svg', svg: r.svg.replace(/^<\?xml[^>]*>\s*/, ''), wcm: r.wcm, hcm: r.hcm, caption: '', beside });
+      if (!beside && last) this._toast('Zu breit für nebeneinander – darunter eingefügt');
+    },
+
+    // Seiten zusammenstellen (Höhen in mm, A4 hoch mit 16 mm Rand oben/unten, 174 mm Breite)
     _buildPages() {
       const o = this.printOpts;
+      const avail = 297 - 32;
+      const width = (it) => (it.kind === 'svg' ? Math.min(it.wcm * 10, 174) : 174);
+      const height = (it) => (it.kind === 'svg' ? Math.min(it.hcm * 10 * (it.wcm > 17.4 ? 17.4 / it.wcm : 1), avail - 10) + 13
+        : it.kind === 'text' ? 6.2 * (it.lines || (it.html.match(/<p/g) || []).length) + 14 : 8 * (it.html.match(/<tr/g) || []).length + 16);
+      // Zeilen: Grafiken mit „⇥“ neben die vorige, wenn die Breite reicht
+      const rows = [], count = {};
+      this.printItems.forEach((it) => {
+        const row = rows[rows.length - 1];
+        const w = width(it), n = count[it.kind] = (count[it.kind] || 0) + 1;   // Abbildungen und Tabellen getrennt zählen
+        if (it.beside && it.kind === 'svg' && row && row.items.every(e => e.it.kind === 'svg') && row.w + 6 + w <= 174) {
+          row.items.push({ it, n }); row.w += 6 + w; row.h = Math.max(row.h, height(it));
+        } else rows.push({ items: [{ it, n }], w, h: height(it) });
+      });
       const pages = [];
       let cur = null, used = 0;
-      const avail = 297 - 32;
       const newPage = () => {
         cur = []; pages.push(cur);
         used = pages.length === 1 ? (o.header ? 14 : 0) + (o.heading ? 12 : 0) : 0;
       };
       newPage();
-      this.printItems.forEach((it, i) => {
-        const h = it.kind === 'svg' ? Math.min(it.hcm * 10 * (it.wcm > 17.4 ? 17.4 / it.wcm : 1), avail - 10) + 13
-          : it.kind === 'text' ? 6.2 * (it.lines || (it.html.match(/<p/g) || []).length) + 14 : 8 * (it.html.match(/<tr/g) || []).length + 16;
-        if (used + h > avail && cur.length) newPage();
-        cur.push({ it, n: i + 1 });
-        used += h;
+      rows.forEach(row => {
+        if (used + row.h > avail && cur.length) newPage();
+        cur.push(row);
+        used += row.h;
       });
-      return pages.map((items, p) => {
+      const itemHTML = ({ it, n }) => {
+        const cap = (o.numbers && it.kind !== 'text' ? (it.kind === 'svg' ? 'Abbildung ' : 'Tabelle ') + n + (it.caption ? ': ' : '') : '') + (it.caption || '');
+        let body = it.svg || it.html;
+        if (it.kind === 'text') return '<div class="page-item page-text">' + (cap ? '<p class="page-text-title">' + esc(cap) + '</p>' : '') + body + '</div>';
+        if (it.kind === 'svg' && it.wcm > 17.4) body = body.replace(/width="[^"]*cm"/, 'width="174mm"').replace(/height="[^"]*cm"/, 'height="' + (it.hcm * 174 / it.wcm).toFixed(1) + 'mm"');
+        return '<div class="page-item"><figure>' + body + (cap ? '<figcaption>' + esc(cap) + '</figcaption>' : '') + '</figure></div>';
+      };
+      return pages.map((rws, p) => {
         let h = '<div class="page">';
         if (p === 0 && o.header) h += '<div class="page-header"><span>Name:</span><span>Klasse:</span><span>Datum:</span></div>';
         if (p === 0 && o.heading) h += '<h1>' + esc(o.heading) + '</h1>';
-        items.forEach(({ it, n }) => {
-          const cap = (o.numbers && it.kind !== 'text' ? (it.kind === 'svg' ? 'Abbildung ' : 'Tabelle ') + n + (it.caption ? ': ' : '') : '') + (it.caption || '');
-          let body = it.svg || it.html;
-          if (it.kind === 'svg' && it.wcm > 17.4) body = body.replace(/width="[^"]*cm"/, 'width="174mm"').replace(/height="[^"]*cm"/, 'height="' + (it.hcm * 174 / it.wcm).toFixed(1) + 'mm"');
-          if (it.kind === 'text') { h += '<div class="page-item page-text">' + (cap ? '<p class="page-text-title">' + esc(cap) + '</p>' : '') + body + '</div>'; return; }
-          h += '<div class="page-item"><figure>' + body + (cap ? '<figcaption>' + esc(cap) + '</figcaption>' : '') + '</figure></div>';
+        rws.forEach(row => {
+          h += row.items.length > 1 ? '<div class="page-row">' + row.items.map(itemHTML).join('') + '</div>' : itemHTML(row.items[0]);
         });
         return h + '</div>';
       }).join('');
