@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
+// Plotoria 3.0 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
 (() => {
   const P = window.Plotoria;
 
@@ -53,6 +53,7 @@
       }
     }
     this._readStoredPrint();
+    if (this._readOwnTemplates) this._readOwnTemplates();
     this._scheduleSave();
     // Offline-Betrieb (nur über http/https, nicht bei file://)
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
@@ -64,7 +65,7 @@
     this.storageOK = false;
     clearTimeout(this._st);
     // Bereits gespeicherte Plotoria-Daten entfernen
-    try { localStorage.removeItem(this.STORAGE_KEY); localStorage.removeItem(this.PRINT_KEY); } catch (e) { /* nicht verfügbar */ }
+    try { [this.STORAGE_KEY, this.PRINT_KEY, this.TEMPLATE_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) { /* nicht verfügbar */ }
     if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
       navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
     }

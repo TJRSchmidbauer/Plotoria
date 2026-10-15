@@ -375,6 +375,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: none;
 .item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-sub { font-size: 11.5px; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-error { font-size: 11.5px; color: var(--red); white-space: normal; }
+.item-sub { font-size: 11.5px; color: var(--label-2, #8E8E93); white-space: pre-line; margin-top: 1px; }
 .item-actions { display: flex; align-items: center; flex: none; }
 .item-edit { height: 28px; }
 
@@ -438,6 +439,16 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: none;
   animation: hint-in var(--t-med) var(--spring);
 }
 @keyframes hint-in { from { opacity: 0; transform: translate(-50%, -8px) scale(0.96); } to { opacity: 1; transform: translateX(-50%); } }
+.integral-ctl { display: inline-flex; align-items: center; gap: 8px; }
+.integral-ctl[hidden] { display: none; }
+.int-n { display: inline-flex; align-items: center; gap: 2px; }
+.int-n[hidden] { display: none; }
+.int-n input { width: 46px; height: 24px; padding: 0 4px; text-align: center; font-size: 12px; }
+.int-n input::-webkit-outer-spin-button, .int-n input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.int-n input { -moz-appearance: textfield; appearance: textfield; }
+.hud-step { width: 24px; height: 24px; border-radius: 50%; background: var(--fill); font-size: 15px; line-height: 1; color: var(--label); }
+.hud-step:active { transform: scale(0.94); }
+@media (max-width: 760px) { .tool-hint { white-space: normal; flex-wrap: wrap; border-radius: 16px; } }
 .hud-close { width: 24px; height: 24px; border-radius: 50%; background: var(--fill); display: inline-flex; align-items: center; justify-content: center; color: var(--label-2); flex: none; }
 .hud-close .icon { width: 13px; height: 13px; }
 
@@ -541,6 +552,13 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 .page-item figure { display: inline-block; }
 .page-item figcaption { font-size: 10pt; margin-top: 1.5mm; color: #333; }
 .page-item svg { display: block; }
+.page-row { display: flex; gap: 6mm; align-items: flex-start; }
+.page-row > .page-item { flex: none; }
+.row-note { display: block; font-size: 11.5px; color: var(--label-2); font-weight: 400; margin-top: 1px; }
+.icon-btn.on { color: var(--accent); background: var(--accent-tint); }
+.page-text { font-size: 11pt; }
+.page-text-title { font-weight: 650; margin-bottom: 1.5mm; }
+.page-text p { margin: 0 0 1mm; }
 .page-item table { border-collapse: collapse; font: 11pt var(--font); }
 .page-item th, .page-item td { border: 0.3mm solid #000; padding: 1.4mm 3mm; text-align: center; min-width: 12mm; height: 8mm; }
 .page-item th { font-weight: 600; background: #f2f2f2; }
@@ -554,6 +572,13 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 }
 .template-card:hover { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1); }
 .template-card:active { transform: scale(0.97); }
+.own-templates .row { gap: 8px; }
+.own-templates .row .field { flex: 1; min-width: 0; max-width: none; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--label-2); margin: 18px 0 0; }
+.template-card.own { position: relative; cursor: pointer; }
+.template-card.own .icon-btn { position: absolute; top: 4px; right: 4px; background: var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.template-card img { width: 100%; aspect-ratio: 8 / 5; border-radius: 8px; background: #fff; display: block; object-fit: contain; }
+.thumb-empty { width: 100%; aspect-ratio: 8 / 5; border-radius: 8px; background: var(--fill); }
 .template-card svg { width: 100%; height: auto; border-radius: 8px; background: #fff; display: block; }
 .template-card strong { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
 .template-card span { font-size: 11.5px; color: var(--label-2); line-height: 1.35; }
@@ -564,6 +589,15 @@ dialog.sheet-wide { width: min(1040px, calc(100vw - 32px)); }
 .karo-sketch svg { display: block; width: 100%; height: auto; }
 
 /* Hinweis zur Speicherung */
+/* Kurvendiskussion */
+.disc-layout { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+.disc-options .pair input { width: 64px; }
+.disc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.disc-out { background: var(--surface); border-radius: 12px; padding: 14px 18px; min-height: 200px; font-size: 14px; border: 0.5px solid var(--separator); }
+.disc-sec { margin-bottom: 10px; }
+.disc-sec h4 { font-size: 12px; font-weight: 650; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; margin: 0 0 3px; }
+.disc-line { margin: 2px 0 2px 2px; overflow-x: auto; }
+@media (max-width: 760px) { .disc-layout { grid-template-columns: 1fr; } }
 dialog.consent-sheet { width: min(440px, calc(100vw - 32px)); }
 .consent-body { padding: 26px 26px 22px; text-align: left; }
 .consent-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-tint); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }

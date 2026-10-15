@@ -26,7 +26,7 @@
       <div class="toolbar-brand">
         <img src="icons/icon.svg" alt="" class="brand-icon" width="26" height="26">
         <span class="brand-name">Plotoria</span>
-        <span class="brand-version">2.0</span>
+        <span class="brand-version">3.0</span>
       </div>
       <input type="text" id="header-title" class="title-field" placeholder="Titel der Grafik" maxlength="100" aria-label="Titel der Grafik">
       <div class="toolbar-spacer"></div>
@@ -55,6 +55,19 @@
         <div id="coord-display" class="hud coord-display" aria-live="polite"></div>
         <div id="tool-hint" class="hud tool-hint" hidden>
           <span id="tool-hint-text"></span>
+          <span id="integral-ctl" class="integral-ctl" hidden>
+            <span class="segmented segmented-sm" id="int-mode" role="radiogroup" aria-label="Darstellung">
+              <button data-value="area" class="active" title="Fläche unter dem Graphen">Fläche</button>
+              <button data-value="lower" title="Untersumme: kleinster Funktionswert je Streifen">Untersumme</button>
+              <button data-value="upper" title="Obersumme: größter Funktionswert je Streifen">Obersumme</button>
+              <button data-value="mid" title="Mittelsumme: Funktionswert in der Streifenmitte">Mitte</button>
+            </span>
+            <span class="int-n" id="int-n-wrap" title="Anzahl der Rechtecke">
+              <button class="hud-step" id="int-n-minus" aria-label="Weniger Rechtecke">−</button>
+              <input type="number" id="int-n" class="field field-mono" min="1" max="200" value="4" aria-label="Anzahl der Rechtecke">
+              <button class="hud-step" id="int-n-plus" aria-label="Mehr Rechtecke">+</button>
+            </span>
+          </span>
           <button id="tool-hint-close" class="hud-close" title="Beenden (Esc)"><i data-icon="close"></i></button>
         </div>
         <div class="tool-capsule" role="toolbar" aria-label="Werkzeuge">
@@ -286,6 +299,7 @@
         <section class="group">
           <div class="group-head"><h3>Inhalt</h3></div>
           <div class="group-body form">
+            <div class="row"><label for="exp-empty">Leeres Koordinatensystem<small class="row-note">nur Achsen und Raster, z. B. für „Skizziere f′“</small></label><input type="checkbox" class="switch" id="exp-empty"></div>
             <div class="row"><label for="exp-title">Titel</label><input type="checkbox" class="switch" id="exp-title"></div>
             <div class="row"><label for="exp-labels">Graph-Beschriftungen</label><input type="checkbox" class="switch" id="exp-labels" checked></div>
             <div class="row"><label for="exp-smart">Kurvendiskussion</label><input type="checkbox" class="switch" id="exp-smart"></div>
@@ -328,10 +342,49 @@
         </section>
         <div class="list group-body" id="print-items"></div>
         <p class="hint" id="print-empty">Noch leer. Im Export „Zum Druckbogen“ wählen, um Grafiken oder Tabellen zu sammeln.</p>
-        <button class="btn btn-gray btn-sm" id="print-clear">Alle entfernen</button>
+        <div class="btn-row btn-row-wrap">
+          <button class="btn btn-gray btn-sm" id="print-blank" title="Koordinatensystem der aktuellen Ansicht ohne Graphen, neben das letzte Bild">Leeres Koordinatensystem daneben</button>
+          <button class="btn btn-gray btn-sm" id="print-clear">Alle entfernen</button>
+        </div>
+        <p class="hint">„⇥“ stellt eine Grafik neben die vorige, wenn beide zusammen auf die Seitenbreite passen.</p>
         <p class="hint">Tipp: Im Druckdialog „Als PDF sichern“ wählen und die Skalierung auf 100 % lassen – dann stimmen die Zentimeter.</p>
       </div>
       <div class="print-preview-wrap"><div class="a4" id="print-preview"></div></div>
+    </div>
+  </dialog>
+
+  <!-- ── Kurvendiskussion als Text ── -->
+  <dialog class="sheet sheet-wide" id="disc-sheet" aria-labelledby="disc-title">
+    <div class="sheet-head">
+      <span></span>
+      <h2 id="disc-title">Kurvendiskussion</h2>
+      <button class="link-btn link-strong" data-close>Fertig</button>
+    </div>
+    <div class="sheet-body disc-layout">
+      <div class="disc-options">
+        <section class="group">
+          <div class="group-body form">
+            <div class="row"><label>Bereich</label><span class="pair"><input type="text" id="disc-a" class="field field-mono" aria-label="von"><span>bis</span><input type="text" id="disc-b" class="field field-mono" aria-label="bis"></span></div>
+            <div class="row"><label for="disc-inf">Ränder als ±∞</label><input type="checkbox" class="switch" id="disc-inf"></div>
+            <div class="row"><label for="disc-exact">Exakte Werte (√2, π/2)</label><input type="checkbox" class="switch" id="disc-exact"></div>
+          </div>
+        </section>
+        <section class="group">
+          <div class="group-body form">
+            <div class="row"><label for="disc-derivs">Ableitungen</label><input type="checkbox" class="switch" id="disc-derivs"></div>
+            <div class="row"><label for="disc-mono">Monotonie</label><input type="checkbox" class="switch" id="disc-mono"></div>
+            <div class="row"><label for="disc-curv">Krümmung</label><input type="checkbox" class="switch" id="disc-curv"></div>
+            <div class="row"><label for="disc-limits">Grenzverhalten &amp; Asymptoten</label><input type="checkbox" class="switch" id="disc-limits"></div>
+          </div>
+        </section>
+        <div class="disc-actions">
+          <button class="btn btn-gray btn-sm" id="disc-word"><i data-icon="doc"></i>Für Word kopieren</button>
+          <button class="btn btn-gray btn-sm" id="disc-latex"><i data-icon="copy"></i>LaTeX kopieren</button>
+          <button class="btn btn-gray btn-sm" id="disc-print"><i data-icon="print"></i>Zum Druckbogen</button>
+        </div>
+        <p class="hint">„Ränder als ±∞“: Ist der Graph am Rand des Bereichs unbeschränkt definiert, wird ]−∞; …] bzw. […; +∞[ geschrieben. Bitte die Ergebnisse vor dem Austeilen prüfen – sie werden numerisch im gewählten Bereich ermittelt.</p>
+      </div>
+      <div class="disc-out" id="disc-out"></div>
     </div>
   </dialog>
 
@@ -344,6 +397,21 @@
     </div>
     <div class="sheet-body">
       <p class="hint">Eine Vorlage ersetzt die aktuelle Zeichnung. Mit Rückgängig (Strg+Z) kommst du zurück.</p>
+      <section class="group own-templates">
+        <div class="group-head"><h3>Eigene Vorlagen</h3></div>
+        <div class="group-body form">
+          <div class="row"><input type="text" id="tpl-name" class="field" placeholder="Name, z. B. „Parabel 9b – Schulaufgabe“" aria-label="Name der Vorlage">
+            <button class="btn btn-tinted btn-sm" id="tpl-save">Aktuellen Stand sichern</button></div>
+        </div>
+      </section>
+      <p class="hint" id="tpl-storage-hint"></p>
+      <div class="template-grid" id="own-template-grid"></div>
+      <div class="btn-row btn-row-wrap">
+        <button class="btn btn-gray btn-sm" id="tpl-export" title="Alle eigenen Vorlagen als Datei sichern, z. B. für Kolleginnen und Kollegen">Als Datei sichern</button>
+        <button class="btn btn-gray btn-sm" id="tpl-import">Aus Datei laden</button>
+        <input type="file" id="tpl-file" accept=".json,.plotoria-vorlagen,application/json" hidden>
+      </div>
+      <h3 class="section-title">Mitgelieferte Vorlagen</h3>
       <div class="template-grid" id="template-grid"></div>
     </div>
   </dialog>
@@ -361,9 +429,14 @@
         <tr><td><code>x^2 - 4</code>, <code>2x(x+1)</code></td><td>Terme, Malpunkt darf fehlen</td></tr>
         <tr><td><code>f(x) = sin(x)</code></td><td>Funktion mit Namen (überschreibt vorhandenes f)</td></tr>
         <tr><td><code>f(x) = x^2 für 0 ≤ x ≤ 3</code></td><td>Definitionsbereich (auch <code>x ∈ [0; 3[</code>, <code>, x > 1</code>)</td></tr>
+        <tr><td><code>f(x) = x^2 für x &lt; 1; 2x − 1 für x ≥ 1</code></td><td>Abschnittsweise definiert (auch <code>…; 3 sonst</code>), Sprungstellen mit ● / ○</td></tr>
+        <tr><td><code>f_a(x) = a·x^2 für a = 1, 2, 3</code></td><td>Funktionsschar (auch <code>a ∈ {−1; 0; 1}</code>, <code>a = −2 … 2</code>)</td></tr>
         <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
+        <tr><td>Funktion › <em>Stammfunktion</em> / <em>Umkehrfunktion</em></td><td>F mit Konstante C (auch mehrere: <code>−1; 0; 1</code>) bzw. Spiegelung an y = x</td></tr>
+        <tr><td>Funktion › <em>Kurvendiskussion</em></td><td>Lösung als Text für Word, LaTeX oder den Druckbogen</td></tr>
+        <tr><td>Integral-Symbol ∫</td><td>Fläche, Unter-, Ober- oder Mittelsumme mit n Rechtecken</td></tr>
         <tr><td><code>g(x) = f(x - 2) + 1</code></td><td>Andere Funktionen verwenden</td></tr>
-        <tr><td><code>A(2|3)</code>, <code>P(1|f(1))</code></td><td>Punkt (auch <code>A = (2; 3)</code>)</td></tr>
+        <tr><td><code>A(2|3)</code>, <code>P(1|f(1))</code></td><td>Punkt (auch <code>A = (2; 3)</code>); › „Hilfslinien zu den Achsen“ zum Ablesen</td></tr>
         <tr><td><code>x = 2</code></td><td>Senkrechte Gerade</td></tr>
         <tr><td><code>a*x^2 + b</code></td><td>Unbekannte Buchstaben werden Parameter</td></tr>
         <tr><td><code>sqrt</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
@@ -386,8 +459,8 @@
         <tr><td><kbd>?</kbd>, <kbd>Esc</kbd></td><td>Hilfe, Werkzeug / Dialog beenden</td></tr>
       </table>
       <h3>Datenschutz</h3>
-      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
-      <p class="hint">Plotoria 2.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
+      <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen, eigene Vorlagen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
+      <p class="hint">Plotoria 3.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
     </div>
   </dialog>
 
@@ -399,7 +472,7 @@
       <p id="consent-text">Plotoria verwendet <strong>keine Cookies</strong> und sendet keine Daten an Dritte. Damit nach dem Neuladen nichts verloren geht, kann Plotoria Folgendes <strong>nur lokal in diesem Browser</strong> speichern:</p>
       <ul>
         <li>den aktuellen Arbeitsstand (Funktionen, Einstellungen),</li>
-        <li>den Druckbogen,</li>
+        <li>den Druckbogen und eigene Vorlagen,</li>
         <li>die App-Dateien für die Nutzung ohne Internet.</li>
       </ul>
       <p class="hint">Bei „Ablehnen“ wird nichts gespeichert und bereits gespeicherte Plotoria-Daten werden gelöscht. Sichern als Datei (Strg+S) und Teilen per Link funktionieren trotzdem. Diese Frage erscheint bei jedem Start.</p>
@@ -426,6 +499,7 @@
   <script src="js/data.js"></script>
   <script src="js/export.js"></script>
   <script src="js/templates.js"></script>
+  <script src="js/discussion.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

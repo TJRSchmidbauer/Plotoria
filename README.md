@@ -1,4 +1,4 @@
-# 📈 Plotoria 2.0
+# 📈 Plotoria 3.0
 
 **Graphen für Arbeitsblätter und Prüfungen – maßstabsgetreu, druckfertig, auch offline.** ✨
 
@@ -11,12 +11,23 @@ Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrk
 ## 📚 Dokumentation
 
 * 📘 **[Bedienungsanleitung & Tipps für den Unterricht (ANLEITUNG.md)](ANLEITUNG.md)**
-* 📝 **[Änderungsprotokoll (CHANGELOG.md)](CHANGELOG.md)** – was in Version 2.0 neu ist
+* 📝 **[Änderungsprotokoll (CHANGELOG.md)](CHANGELOG.md)** – was in Version 3.0 neu ist
 * 🤖 **[KI-Entwicklung (AI_DEVELOPMENT.md)](AI_DEVELOPMENT.md)**
 
 ---
 
 ## ✨ Hauptfunktionen
+
+### Neu in Version 3.0
+* 🧱 **Abschnittsweise definierte Funktionen:** `f(x) = x² für x < 1; 2x − 1 für x ≥ 1` – Sprungstellen mit gefülltem ● und offenem ○ Randpunkt.
+* 🌈 **Funktionsscharen:** `f_a(x) = a·x² für a = 1, 2, 3` – jede Kurve automatisch beschriftet.
+* 🪞 **Umkehrfunktion** per Klick: Spiegelung an y = x mit Winkelhalbierender.
+* ∫ **Stammfunktion** F mit wählbarer Konstante C (auch mehrere C als Schar), exakt oder numerisch.
+* 📏 **Hilfslinien** zum Ablesen: gestrichelte Lote von Punkten auf beide Achsen.
+* ▥ **Riemann-Summen:** Unter-, Ober- und Mittelsumme mit einstellbarer Rechteckzahl.
+* 📝 **Kurvendiskussion als Text:** Definitionsbereich, Symmetrie, Nullstellen, Extrema, Wendepunkte, Monotonie, Krümmung, Grenzverhalten – für Word, LaTeX oder den Druckbogen.
+* 🗺️ **Mehrere Koordinatensysteme auf einem Blatt:** leeres Raster („Skizziere f′“) neben dem Graphen.
+* ⭐ **Eigene Vorlagen:** aktuellen Stand als Vorlage sichern und als Datei mit Kolleginnen und Kollegen tauschen.
 
 ### Für Prüfungen und Arbeitsblätter
 * 📏 **Maßstabsgetreuer Export:** „1 Einheit = 1 cm“ oder feste Größe in cm – als PNG (300 dpi, Word übernimmt die Größe), SVG, TikZ oder PDF.
@@ -30,7 +41,7 @@ Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrk
 * 🔢 **Achsen frei skalieren:** Schritte wie `pi/2`, Vielfache von π, Brüche, Achsentitel mit Einheit.
 * 📊 **Messwerte & Regression** (linear, quadratisch, kubisch, exponentiell, Potenz) mit R².
 * 🧩 **Lückenhafte Wertetabelle** für Word, LaTeX, CSV und Druckbogen.
-* 🗂️ **Projektdateien (.plotoria)** und **13 Aufgabenvorlagen**.
+* 🗂️ **Projektdateien (.plotoria)**, **18 Aufgabenvorlagen** und eigene Vorlagen.
 * √ **Exakte Werte** wie √2, π/2, 1/3 in der Kurvendiskussion.
 
 ### Mathematik
@@ -53,8 +64,7 @@ Plotoria ist eine statische Webseite ohne Build-Schritt. Alle Bibliotheken liege
 Tests (Node.js ≥ 18):
 
 ```bash
-npm install   # installiert nerdamer für die Ableitungstests
-npm test
+npm test      # verwendet die mitgelieferten Bibliotheken aus vendor/, keine Installation nötig
 ```
 
 Projektaufbau:
@@ -67,11 +77,12 @@ Projektaufbau:
 | `js/objects.js` | Punkte, Texte, Pfeile, senkrechte Geraden |
 | `js/data.js` | Wertetabelle mit Lücken, Messreihen |
 | `js/export.js` | Export in cm, Druckbogen, Projektdateien |
-| `js/templates.js` | Aufgabenvorlagen |
+| `js/templates.js` | Aufgabenvorlagen und eigene Vorlagen |
+| `js/discussion.js` | Kurvendiskussion als Text (Word, LaTeX, Druckbogen) |
 | `js/tikz.js` | TikZ-Export und -Import |
 | `sw.js`, `manifest.webmanifest` | Offline-Betrieb und App-Installation |
 
-Version 1.0 ist im Branch [`version/1.0`](https://github.com/TJRSchmidbauer/Plotoria/tree/version/1.0) gesichert.
+Frühere Versionen sind in den Branches [`version/1.0`](https://github.com/TJRSchmidbauer/Plotoria/tree/version/1.0) und [`version/2.0`](https://github.com/TJRSchmidbauer/Plotoria/tree/version/2.0) gesichert.
 
 ---
 
@@ -79,7 +90,7 @@ Version 1.0 ist im Branch [`version/1.0`](https://github.com/TJRSchmidbauer/Plot
 
 * **Keine Cookies**, kein Tracking, keine Analyse- oder Werbedienste, keine Anmeldung.
 * **Keine Daten an Dritte:** Alle Bibliotheken und Schriften liegen im Projekt; es werden keine externen Server (CDNs, Google Fonts o. Ä.) aufgerufen.
-* **Speichern nur mit Zustimmung:** Bei jedem Start fragt Plotoria in einem eigenen Hinweis, ob der Arbeitsstand, der Druckbogen (`localStorage`) und die App-Dateien für den Offline-Betrieb (Service-Worker-Cache) lokal im Browser gespeichert werden dürfen. Vor der Entscheidung wird nichts gelesen oder gespeichert. Bei „Ablehnen“ werden vorhandene Plotoria-Daten gelöscht und Plotoria arbeitet nur im Arbeitsspeicher; Sichern als Datei und Teilen per Link funktionieren weiterhin.
+* **Speichern nur mit Zustimmung:** Bei jedem Start fragt Plotoria in einem eigenen Hinweis, ob der Arbeitsstand, der Druckbogen, eigene Vorlagen (`localStorage`) und die App-Dateien für den Offline-Betrieb (Service-Worker-Cache) lokal im Browser gespeichert werden dürfen. Vor der Entscheidung wird nichts gelesen oder gespeichert. Bei „Ablehnen“ werden vorhandene Plotoria-Daten gelöscht und Plotoria arbeitet nur im Arbeitsspeicher; Sichern als Datei und Teilen per Link funktionieren weiterhin.
 * Die gespeicherten Daten verlassen das Gerät nicht und lassen sich jederzeit über „Ablehnen“ beim nächsten Start oder die Browser-Einstellungen („Websitedaten löschen“) entfernen.
 * Beim Aufruf über GitHub Pages gelten für den Server die [Datenschutzbestimmungen von GitHub](https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement).
 

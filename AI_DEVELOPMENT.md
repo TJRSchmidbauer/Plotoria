@@ -35,6 +35,13 @@ Plotoria kombiniert moderne Webtechnologien mit agentischer KI-Unterstützung:
 * **Neue bzw. vervollständigte Funktionen:** Wertetabelle mit CSV-Export, Wendepunkte, Parameter-Erkennung und -Animation, Ableitungen `f'`/`f''`, Funktionsverweise, RAD/DEG, Undo/Redo, Autospeichern, Teilen-Link, PNG-Export und Bild kopieren, Beispiele, Hilfe-Dialog, Tastenkürzel, KaTeX-Formelsatz, Touch-Bedienung.
 * **Tests:** `npm test` prüft den Parser (Node.js-Testrunner).
 
+### 📌 Version 3.0 – mehr Mathematik für Arbeitsblätter
+* Abschnittsweise definierte Funktionen (eigener Syntaxknoten, Ableitung je Abschnitt, `cases` in LaTeX, je Abschnitt ein `\addplot` in TikZ).
+* Funktionsscharen, Umkehrfunktion (Spiegelung an y = x), Stammfunktion mit Konstante C (nerdamer-Integration mit numerischer Probe, sonst Simpson-Regel).
+* Hilfslinien zu den Achsen, Riemann-Summen, Kurvendiskussion als Text, leeres Koordinatensystem und Grafiken nebeneinander im Druckbogen, eigene Vorlagen.
+* Lesbarere Ableitungsterme: Kandidaten von nerdamer werden numerisch geprüft und aufgeräumt (Polynome absteigend, Brüche statt negativer Exponenten).
+* Details: [CHANGELOG.md](CHANGELOG.md).
+
 ### 📌 Version 2.0 – für Lehrkräfte und Prüfungen
 * Neue Oberfläche nach Apples Human Interface Guidelines (Systemschrift, Materialien, Segmented Controls, Sheets, Hell/Dunkel, Barrierefreiheit).
 * Maßstabsgetreuer Export (cm, PNG mit 300 dpi, SVG, TikZ), Druckbogen DIN A4 mit PDF, Schwarz-Weiß-Modus, Karopapier.

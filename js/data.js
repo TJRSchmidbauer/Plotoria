@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Wertetabelle (mit Lücken für Arbeitsblätter) und Messreihen mit Regression
+// Plotoria 3.0 – Wertetabelle (mit Lücken für Arbeitsblätter) und Messreihen mit Regression
 (() => {
   const P = window.Plotoria;
   const { esc, fmtDE } = P;
@@ -60,7 +60,10 @@
       if (!(step > 0) || b < a) return { error: 'Bitte Start ≤ Ende und Schrittweite > 0 wählen' };
       const n = Math.floor((b - a) / step + 1e-9) + 1;
       if (n > 200) return { error: 'Höchstens 200 Werte – Schrittweite vergrößern' };
-      const fns = this.fns.filter(f => f.vis && f.f);
+      // Scharen: eine Spalte je Parameterwert
+      const fns = this.fns.filter(f => f.vis && f.f).flatMap(f => (f.members
+        ? f.members.map(m => ({ letter: f.letter + '=' + m.v, head: f.letter + '(x), ' + f.family.p + ' = ' + fmtDE(m.v, 4), f: m.f }))
+        : [f]));
       const xs = [];
       for (let i = 0; i < n; i++) xs.push(+(a + i * step).toFixed(10));
       return { fns, xs, val: (f, x) => f.f(x) };
@@ -77,7 +80,7 @@
     _tableMatrix(blankMark) {
       const t = this._tableRows();
       if (t.error) return t;
-      const head = ['x', ...t.fns.map(f => f.letter + '(x)')];
+      const head = ['x', ...t.fns.map(f => f.head || f.letter + '(x)')];
       const cols = t.xs.map(x => [this._fmtCell(x), ...t.fns.map(f => this.table.blanks[this._cellKey(f, x)] ? blankMark : this._fmtCell(t.val(f, x)))]);
       const keys = t.xs.map(x => [null, ...t.fns.map(f => this._cellKey(f, x))]);
       if (this.table.orient === 'h') {
@@ -113,7 +116,8 @@
 
     _valueForKey(key) {
       const i = key.indexOf(':');
-      const f = this.fns.find(fn => fn.letter === key.slice(0, i));
+      const t = this._tableRows();
+      const f = !t.error && t.fns.find(fn => fn.letter === key.slice(0, i));
       return f && f.f ? f.f(+key.slice(i + 1)) : NaN;
     },
 

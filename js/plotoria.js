@@ -1,10 +1,10 @@
-// Plotoria 2.0 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
+// Plotoria 3.0 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
 // Module (objects.js, data.js, export.js, templates.js) erweitern dieses Objekt per Object.assign.
 (() => {
   const $ = id => document.getElementById(id);
   const MP = MathParser;
 
-  const VERSION = '2.0';
+  const VERSION = '3.0';
   const COLORS = ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FF2D55', '#5856D6'];
   const STORAGE_KEY = 'plotoria-state-v1';
   const DEFAULT_VIEW = { xMin: -4, xMax: 5, yMin: -10, yMax: 10 };
@@ -35,7 +35,7 @@
   };
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const letterTeX = (l) => l.replace(/^([a-zA-Z])(\d+)/, '$1_{$2}');
+  const letterTeX = (l) => l.replace(/⁻¹$/, '^{-1}').replace(/^([a-zA-Z])(\d+)/, '$1_{$2}').replace(/^([a-zA-Z])_([a-zA-Z])/, '$1_{$2}');
 
   function bisect(f, a, b) {
     let fa = f(a), fb = f(b);
@@ -73,7 +73,7 @@
   }
 
   window.Plotoria = {
-    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf,
+    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf, bisect,
     fns: [], objs: [], datasets: [], ci: 0, nextId: 1,
     ...DEFAULT_VIEW,
     home: { ...DEFAULT_VIEW },
@@ -143,6 +143,12 @@
       // Werkzeuge
       this.segmented(E.toolSeg, (v) => this.setTool(v), 'tool');
       E.hintClose.addEventListener('click', () => this._escape());
+      // Integral: Fläche oder Riemann-Summe mit n Rechtecken
+      this.segmented($('int-mode'), (v) => { if (this.integral) { this.integral.mode = v; this._syncIntegralCtl(); this.repaint(); } });
+      const setN = (n) => { if (!this.integral) return; this.integral.n = clamp(Math.round(n) || 1, 1, 200); this._syncIntegralCtl(); this.repaint(); };
+      $('int-n').addEventListener('change', (e) => setN(+e.target.value));
+      $('int-n-minus').addEventListener('click', () => this.integral && setN(this.integral.n > 10 ? this.integral.n - (this.integral.n > 40 ? 10 : 2) : this.integral.n - 1));
+      $('int-n-plus').addEventListener('click', () => this.integral && setN(this.integral.n >= 10 ? this.integral.n + (this.integral.n >= 40 ? 10 : 2) : this.integral.n + 1));
       E.rst.addEventListener('click', () => this.resetView());
       E.zin.addEventListener('click', () => this.zoomBy(1.4));
       E.zout.addEventListener('click', () => this.zoomBy(1 / 1.4));
@@ -238,7 +244,7 @@
       }
 
       // Module
-      ['initObjects', 'initData', 'initExport', 'initTemplates'].forEach(n => this[n] && this[n]());
+      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion'].forEach(n => this[n] && this[n]());
 
       const st = this._loadStartupState();
       requestAnimationFrame(() => {
@@ -317,6 +323,8 @@
         fns: this.fns.map(f => {
           const o = { l: f.letter, c: f.col, w: f.strokeWidth };
           if (f.deriv) o.d = [idx.get(f.deriv.of), f.deriv.order];
+          else if (f.anti) o.a = [idx.get(f.anti.of), f.anti.c || [0]];
+          else if (f.inv) { o.i = idx.get(f.inv.of); if (f.diag === false) o.dg = 0; }
           else o.s = f.def;
           if (!f.vis) o.h = 1;
           if (f.dash && f.dash !== 'solid') o.ds = f.dash;
@@ -359,14 +367,16 @@
         ids[i] = id;
         return {
           id, letter: o.l, def: o.s, deriv: o.d ? { of: o.d[0], order: o.d[1] } : null,
+          anti: o.a ? { of: o.a[0], c: o.a[1] } : null, inv: o.i !== undefined ? { of: o.i } : null, diag: o.dg !== 0,
           col: o.c || COLORS[i % COLORS.length], strokeWidth: o.w || 3, vis: !o.h,
           dash: o.ds === 1 ? 'dash' : (o.ds || 'solid'), labelMode: o.lm || 'name', labelText: o.lt || '', asym: !!o.as,
           labelX: o.lp ? o.lp[0] : null, labelY: o.lp ? o.lp[1] : null,
         };
       });
-      this.fns.forEach(f => { if (f.deriv) f.deriv.of = ids[f.deriv.of]; });
+      this.fns.forEach(f => { [f.deriv, f.anti, f.inv].forEach(r => { if (r) r.of = ids[r.of]; }); });
       this.ci = this.fns.length;
       this.integral = null; this.tangent = null; this.labelOffsets = {}; this.selected = null;
+      if (this.els.hint) this._syncIntegralCtl();
       if (this.els.hint && this.tool === 'move') this.els.hint.hidden = true;
       if (this._loadExtra) this._loadExtra(st);
       if (Array.isArray(st.home)) [this.home.xMin, this.home.xMax, this.home.yMin, this.home.yMax] = st.home;
@@ -476,7 +486,8 @@
     _usedLetters(except) { return this.fns.filter(f => f !== except).map(f => f.letter); },
 
     _check(raw, self) {
-      const d = MP.parseDefinition(raw);
+      let d;
+      try { d = MP.parseDefinition(raw); } catch (e) { return { error: e.message }; }
       if (d.kind === 'point' || d.kind === 'vline') {
         if (!this.checkObjectDef) return { error: 'Nicht unterstützt' };
         return this.checkObjectDef(d);
@@ -487,9 +498,11 @@
         return { d, parent };
       }
       if (d.letter && /^[xye]$/.test(d.letter)) return { error: d.letter + ' kann kein Funktionsname sein' };
-      const letter = d.letter || (self && !self.deriv ? self.letter : MP.nextLetter(this._usedLetters(self)));
+      let letter = d.letter || (self && !self.deriv && !self.anti && !self.inv ? self.letter.replace(/_[a-zA-Z]$/, '') : MP.nextLetter(this._usedLetters(self).map(l => l.replace(/_[a-zA-Z]$/, ''))));
+      if (d.family && !d.letter) letter += '_' + d.family.p;
       try {
-        const ast = MP.parse(d.body, { variable: d.variable, functions: this._fnContext(letter), self: letter });
+        if (d.family && !d.family.vals) return { error: 'Werte für ' + d.family.p + ' angeben, z. B. „für ' + d.family.p + ' = 1, 2, 3“' };
+        const ast = MP.parseFunction(d, { variable: d.variable, functions: this._fnContext(letter), self: letter });
         if (d.domain) {
           for (const b of [d.domain.min, d.domain.max]) {
             if (b !== null && !isFinite(MP.evalConst(b, this.params))) return { error: 'Grenze des Definitionsbereichs „' + b + '“ ist keine Zahl' };
@@ -513,7 +526,7 @@
       }
       const existing = c.d.letter && this.fns.find(f => f.letter === c.letter);
       if (existing) {
-        existing.def = raw; existing.deriv = null; existing.labelX = existing.labelY = null;
+        existing.def = raw; existing.deriv = null; existing.anti = null; existing.inv = null; existing.labelX = existing.labelY = null;
         this._afterFnChange();
         this._toast(c.letter + ' wurde neu definiert');
         return {};
@@ -525,7 +538,7 @@
     _pushFn(o) {
       this.fns.push({
         id: this.nextId++, vis: true, strokeWidth: 3, dash: 'solid', labelMode: 'name', labelText: '', asym: false,
-        labelX: null, labelY: null, col: COLORS[this.ci++ % COLORS.length], def: null, deriv: null, ...o,
+        labelX: null, labelY: null, col: COLORS[this.ci++ % COLORS.length], def: null, deriv: null, anti: null, inv: null, diag: true, ...o,
       });
       this._afterFnChange();
     },
@@ -540,7 +553,7 @@
 
     _fnContext(exceptLetter) {
       const ctx = {};
-      this.fns.forEach(f => { if (!f.deriv && f.letter !== exceptLetter && /^[a-zA-Z]$/.test(f.letter)) ctx[f.letter] = { ast: f.ast || null }; });
+      this.fns.forEach(f => { if (!f.deriv && !f.anti && !f.inv && f.letter !== exceptLetter && /^[a-zA-Z]$/.test(f.letter)) ctx[f.letter] = { ast: f.ast || null }; });
       if (exceptLetter) ctx[exceptLetter] = { ast: null };
       return ctx;
     },
@@ -553,12 +566,12 @@
         if (c.parent === fn) { this._toast('Eine Funktion kann nicht ihre eigene Ableitung sein'); return false; }
         fn.deriv = { of: c.parent.id, order: c.d.order };
         fn.letter = c.d.of + "'".repeat(c.d.order);
-        fn.def = null;
+        fn.def = null; fn.anti = null; fn.inv = null;
       } else {
         if (c.d.letter && c.letter !== fn.letter && this.fns.some(f => f !== fn && f.letter === c.letter)) {
           this._toast(c.letter + ' ist bereits vergeben'); return false;
         }
-        fn.letter = c.letter; fn.def = raw; fn.deriv = null;
+        fn.letter = c.letter; fn.def = raw; fn.deriv = null; fn.anti = null; fn.inv = null;
       }
       fn.labelX = null; fn.labelY = null;
       this._afterFnChange();
@@ -594,19 +607,30 @@
       this._anaCache = null;
     },
 
+    // Ausgangsfunktion einer abgeleiteten Funktion (Ableitung, Stammfunktion, Umkehrung)
+    _parentOf(fn) {
+      const ref = fn.deriv || fn.anti || fn.inv;
+      return ref ? this.fns.find(f => f.id === ref.of) : null;
+    },
+
     _build(fn) {
       fn.version = (fn.version || 0) + 1;
       fn.rad = false;
+      fn.family = null; fn.members = null; fn.pieces = null; fn.param = null; fn.bounds = null;
       try {
-        if (fn.deriv) {
-          const parent = this.fns.find(f => f.id === fn.deriv.of);
+        const ref = fn.deriv || fn.anti || fn.inv;
+        const parent = ref ? this._parentOf(fn) : null;
+        if (ref) {
           if (!parent) { fn.error = 'Ausgangsfunktion wurde gelöscht'; return false; }
           if (!parent.f) { fn.error = 'Ausgangsfunktion ist fehlerhaft'; return false; }
+          fn.domain = parent.domain;
+          fn.family = parent.family;
+        }
+        if (fn.deriv) {
           let ast = parent.ast;
           if (ast && this.deg && !parent.rad) { ast = MP.radianize(ast); fn.rad = true; }
           else fn.rad = !!parent.rad;
           for (let k = 0; k < fn.deriv.order && ast; k++) ast = MP.derivative(ast);
-          fn.domain = parent.domain;
           if (ast) {
             fn.ast = ast;
             fn.f0 = MP.compile(ast, this.params, { deg: this.deg && !fn.rad });
@@ -616,27 +640,35 @@
             for (let k = 0; k < fn.deriv.order; k++) f = numDeriv(f, 1);
             fn.f0 = f;
           }
+        } else if (fn.anti) {
+          this._buildAnti(fn, parent);
+        } else if (fn.inv) {
+          this._buildInverse(fn, parent);
+          fn.error = null;
+          return true;
         } else {
           const d = MP.parseDefinition(fn.def);
-          fn.ast = MP.parse(d.body, { variable: d.variable, functions: this._fnContext(fn.letter), self: fn.letter });
+          const ctx = { variable: d.variable, functions: this._fnContext(fn.letter), self: fn.letter };
+          fn.ast = MP.parseFunction(d, ctx);
           fn.f0 = MP.compile(fn.ast, this.params, { deg: this.deg });
           fn.domain = d.domain || null;
+          if (d.family) {
+            if (!d.family.vals) throw new MP.ParseError('Werte für ' + d.family.p + ' angeben, z. B. „für ' + d.family.p + ' = 1, 2, 3“');
+            fn.family = d.family;
+          }
         }
-        // Funktion mit Definitionsbereich: außerhalb NaN
-        const dom = fn.domain;
-        if (dom) {
-          const P = this.params, f0 = fn.f0;
-          const lo = () => (dom.min === null ? -Infinity : MP.evalConst(dom.min, P));
-          const hi = () => (dom.max === null ? Infinity : MP.evalConst(dom.max, P));
-          fn.bounds = () => ({ lo: lo(), hi: hi(), loOpen: dom.minOpen, hiOpen: dom.maxOpen });
-          fn.f = (x) => {
-            const a = lo(), b = hi();
-            if (x < a || x > b || (dom.minOpen && x === a) || (dom.maxOpen && x === b)) return NaN;
-            return f0(x);
-          };
-        } else {
-          fn.bounds = null;
-          fn.f = fn.f0;
+        fn.f = this._withDomain(fn, fn.f0);
+        fn.pieces = fn.ast ? MP.pieces(fn.ast, this.params) : null;
+        // Funktionsschar: eine Kurve je Parameterwert
+        if (fn.family && (fn.ast || fn.anti)) {
+          fn.members = fn.family.vals.map(v => {
+            const P = Object.create(this.params);
+            P[fn.family.p] = v;
+            if (fn.anti && fn.family.p !== 'C') P.C = (fn.anti.c && fn.anti.c[0]) || 0;
+            const f0 = fn.anti ? this._antiFn(fn, P) : MP.compile(fn.ast, P, { deg: this.deg && !fn.rad });
+            return { v, P, f0, f: this._withDomain(fn, f0), pieces: fn.ast ? MP.pieces(fn.ast, P) : null };
+          });
+          fn.f0 = fn.members[0].f0; fn.f = fn.members[0].f;
         }
         fn.error = null;
         return true;
@@ -647,9 +679,99 @@
       }
     },
 
+    // Funktion mit Definitionsbereich: außerhalb NaN
+    _withDomain(fn, f0) {
+      const dom = fn.domain;
+      if (!dom) return f0;
+      const P = this.params;
+      const lo = () => (dom.min === null ? -Infinity : MP.evalConst(dom.min, P));
+      const hi = () => (dom.max === null ? Infinity : MP.evalConst(dom.max, P));
+      fn.bounds = () => ({ lo: lo(), hi: hi(), loOpen: dom.minOpen, hiOpen: dom.maxOpen });
+      return (x) => {
+        const a = lo(), b = hi();
+        if (x < a || x > b || (dom.minOpen && x === a) || (dom.maxOpen && x === b)) return NaN;
+        return f0(x);
+      };
+    },
+
+    // ── Stammfunktion F(x) = ∫f + C ──
+    _buildAnti(fn, parent) {
+      const c = fn.anti.c && fn.anti.c.length ? fn.anti.c : [0];
+      if (parent.family && c.length > 1) throw new MP.ParseError('Bei einer Funktionsschar nur eine Konstante C möglich');
+      if (c.length > 1) fn.family = { p: 'C', vals: c };
+      let base = parent.ast, rad = !!parent.rad;
+      if (base && this.deg && !rad) { base = MP.radianize(base); rad = true; }
+      const F = base ? MP.antiderivative(base) : null;
+      fn.rad = rad;
+      fn.numeric = !F;
+      fn.antiAst = F;
+      fn.ast = F ? { t: 'bin', op: '+', a: F, b: { t: 'var', n: 'C' } } : null;
+      const P = Object.create(this.params);
+      P.C = c[0];
+      fn.f0 = this._antiFn(fn, P, parent);
+    },
+
+    _antiFn(fn, P, parent) {
+      parent = parent || this._parentOf(fn);
+      const pf = parent.family && P[parent.family.p] !== undefined && parent.members
+        ? (parent.members.find(m => m.v === P[parent.family.p]) || parent.members[0]).f : parent.f;
+      if (fn.antiAst) {
+        const F = MP.compile(fn.antiAst, P, { deg: this.deg && !fn.rad });
+        // nur dort, wo f selbst definiert ist (z. B. ln|x| nicht über die Polstelle hinweg)
+        return (x) => (isFinite(pf(x)) ? F(x) + P.C : NaN);
+      }
+      // numerisch: Startpunkt x0 = 0 bzw. nächste Stelle, an der f definiert ist
+      let x0 = 0;
+      for (const c of [0, 0.5, -0.5, 1, -1, 2, -2, 0.1, -0.1]) if (isFinite(pf(c))) { x0 = c; break; }
+      const bd = fn.bounds ? fn.bounds() : parent.bounds && parent.bounds();
+      if (bd && isFinite(bd.lo) && x0 < bd.lo) x0 = bd.lo + (bd.loOpen ? 1e-9 : 0);
+      const F = Numerics.antiderivative(pf, x0);
+      return (x) => { const v = F(x); return isFinite(v) ? v + P.C : NaN; };
+    },
+
+    // ── Umkehrfunktion: Spiegelung des Graphen an y = x ──
+    _buildInverse(fn, parent) {
+      fn.ast = null; fn.numeric = true; fn.domain = null; fn.family = null;
+      const src = parent.f;
+      fn.param = src;
+      // f⁻¹(x): Lösung von f(t) = x, nur wenn sie im betrachteten Bereich eindeutig ist
+      let cache = null;
+      const table = () => {
+        const [y0, y1] = this.ys ? this.ys.domain() : [-10, 10];
+        const [x0, x1] = this.xs ? this.xs.domain() : [-10, 10];
+        const lo = Math.min(y0, y1, x0) - 2 * Math.abs(y1 - y0), hi = Math.max(y0, y1, x1) + 2 * Math.abs(y1 - y0);
+        const key = lo + '|' + hi + '|' + fn.version + '|' + JSON.stringify(this.params);
+        if (cache && cache.key === key) return cache;
+        const N = 1200, ts = [], vs = [];
+        for (let i = 0; i <= N; i++) { const t = lo + (hi - lo) * i / N; ts.push(t); vs.push(src(t)); }
+        cache = { key, ts, vs };
+        return cache;
+      };
+      fn.f0 = fn.f = (x) => {
+        const { ts, vs } = table();
+        let root = NaN, n = 0;
+        for (let i = 0; i < ts.length - 1; i++) {
+          const a = vs[i] - x, b = vs[i + 1] - x;
+          if (!isFinite(a) || !isFinite(b)) continue;
+          if (a === 0 || a * b < 0 || (b === 0 && i === ts.length - 2)) {
+            if (++n > 1) return NaN;   // nicht eindeutig umkehrbar
+            root = a === 0 ? ts[i] : b === 0 ? ts[i + 1] : bisect(t => src(t) - x, ts[i], ts[i + 1]) ?? NaN;
+            if (a === 0) i++;
+          }
+        }
+        return root;
+      };
+    },
+
     _derivs(fn) {
       if (fn._d) return fn._d;
       let d1 = null, d2 = null;
+      const parent = fn.anti && this._parentOf(fn);
+      if (parent && parent.f) {
+        // F' = f, F'' = f'
+        fn._d = { d1: parent.f, d2: this._derivs(parent).d1 };
+        return fn._d;
+      }
       if (fn.ast) {
         let base = fn.ast, rad = fn.rad;
         if (this.deg && !rad) { base = MP.radianize(base); rad = true; }
@@ -665,7 +787,13 @@
 
     _usedVars() {
       const used = new Set();
-      this.fns.forEach(f => { if (f.ast) MP.freeVars(f.ast, used); });
+      this.fns.forEach(f => {
+        if (!f.ast) return;
+        const v = MP.freeVars(f.ast);
+        if (f.family) v.delete(f.family.p);   // Scharparameter bekommt keinen Schieberegler
+        if (f.anti) v.delete('C');
+        v.forEach(n => used.add(n));
+      });
       if (this._objVars) this._objVars(used);
       return used;
     },
@@ -756,16 +884,36 @@
       const main = document.createElement('div'); main.className = 'item-main';
       const t = document.createElement('div'); t.className = 'item-title';
       const name = letterTeX(f.letter) + '(x) = ';
-      if (f.ast) {
+      const parent = this._parentOf(f);
+      let sub = f.family ? f.family.p + ' ∈ {' + f.family.vals.map(v => fmtDE(v, 6)).join('; ') + '}' : '';
+      if (f.inv && parent) {
+        this._renderTeX(t, letterTeX(f.letter) + '(x)', f.letter);
+        sub = 'Graph von ' + parent.letter + ' an y = x gespiegelt' + (this._monotone(parent) ? '' : ' – ' + parent.letter + ' ist hier nicht umkehrbar');
+      } else if (f.anti && parent && !f.error) {
+        const c = f.family ? ' + C' : (f.anti.c && f.anti.c[0] ? (f.anti.c[0] < 0 ? ' - ' : ' + ') + fmtDE(Math.abs(f.anti.c[0]), 6).replace(',', '{,}') : '');
+        const body = f.antiAst ? MP.toTeX(f.antiAst) + c : '\\int ' + letterTeX(parent.letter) + '(t)\\,dt' + c;
+        this._renderTeX(t, name + body, f.letter + '(x) = Stammfunktion von ' + parent.letter);
+        sub = 'Stammfunktion von ' + parent.letter + (f.numeric ? ' (numerisch)' : '') + (sub ? ', ' + sub : '');
+      } else if (f.ast && MP.liftPw(f.ast)) {
+        // abschnittsweise: Abschnitte als eigene Zeilen (passt in die schmale Liste)
+        const pw = MP.liftPw(f.ast);
+        this._renderTeX(t, name + '\\left\\{\\;\\text{abschnittsweise}\\right.', f.letter + '(x) abschnittsweise');
+        sub = (sub ? sub + '\n' : '') + MP.toNice(pw).split('; ').join('\n');
+      } else if (f.ast) {
         let tex = name + MP.toTeX(f.ast);
         if (f.domain && !f.deriv) tex += ',\\; ' + this._domainTeX(f.domain);
         this._renderTeX(t, tex, f.letter + '(x) = ' + MP.toPlain(f.ast));
       } else if (f.numeric) this._renderTeX(t, name + '\\text{numerisch}', f.letter + '(x) (numerisch)');
       else t.textContent = f.letter + ': ' + (f.def || '');
       main.appendChild(t);
+      if (sub && !f.error) { const sd = document.createElement('div'); sd.className = 'item-sub'; sd.textContent = sub; main.appendChild(sd); }
       if (f.error) { const er = document.createElement('div'); er.className = 'item-error'; er.textContent = f.error; main.appendChild(er); }
-      main.title = f.deriv ? 'Ableitung – wird automatisch aktualisiert. Klicken zum Bearbeiten' : 'Klicken zum Bearbeiten';
-      main.addEventListener('click', () => this._inlineEdit(main, f.deriv ? f.letter : (f.def || ''), (v) => this._editFunc(f, v)));
+      main.title = f.deriv ? 'Ableitung – wird automatisch aktualisiert. Klicken zum Bearbeiten'
+        : f.anti || f.inv ? 'Wird automatisch aktualisiert. Klicken für Einstellungen' : 'Klicken zum Bearbeiten';
+      main.addEventListener('click', () => {
+        if (f.anti || f.inv) { item.classList.toggle('open'); return; }
+        this._inlineEdit(main, f.deriv ? f.letter : (f.def || ''), (v) => this._editFunc(f, v));
+      });
 
       const acts = document.createElement('div'); acts.className = 'item-actions';
       const btn = (icon, title, cb, cls, text) => {
@@ -829,8 +977,29 @@
       lw.append(sw, dseg);
       this._detailRow(det, 'Linie', lw);
 
+      // Stammfunktion: Konstante C
+      if (f.anti) {
+        const ci = document.createElement('input'); ci.type = 'text'; ci.className = 'field field-mono';
+        ci.style.width = '120px'; ci.placeholder = 'z. B. 0 oder −1, 0, 1';
+        ci.value = (f.anti.c || [0]).map(v => fmtDE(v, 6)).join('; ');
+        ci.title = 'Eine Zahl oder mehrere (durch ; getrennt) für eine Schar von Stammfunktionen';
+        ci.addEventListener('change', () => {
+          const vals = MP.familyValues(ci.value || '0');
+          if (!vals) { this._toast('Bitte Zahlen eingeben, z. B. 0 oder −1; 0; 1'); return; }
+          f.anti.c = vals; f.labelX = f.labelY = null;
+          this._afterFnChange(); this.commit();
+        });
+        this._detailRow(det, 'Konstante C', ci);
+      }
+      // Umkehrfunktion: Winkelhalbierende
+      if (f.inv) {
+        const dg = document.createElement('input'); dg.type = 'checkbox'; dg.className = 'switch'; dg.checked = f.diag !== false;
+        dg.addEventListener('change', () => { f.diag = dg.checked; this.repaint(); this.commit(); });
+        this._detailRow(det, 'Gerade y = x zeigen', dg);
+      }
+
       // Definitionsbereich
-      if (!f.deriv) {
+      if (!f.deriv && !f.anti && !f.inv && !(f.ast && f.ast.t === 'pw')) {
         const d = f.domain || { min: null, max: null, minOpen: false, maxOpen: false };
         const pair = document.createElement('div'); pair.className = 'pair';
         const mk = (v, ph) => { const i = document.createElement('input'); i.type = 'text'; i.className = 'field field-mono'; i.value = v ?? ''; i.placeholder = ph; return i; };
@@ -851,6 +1020,15 @@
       this._detailRow(det, 'Asymptoten anzeigen', as);
 
       const acts = document.createElement('div'); acts.className = 'detail-actions';
+      const act = (label, title, cb) => {
+        const b = document.createElement('button'); b.className = 'btn btn-gray btn-sm'; b.innerHTML = label; b.title = title;
+        b.addEventListener('click', cb); acts.append(b); return b;
+      };
+      if (!f.inv && f.f) {
+        act('Stammfunktion', 'Stammfunktion F mit wählbarer Konstante C zeichnen', () => this.addAntiderivative(f));
+        act('Umkehrfunktion', 'Graph an der Geraden y = x spiegeln', () => this.addInverse(f));
+      }
+      if (f.f && this.openDiscussion) act('Kurvendiskussion', 'Kurvendiskussion als Text (Word, LaTeX, Druckbogen)', () => this.openDiscussion(f));
       const del = document.createElement('button'); del.className = 'btn btn-gray btn-sm'; del.style.color = 'var(--red)';
       del.innerHTML = Icons.svg('trash') + 'Löschen';
       del.addEventListener('click', () => this.rmFn(f.id));
@@ -886,6 +1064,43 @@
       if (!base) return;
       const res = this._addDef(base.letter + "'".repeat(order));
       if (res.error) this._toast(res.error); else this.commit();
+    },
+
+    addAntiderivative(f) {
+      if (f.anti) { this._toast('Bitte die Ausgangsfunktion wählen'); return; }
+      const base = f.letter.replace(/_[a-zA-Z]$/, '').replace(/['⁻¹]/g, '');
+      let letter = /^[a-z]$/.test(base) ? base.toUpperCase() : 'F';
+      const used = this._usedLetters();
+      if (f.family) letter += '_' + f.family.p;
+      for (let i = 1; used.includes(letter); i++) letter = (/^[a-z]$/.test(base) ? base.toUpperCase() : 'F') + i + (f.family ? '_' + f.family.p : '');
+      this._pushFn({ letter, anti: { of: f.id, c: [0] }, col: f.col, dash: 'dash' });
+      const nf = this.fns[this.fns.length - 1];
+      if (nf.numeric && !nf.error) this._toast('Stammfunktion numerisch berechnet (kein geschlossener Term)');
+      this.commit();
+    },
+
+    // Ist f im sichtbaren Bereich streng monoton (also umkehrbar)?
+    _monotone(fn) {
+      if (!fn.f || !this.xs) return true;
+      const [a, b] = this.xs.domain();
+      let dir = 0, prev = NaN;
+      for (let i = 0; i <= 400; i++) {
+        const y = fn.f(a + (b - a) * i / 400);
+        if (isFinite(y) && isFinite(prev) && y !== prev) {
+          const d = Math.sign(y - prev);
+          if (dir && d !== dir) return false;
+          dir = d;
+        }
+        prev = y;
+      }
+      return true;
+    },
+
+    addInverse(f) {
+      if (this.fns.some(g => g.inv && g.inv.of === f.id)) { this._toast('Umkehrfunktion ist bereits vorhanden'); return; }
+      const base = f.letter.replace(/_[a-zA-Z]$/, '');
+      this._pushFn({ letter: base + '⁻¹', inv: { of: f.id }, col: f.col, dash: 'dash' });
+      this.commit();
     },
 
     // ══════════════════ Parameter ══════════════════
@@ -1279,6 +1494,11 @@
       this.paintGrid();
       this.paintAxes();
       this.paintLabels();
+      if (c.empty) {   // leeres Koordinatensystem für Arbeitsblätter
+        if (c.title) this.paintTitle();
+        if (c.mark) this.paintWatermark();
+        return;
+      }
       this.paintIntegral();
       if (this.paintData) this.paintData();
       this.paintAsymptotes();
@@ -1455,19 +1675,41 @@
         .attr('font-size', 10).attr('fill', '#AEAEB2').text('Plotoria · Tobias Schmidbauer');
     },
 
-    // Kurve in Segmente zerlegen (Polstellen und Definitionslücken unterbrechen die Linie)
-    _segments(fn) {
-      const f = fn.f;
-      const xs = this.xs, ys = this.ys;
+    // Sprungstellen abschnittsweiser Funktionen im sichtbaren Bereich
+    _breaks(pieces, x0, x1) {
+      if (!pieces) return [];
+      const b = new Set();
+      pieces.forEach(q => [q.lo, q.hi].forEach(v => { if (isFinite(v) && v > x0 && v < x1) b.add(v); }));
+      return [...b].sort((p, q) => p - q);
+    },
+
+    // Kurve in Segmente zerlegen (Polstellen, Definitionslücken und Abschnittsgrenzen unterbrechen die Linie)
+    _segments(fn, m) {
+      if (fn.param) return this._paramSegments(fn);
+      const f = m ? m.f : fn.f;
+      const xs = this.xs;
       let [x0, x1] = xs.domain();
       const bd = fn.bounds && fn.bounds();
       if (bd) { x0 = Math.max(x0, bd.lo); x1 = Math.min(x1, bd.hi); }
       if (!(x1 > x0)) return [];
-      // Randpunkte genau treffen (bei offenen Grenzen minimal nach innen)
+      // Randpunkte genau treffen (bei offenen Grenzen und Sprungstellen minimal nach innen)
       const eps = (x1 - x0) * 1e-9;
-      const a = bd && x0 === bd.lo && bd.loOpen ? x0 + eps : x0;
-      const b = bd && x1 === bd.hi && bd.hiOpen ? x1 - eps : x1;
-      const N = Math.max(50, Math.ceil((xs(x1) - xs(x0)) * 1.5));
+      const cuts = [x0, ...this._breaks(m ? m.pieces : fn.pieces, x0, x1), x1];
+      const segs = [];
+      const total = Math.max(50, Math.ceil((xs(x1) - xs(x0)) * 1.5));
+      for (let k = 0; k < cuts.length - 1; k++) {
+        const inner = cuts.length > 2;
+        let a = cuts[k], b = cuts[k + 1];
+        if ((k > 0) || (bd && a === bd.lo && bd.loOpen)) a += eps;
+        if ((k < cuts.length - 2) || (bd && b === bd.hi && bd.hiOpen)) b -= eps;
+        const N = inner ? Math.max(20, Math.ceil(total * (b - a) / (x1 - x0))) : total;
+        segs.push(...this._sample(f, a, b, N));
+      }
+      return segs;
+    },
+
+    _sample(f, a, b, N) {
+      const xs = this.xs, ys = this.ys;
       const H = this.PB - this.PT;
       const lo = this.PT - 3 * H, hi = this.PB + 3 * H;
       const segs = [];
@@ -1489,36 +1731,137 @@
       return segs;
     },
 
+    // Spiegelbild an y = x: Punkte (f(t) | t) mit t im sichtbaren y-Bereich
+    _paramSegments(fn) {
+      const src = fn.param, xs = this.xs, ys = this.ys;
+      const [y0, y1] = ys.domain();
+      const lo = Math.min(y0, y1), hi = Math.max(y0, y1);
+      const W = this.PR - this.PL, H = this.PB - this.PT;
+      const N = Math.max(400, Math.ceil(H * 3));
+      const segs = [];
+      let cur = [], prev = null;
+      for (let i = 0; i <= N; i++) {
+        const t = lo + (hi - lo) * i / N, x = src(t);
+        if (!isFinite(x)) { if (cur.length > 1) segs.push(cur); cur = []; prev = null; continue; }
+        const px = xs(x);
+        if (prev !== null && Math.abs(px - prev) > W) { if (cur.length > 1) segs.push(cur); cur = []; }
+        cur.push([clamp(px, this.PL - 3 * W, this.PR + 3 * W), ys(t)]);
+        prev = px;
+      }
+      if (cur.length > 1) segs.push(cur);
+      return segs;
+    },
+
     paintFuncs() {
       const vis = this.fns.filter(f => f.vis && f.f);
       if (!vis.length) return;
       const g = this.root.append('g').attr('clip-path', this._clipUrl());
       const lg = this.root.append('g');
       const ln = d3.line();
+      // Winkelhalbierende y = x für Umkehrfunktionen
+      if (vis.some(f => f.inv && f.diag !== false)) {
+        const [x0, x1] = this.xs.domain();
+        const [y0, y1] = this.ys.domain();
+        const a = Math.max(x0, Math.min(y0, y1)), b = Math.min(x1, Math.max(y0, y1));
+        if (b > a) {
+          const col = this._ctx().bw ? '#000' : '#8E8E93';
+          g.append('line').attr('x1', this.xs(a)).attr('y1', this.ys(a)).attr('x2', this.xs(b)).attr('y2', this.ys(b))
+            .attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '6,5');
+          const m = a + (b - a) * 0.88, lx = this.xs(m) + 6, ly = this.ys(m) + 6;
+          if (lx > this.PL + 40 && ly < this.PB - 10) {
+            this._halo(lg.append('text').attr('x', lx).attr('y', ly + this.style.fontSize * 0.8).attr('text-anchor', 'start')
+              .attr('font-size', this.style.fontSize * 0.9).attr('fill', col).attr('font-style', 'italic')).text('y = x');
+          }
+        }
+      }
       vis.forEach(fn => {
-        const segs = this._segments(fn);
         const sw = fn.strokeWidth || 3, col = this._col(fn);
         const pat = this._dash(fn, sw);
-        const d = pat ? this._dashPath(segs, pat, sw) : segs.map(s => ln(s)).join('');
-        g.append('path').attr('d', d).attr('fill', 'none')
+        const path = (segs) => g.append('path').attr('d', pat ? this._dashPath(segs, pat, sw) : segs.map(s => ln(s)).join('')).attr('fill', 'none')
           .attr('stroke', col).attr('stroke-width', sw).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round');
+        if (fn.members) {
+          const placed = [];
+          fn.members.forEach((m, i) => {
+            const segs = this._segments(fn, m);
+            // Scharkurven in Abstufungen der Grundfarbe
+            const mc = this._memberColor(fn, i);
+            path(segs).attr('stroke', mc);
+            this._endpoints(g, fn, mc, sw, m);
+            if (this._ctx().labels && fn.labelMode !== 'none') this._memberLabel(lg, fn, m, segs, mc, placed);
+          });
+          return;
+        }
+        const segs = this._segments(fn);
+        path(segs);
         this._endpoints(g, fn, col, sw);
         if (this._ctx().labels && fn.labelMode !== 'none') this._graphLabel(lg, fn, segs);
       });
     },
 
-    // Randpunkte eines Definitionsbereichs: ● eingeschlossen, ○ ausgeschlossen
-    _endpoints(g, fn, col, sw) {
+    // Randpunkte [x, y, offen] im Bereich x0…x1: am Definitionsbereich und an Sprungstellen
+    _endpointList(fn, m, x0, x1) {
+      const out = [];
+      if (fn.param) return out;
+      const f = m ? m.f : fn.f, f0 = m ? m.f0 : fn.f0;
       const bd = fn.bounds && fn.bounds();
-      if (!bd) return;
+      if (bd) {
+        [[bd.lo, bd.loOpen], [bd.hi, bd.hiOpen]].forEach(([x, open]) => {
+          if (!isFinite(x) || x < x0 || x > x1) return;
+          const y = f0(x);
+          if (isFinite(y)) out.push([x, y, open]);
+        });
+      }
+      // Sprungstellen: Grenzwerte links/rechts mit dem Funktionswert vergleichen
+      const same = (u, v) => isFinite(u) && isFinite(v) && Math.abs(u - v) <= 1e-6 * Math.max(1, Math.abs(u), Math.abs(v));
+      this._breaks(m ? m.pieces : fn.pieces, x0, x1).forEach(b => {
+        const e = Math.max(1e-9, Math.abs(b) * 1e-9);
+        const yl = f(b - e), yr = f(b + e), yb = f(b);
+        if (same(yl, yr) && same(yl, yb)) return;          // stetiger Übergang
+        if (isFinite(yb)) out.push([b, yb, false]);
+        if (isFinite(yl) && !same(yl, yb)) out.push([b, yl, true]);
+        if (isFinite(yr) && !same(yr, yb) && !same(yr, yl)) out.push([b, yr, true]);
+      });
+      return out;
+    },
+
+    _endpoints(g, fn, col, sw, m) {
       const [x0, x1] = this.xs.domain();
-      [[bd.lo, bd.loOpen], [bd.hi, bd.hiOpen]].forEach(([x, open]) => {
-        if (!isFinite(x) || x < x0 || x > x1) return;
-        const y = fn.f0(x);
-        if (!isFinite(y)) return;
-        g.append('circle').attr('cx', this.xs(x)).attr('cy', this.ys(y)).attr('r', Math.max(3.5, sw * 1.3))
+      const r = Math.max(3.5, sw * 1.3);
+      this._endpointList(fn, m, x0, x1).forEach(([x, y, open]) => {
+        g.append('circle').attr('cx', this.xs(x)).attr('cy', this.ys(y)).attr('r', r)
           .attr('fill', open ? (this._ctx().bg || '#fff') : col).attr('stroke', col).attr('stroke-width', Math.max(1.5, sw * 0.6));
       });
+    },
+
+    // Farbe einer Scharkurve: Abstufung der Grundfarbe
+    _memberColor(fn, i) {
+      const col = this._col(fn), n = fn.members ? fn.members.length : 1;
+      if (this._ctx().bw || n < 2) return col;
+      // auf hellem Grund abdunkeln, auf dunklem aufhellen
+      const toward = d3.hsl(this._ctx().bg || '#fff').l < 0.5 ? '#fff' : '#000';
+      return d3.color(d3.interpolateRgb(col, toward)(0.45 * i / (n - 1))).formatHex();
+    },
+
+    // Beschriftung einer Scharkurve („a = 2“) an einer freien Stelle nahe dem Kurvenende
+    _memberLabel(g, fn, m, segs, col, placed) {
+      const fs = this.style.fontSize * 0.95;
+      const txt = fn.labelMode === 'term' && fn.ast
+        ? fn.letter.replace(/_[a-zA-Z]$/, '') + '(x) = ' + MP.toNice(MP.substitute(fn.ast, fn.family.p, { t: 'num', v: m.v }))
+        : (fn.labelMode === 'custom' && fn.labelText ? fn.labelText + ': ' : '') + fn.family.p + ' = ' + fmtDE(m.v, 4);
+      const w = txt.length * fs * 0.55 + 4, h = fs + 2;
+      const pts = [];
+      segs.forEach(s => s.forEach(p => { if (p[1] >= this.PT + h && p[1] <= this.PB - 4 && p[0] >= this.PL + w && p[0] <= this.PR - 4) pts.push(p); }));
+      const free = (x, y) => !placed.some(b => x - w < b.x && x > b.x - b.w && y - h < b.y && y > b.y - b.h);
+      for (let k = pts.length - 1; k >= 0; k -= 3) {
+        const [px, py] = pts[k];
+        for (const [lx, ly] of [[px - 6, py - 6], [px - 6, py + h], [px + w + 6, py + h / 2]]) {
+          if (lx > this.PR - 2 || ly < this.PT + h || ly > this.PB - 2 || !free(lx, ly)) continue;
+          placed.push({ x: lx, y: ly, w, h });
+          this._halo(g.append('text').attr('x', lx).attr('y', ly).attr('text-anchor', 'end')
+            .attr('font-size', fs).attr('font-weight', '600').attr('fill', col)).text(txt);
+          return;
+        }
+      }
     },
 
     _labelText(fn) {
@@ -1571,8 +1914,8 @@
     },
 
     // ── Kurvendiskussion ──
-    _analyze(fn) {
-      const [x0, x1] = this.xs.domain();
+    _analyze(fn, range) {
+      const [x0, x1] = range || this.xs.domain();
       const key = [fn.id, fn.version, x0, x1, this.deg, JSON.stringify(this.params)].join('|');
       this._anaCache = this._anaCache || new Map();
       if (this._anaCache.has(key)) return this._anaCache.get(key);
@@ -1628,7 +1971,7 @@
     },
 
     paintSmartLabels() {
-      const vis = this.fns.filter(f => f.vis && f.f);
+      const vis = this.fns.filter(f => f.vis && f.f && !f.members);   // Scharen: zu viele Punkte
       if (!vis.length) return;
       const g = this.root.append('g').attr('class', 'smart-labels');
       const fs = Math.max(11, this.style.fontSize * 0.8);
@@ -1984,15 +2327,52 @@
       if (!f.f) { this._toast('Funktion ist fehlerhaft'); return; }
       const [d0, d1] = this.xs.domain();
       const span = (d1 - d0) / 4, mid = (d0 + d1) / 2, s = niceStep(span / 2);
-      this.integral = { fnId: f.id, a: Math.round((mid - span / 2) / s) * s, b: Math.round((mid + span / 2) / s) * s };
+      const prev = this.integral || {};
+      this.integral = { fnId: f.id, a: Math.round((mid - span / 2) / s) * s, b: Math.round((mid + span / 2) / s) * s, mode: prev.mode || 'area', n: prev.n || 4 };
       if (this.integral.a === this.integral.b) this.integral.b += s;
       this.els.hint.hidden = false;
-      this.els.hintText.textContent = 'Integral: Grenzen a und b mit der Maus verschieben';
+      this.els.hintText.textContent = 'Grenzen a, b ziehen';
+      this._syncIntegralCtl();
       this.repaint();
+    },
+
+    _syncIntegralCtl() {
+      const on = !!this.integral;
+      $('integral-ctl').hidden = !on;
+      if (!on) return;
+      this.setSegmented($('int-mode'), this.integral.mode || 'area');
+      $('int-n-wrap').hidden = (this.integral.mode || 'area') === 'area';
+      $('int-n').value = this.integral.n || 4;
+    },
+
+    // Riemann-Summe: Rechtecke [x0, x1, Höhe] und Summe der orientierten Flächen
+    _riemann(f, a, b, n, mode) {
+      const h = (b - a) / n, rects = [];
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const x0 = a + i * h, x1 = x0 + h;
+        let y;
+        if (mode === 'mid') y = f((x0 + x1) / 2);
+        else {
+          // kleinster bzw. größter Funktionswert im Streifen (Ränder exakt, dazwischen abgetastet)
+          let lo = Infinity, hi = -Infinity;
+          for (let k = 0; k <= 32; k++) {
+            const v = f(x0 + h * k / 32);
+            if (!isFinite(v)) { lo = hi = NaN; break; }
+            lo = Math.min(lo, v); hi = Math.max(hi, v);
+          }
+          y = mode === 'lower' ? lo : hi;
+        }
+        if (!isFinite(y)) return { rects: [], sum: NaN };
+        rects.push([x0, x1, y]);
+        sum += h * y;
+      }
+      return { rects, sum };
     },
 
     _hideIntegral() {
       this.integral = null;
+      this._syncIntegralCtl();
       if (this.tool === 'move') this.els.hint.hidden = true;
       this.repaint();
     },
@@ -2022,7 +2402,19 @@
       // Fläche nur im sichtbaren Teil zeichnen (keine riesigen Koordinaten beim Zoomen)
       const [d0, d1] = xs.domain();
       const va = Math.max(a, d0 - (d1 - d0)), vb = Math.min(b, d1 + (d1 - d0));
-      if (vb > va) {
+      const mode = this.integral.mode || 'area';
+      const rs = mode !== 'area' ? this._riemann(fn.f, a, b, this.integral.n || 4, mode) : null;
+      if (rs) {
+        // Rechtecke der Riemann-Summe
+        const lim = (py) => clamp(py, this.PT - 2 * H, this.PB + 2 * H);
+        rs.rects.forEach(([x0, x1, y]) => {
+          if (x1 < d0 || x0 > d1) return;
+          const px0 = xs(Math.max(x0, d0 - 1e-9 * (d1 - d0))), px1 = xs(Math.min(x1, d1)), py = lim(ys(y));
+          clip.append('rect').attr('x', Math.min(px0, px1)).attr('y', Math.min(py, y0)).attr('width', Math.abs(px1 - px0)).attr('height', Math.abs(y0 - py))
+            .attr('fill', bw ? this._hatchUrl() : col).attr('fill-opacity', bw ? 0.5 : 0.2)
+            .attr('stroke', col).attr('stroke-width', 1.3).attr('stroke-linejoin', 'round');
+        });
+      } else if (vb > va) {
         const pts = [[xs(va), y0]];
         for (let i = 0; i <= N; i++) {
           const x = va + (vb - va) * i / N, y = fn.f(x);
@@ -2041,7 +2433,14 @@
       const midX = clamp((clamp(pxA, this.PL, this.PR) + clamp(pxB, this.PL, this.PR)) / 2, this.PL + 90, this.PR - 90);
       const txt = this._halo(g.append('text').attr('x', midX).attr('y', this.PT + fs + 30)
         .attr('text-anchor', 'middle').attr('fill', col).attr('font-size', fs).attr('font-weight', '650'));
-      if (isFinite(value)) {
+      if (rs) {
+        const n = this.integral.n || 4, name = { lower: 'U', upper: 'O', mid: 'M' }[mode];
+        const t1 = txt.append('tspan').attr('x', midX);
+        t1.append('tspan').text(name);
+        t1.append('tspan').attr('dy', fs * 0.25).attr('font-size', fs * 0.72).text(n);
+        t1.append('tspan').attr('dy', -fs * 0.25).text(' = ' + (isFinite(rs.sum) ? fmtDE(rs.sum, 4) : '–'));
+        if (isFinite(value)) txt.append('tspan').attr('x', midX).attr('dy', fs * 1.25).attr('font-weight', '500').text('∫ ' + fn.letter + '(x) dx = ' + this.fmtPt(+value.toPrecision(10)));
+      } else if (isFinite(value)) {
         txt.append('tspan').attr('x', midX).text('∫ ' + fn.letter + '(x) dx = ' + this.fmtPt(+value.toPrecision(10)));
         txt.append('tspan').attr('x', midX).attr('dy', fs * 1.25).attr('font-weight', '500').text('Fläche A = ' + this.fmtPt(+area.toPrecision(10)));
       } else txt.text('Integral existiert nicht (Definitionslücke)');

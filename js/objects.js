@@ -1,4 +1,4 @@
-// Plotoria 2.0 – Zeichenobjekte: Punkte, Texte, Pfeile, senkrechte Geraden
+// Plotoria 3.0 – Zeichenobjekte: Punkte, Texte, Pfeile, senkrechte Geraden
 (() => {
   const MP = MathParser;
   const P = window.Plotoria;
@@ -269,6 +269,12 @@
         } else if (o.type === 'point') {
           const px = this.xs(pos.x), py = this.ys(pos.y);
           if (px < this.PL - 5 || px > this.PR + 5 || py < this.PT - 5 || py > this.PB + 5) return;
+          if (o.guides) {
+            // Hilfslinien: Lote auf beide Achsen zum Ablesen
+            const { ax, ay } = this._axisPos();
+            clip.append('path').attr('d', `M${px},${ay}L${px},${py}L${ax},${py}`).attr('fill', 'none')
+              .attr('stroke', col).attr('stroke-width', 1.4).attr('stroke-dasharray', '5,4').attr('opacity', 0.9);
+          }
           el = g.append('g');
           el.append('circle').attr('cx', px).attr('cy', py).attr('r', 12).attr('fill', 'transparent');
           el.append('circle').attr('cx', px).attr('cy', py).attr('r', 4.5).attr('fill', col)
@@ -412,7 +418,7 @@
         c.addEventListener('change', () => { o[key] = c.checked; this.syncObjects(); this.repaint(); this.commit(); });
         this._detailRow(det, label, c);
       };
-      if (o.type === 'point') { sw('Name anzeigen', 'showName'); sw('Koordinaten anzeigen', 'showCoords'); }
+      if (o.type === 'point') { sw('Name anzeigen', 'showName'); sw('Koordinaten anzeigen', 'showCoords'); sw('Hilfslinien zu den Achsen', 'guides'); }
       if (o.type === 'vline') {
         sw('Gleichung anzeigen', 'showEq');
         this._detailRow(det, 'Linie', this._miniSeg([['solid', '—'], ['dash', '– –']], o.dash || 'dash', (v) => { o.dash = v; this.repaint(); this.commit(); }));

@@ -1,4 +1,4 @@
-# 📘 Plotoria 2.0 – Bedienungsanleitung
+# 📘 Plotoria 3.0 – Bedienungsanleitung
 
 Plotoria erstellt Graphen für Arbeitsblätter, Schulaufgaben und Präsentationen – maßstabsgetreu und druckfertig.
 
@@ -21,6 +21,8 @@ Plotoria erstellt Graphen für Arbeitsblätter, Schulaufgaben und Präsentatione
 | `x^2 - 4`, `2x(x+1)`, `0,5x` | Terme; Malpunkt darf fehlen, Dezimalkomma geht |
 | `f(x) = sin(x)` | Funktion mit Namen (überschreibt ein vorhandenes f) |
 | `f(x) = x^2 für 0 ≤ x < 3` | Definitionsbereich (auch `x^2, x > 1` oder `x^2; x ∈ [0; 3[`) |
+| `f(x) = x^2 für x < 1; 2x - 1 für x ≥ 1` | Abschnittsweise definiert (auch `…; 3 sonst` oder `1 für x ∈ [0; 1[; 2 für x ∈ [1; 2]`) |
+| `f_a(x) = a*x^2 für a = 1, 2, 3` | Funktionsschar (auch `a ∈ {−1; 0; 1}` oder `a = −2 … 2`) |
 | `f'`, `f''` | Ableitung von f – wird bei Änderungen an f mitgeführt |
 | `g(x) = f(x - 2) + 1` | Andere Funktionen verwenden |
 | `A(2|3)`, `P(1|f(1))`, `B = (−1; 2)` | Punkt |
@@ -32,12 +34,21 @@ Fehler werden unter dem Eingabefeld erklärt, darunter erscheint eine Formelvors
 
 > ⚠️ Ein Komma zwischen zwei Ziffern ist immer ein Dezimalkomma. Argumente daher mit Komma **und Leerzeichen** trennen: `log(2, 8)`.
 
+### Abschnittsweise definierte Funktionen
+Die Abschnitte werden mit `;` getrennt, jeder mit `für` und Bedingung: `f(x) = 0.5x^2 + 1 für x < 1; x - 2 für x ≥ 1`. Der letzte Abschnitt darf `sonst` heißen. An einer **Sprungstelle** zeichnet Plotoria den eingeschlossenen Randpunkt gefüllt (●) und den ausgeschlossenen offen (○); bei stetigen Übergängen entfallen die Punkte. Die Ableitung `f'` wird abschnittsweise gebildet.
+
+### Funktionsscharen
+`f_a(x) = a*x^2 - 2 für a = 0.5; 1; 2` zeichnet für jeden Wert eine Kurve in einer Abstufung der Farbe und schreibt „a = 1“ usw. daneben (Beschriftung **Term** zeigt den Term mit eingesetztem Wert). Der Scharparameter bekommt keinen Schieberegler.
+
 ### Einstellungen einer Funktion
 Klick auf **›** neben einer Funktion:
 * **Beschriftung:** `G_f` · **Term** (z. B. „f(x) = x² − 2“) · **Text** (eigener Text, z. B. „A“ für Zuordnungsaufgaben) · **Aus**
 * **Linie:** Stärke und Strichart (durchgezogen, gestrichelt, gepunktet)
 * **Definiert:** Grenzen des Definitionsbereichs; das Kästchen „○“ schließt die Grenze aus (offener Randpunkt)
 * **Asymptoten anzeigen:** senkrechte, waagrechte und schiefe Asymptoten mit Gleichung
+* **Stammfunktion:** zeichnet F gestrichelt. Unter „Konstante C“ eine Zahl eintragen – oder mehrere, z. B. `-1; 0; 1`, für eine Schar von Stammfunktionen. Gibt es keinen geschlossenen Term (z. B. bei e^(−x²)), rechnet Plotoria numerisch.
+* **Umkehrfunktion:** spiegelt den Graphen an der Geraden y = x (die Gerade lässt sich ausblenden). Ist f im sichtbaren Bereich nicht streng monoton, weist Plotoria darauf hin – das Spiegelbild ist dann kein Funktionsgraph.
+* **Kurvendiskussion:** öffnet das Lösungsblatt (siehe Abschnitt 4).
 * Ein Klick auf den Term bearbeitet ihn direkt; der Farbpunkt ändert die Farbe.
 
 ---
@@ -54,6 +65,10 @@ Klick auf **›** neben einer Funktion:
 | Tangente | `N` | Tangente, Normale und Steigungsdreieck; Klick hält fest |
 
 Mit gedrückter **Alt**-Taste wird nicht eingerastet. Ausgewählte Objekte löscht **Entf**. **Esc** beendet jedes Werkzeug.
+
+**Hilfslinien zum Ablesen:** Bei einem Punkt (Reiter Algebra, **›** neben dem Punkt) „Hilfslinien zu den Achsen“ einschalten – gestrichelte Lote führen zur x- und y-Achse.
+
+**Integral, Ober- und Untersumme:** Das ∫-Symbol neben einer Funktion zeigt die Fläche zwischen a und b (Grenzen mit der Maus ziehen). Oben lässt sich auf **Untersumme**, **Obersumme** oder **Mitte** umschalten und die Anzahl der Rechtecke mit − / + einstellen; angezeigt werden z. B. U₈ und der Integralwert.
 
 ---
 
@@ -78,6 +93,11 @@ Mit gedrückter **Alt**-Taste wird nicht eingerastet. Ausgewählte Objekte lösc
 * **Inhalt:** Titel, Graph-Beschriftungen, Kurvendiskussion, Schwarz-Weiß, weißer Hintergrund, Wasserzeichen – jeweils ein- oder ausschaltbar.
 * **Kopieren** legt das Bild (bzw. den TikZ-Code) in die Zwischenablage. Das Kopier-Symbol in der Werkzeugleiste kopiert schnell die aktuelle Ansicht.
 
+### Mehrere Koordinatensysteme auf einem Blatt
+* Im Export unter „Inhalt“ **Leeres Koordinatensystem** einschalten: nur Achsen und Raster der aktuellen Ansicht, ohne Graphen.
+* Schneller im Druckbogen: **Leeres Koordinatensystem daneben** setzt ein leeres Raster in gleicher Größe neben die letzte Grafik – ideal für „Skizziere den Graphen von f′“.
+* Mit **⇥** neben einer Grafik steht sie rechts neben der vorigen, wenn beide zusammen auf die Seitenbreite (17,4 cm) passen.
+
 ### Druckbogen (DIN A4) und PDF
 1. Im Export **Zum Druckbogen** wählen (beliebig oft, auch Wertetabellen).
 2. **Druckbogen öffnen** (oder `Strg + P`): Reihenfolge ändern, Bildunterschriften eingeben, Kopfzeile „Name / Klasse / Datum“ und Überschrift festlegen.
@@ -85,6 +105,17 @@ Mit gedrückter **Alt**-Taste wird nicht eingerastet. Ausgewählte Objekte lösc
 
 ### TikZ für LaTeX
 Der TikZ-Code übernimmt Maßstab (`x=1cm, y=1cm`), Farben, Parameterwerte, Definitionsbereiche, Punkte, Texte, Pfeile und Messwerte. Benötigt wird `\usepackage{pgfplots}`. Vorhandener pgfplots-Code lässt sich im Export unter „TikZ-Code importieren“ einlesen.
+
+---
+
+### Kurvendiskussion als Text (Lösungsblatt)
+Funktion › **Kurvendiskussion** öffnet ein Fenster mit Vorschau:
+* **Bereich:** In welchem x-Bereich untersucht wird (Standard: sichtbarer Ausschnitt). **Ränder als ±∞** schreibt Intervalle wie ]−∞; −1] – sinnvoll, wenn der Graph über den Bereich hinaus gleich weiterläuft.
+* **Inhalte:** Definitionsbereich, Symmetrie, Nullstellen, Schnittpunkt mit der y-Achse, Ableitungen, Extrem- und Wendepunkte (Terrassenpunkte werden markiert), Monotonie, Krümmung, Grenzverhalten und Asymptoten – einzeln abschaltbar.
+* **Exakte Werte:** √3, 1 − √2, π/2; sonst auf zwei Dezimalen gerundet (mit Hinweis).
+* **Für Word kopieren**, **LaTeX kopieren** (mit `itemize`, benötigt `amsmath` und `amssymb`) oder **Zum Druckbogen**.
+
+> Die Werte werden numerisch im gewählten Bereich bestimmt. Bitte vor dem Austeilen kurz prüfen.
 
 ---
 
@@ -104,7 +135,8 @@ Der TikZ-Code übernimmt Maßstab (`x=1cm, y=1cm`), Farben, Parameterwerte, Defi
 
 ## 🗂️ 6. Vorlagen und Projekte
 
-* **Vorlagen** (oben): 13 fertige Aufgabenformate, z. B. „Graph ablesen“, „Graphen zuordnen“, „Ableitungsgraph skizzieren“, „Steigungsdreieck“, „Sinus im Gradmaß“, „Wachstum (Sachaufgabe)“, „Messwerte & Ausgleichsgerade“. Eine Vorlage ersetzt die aktuelle Zeichnung – `Strg + Z` holt sie zurück.
+* **Vorlagen** (oben): 18 fertige Aufgabenformate, z. B. „Graph ablesen“, „Graphen zuordnen“, „Ableitungsgraph skizzieren“, „Steigungsdreieck“, „Sinus im Gradmaß“, „Messwerte & Ausgleichsgerade“, „Abschnittsweise definiert“, „Funktionsschar“, „Ober- und Untersumme“, „Umkehrfunktion“, „Stammfunktionen“. Eine Vorlage ersetzt die aktuelle Zeichnung – `Strg + Z` holt sie zurück.
+* **Eigene Vorlagen:** Im Vorlagen-Fenster einen Namen eingeben und **Aktuellen Stand sichern**. Ein Klick auf die Karte lädt die Vorlage, das Papierkorb-Symbol löscht sie. **Als Datei sichern** schreibt alle eigenen Vorlagen in eine Datei, die Kolleginnen und Kollegen mit **Aus Datei laden** übernehmen können. Im Browser bleiben eigene Vorlagen nur gespeichert, wenn beim Start „Speichern erlauben“ gewählt wurde.
 * **Sichern** (`Strg + S`) speichert eine `.plotoria`-Datei mit allem (auch dem Druckbogen) – ideal für ein Aufgabenarchiv. **Öffnen** (`Strg + O`) oder die Datei einfach ins Fenster ziehen.
 * Wenn du beim Start „Speichern erlauben“ wählst, wird der aktuelle Stand außerdem automatisch im Browser gespeichert. Bei „Ablehnen“ wird nichts gespeichert – dann vor dem Schließen mit `Strg + S` als Datei sichern. **Teilen** (Symbol unten) kopiert einen Link mit der kompletten Zeichnung.
 
@@ -113,7 +145,9 @@ Der TikZ-Code übernimmt Maßstab (`x=1cm, y=1cm`), Farben, Parameterwerte, Defi
 ## 💡 Tipps für den Unterricht
 
 * **Zuordnungsaufgaben:** Mehrere Graphen zeichnen, Beschriftung auf **Text** stellen (A, B, C …), Funktionsterme separat ins Arbeitsblatt schreiben.
-* **Erwartungshorizont:** Ableitung `f'` anlegen und ausblenden (Auge-Symbol). Für die Lösung einblenden und erneut zum Druckbogen hinzufügen.
+* **Erwartungshorizont:** Ableitung `f'` anlegen und ausblenden (Auge-Symbol). Für die Lösung einblenden und erneut zum Druckbogen hinzufügen. Die **Kurvendiskussion als Text** liefert die Lösung gleich mit.
+* **„Skizziere f′“:** Graph von f zum Druckbogen, dann „Leeres Koordinatensystem daneben“.
+* **Sprungstellen ablesen:** Abschnittsweise Funktion auf Karopapier, Punkte mit Hilfslinien.
 * **Steigungsdreieck:** Tangenten-Werkzeug auf eine Gerade klicken – oder Vorlage „Steigungsdreieck“ mit Punkten und Pfeilen.
 * **Kopiertauglich:** Vor dem Export **Schwarz-Weiß** einschalten – Graphen werden durch Strichart unterschieden.
 * **Projektor:** Farbthema „Projektor“ und größere Schrift im Reiter Darstellung.

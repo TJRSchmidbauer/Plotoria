@@ -1,12 +1,12 @@
 // Tests für den Ausdrucks-Parser:  node --test tests/*.test.js
-// Ableitungstests laufen nur, wenn nerdamer installiert ist (npm i --no-save nerdamer@1.1.13).
+// Ableitungen verwenden die mitgelieferte nerdamer-Version aus vendor/.
 const test = require('node:test');
 const assert = require('node:assert');
 
 let hasNerdamer = false;
 try {
-  global.nerdamer = require('nerdamer');
-  require('nerdamer/Algebra'); require('nerdamer/Calculus'); require('nerdamer/Solve');
+  global.nerdamer = require('../vendor/nerdamer/nerdamer.core.js');
+  require('../vendor/nerdamer/Algebra.js'); require('../vendor/nerdamer/Calculus.js');
   hasNerdamer = true;
 } catch (e) { /* ohne nerdamer */ }
 

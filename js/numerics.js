@@ -284,6 +284,48 @@ const Numerics = (() => {
   }
 
   // ── PNG: Auflösung (pHYs-Chunk) setzen, damit Word die Druckgröße kennt ──
+  // ── Integration ──
+  // Simpsonregel; NaN, sobald f im Intervall nicht definiert ist
+  function simpson(f, a, b, n) {
+    if (a === b) return 0;
+    n = n || 2000;
+    if (n % 2) n++;
+    const h = (b - a) / n;
+    let s = 0;
+    for (let i = 0; i <= n; i++) {
+      const y = f(a + i * h);
+      if (!isFinite(y)) return NaN;
+      s += (i === 0 || i === n ? 1 : i % 2 ? 4 : 2) * y;
+    }
+    return s * h / 3;
+  }
+
+  // Numerische Stammfunktion F(x) = ∫ f von x0 bis x; Stützstellen werden zwischengespeichert,
+  // damit das Zeichnen nicht jedes Mal von x0 aus neu integriert.
+  function antiderivative(f, x0) {
+    const STEP = 0.05;                 // Länge eines Teilintervalls (mit eigener Simpsonregel)
+    const cum = new Map([[0, 0]]);     // k → ∫ von x0 bis x0 + k·STEP
+    const node = (k) => {
+      if (cum.has(k)) return cum.get(k);
+      const d = k > 0 ? 1 : -1;
+      let j = k;
+      while (!cum.has(j)) j -= d;      // nächster bekannter Stützpunkt Richtung x0
+      let v = cum.get(j);
+      for (let i = j; i !== k; i += d) {
+        const a = x0 + i * STEP, b = x0 + (i + d) * STEP;
+        v = isFinite(v) ? v + simpson(f, a, b, 16) : NaN;
+        cum.set(i + d, v);
+      }
+      return v;
+    };
+    return (x) => {
+      if (!isFinite(x) || Math.abs(x - x0) > 1e5) return NaN;
+      const k = Math.trunc((x - x0) / STEP);
+      const base = node(k);
+      return isFinite(base) ? base + simpson(f, x0 + k * STEP, x, 8) : NaN;
+    };
+  }
+
   const CRC_TABLE = (() => {
     const t = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
@@ -323,7 +365,7 @@ const Numerics = (() => {
     return res;
   }
 
-  return { exact, rational, polyfit, regression, parseData, obliqueAsymptote, verticalAsymptotes, pngWithDpi, crc32 };
+  return { exact, rational, simpson, antiderivative, polyfit, regression, parseData, obliqueAsymptote, verticalAsymptotes, pngWithDpi, crc32 };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = Numerics;

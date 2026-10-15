@@ -65,23 +65,34 @@ const TikZ = {
     L.push('  ]');
 
     functions.forEach((fn, i) => {
-      const expr = MathParser.toPgf(fn.ast, opts.params || {});
       const color = opts.bw ? 'black' : `plotoria${i}`;
       const style = [`color=${color}`, `line width=${this.num((fn.strokeWidth || 3) * 0.35)}pt`];
       const dash = opts.bw && (!fn.dash || fn.dash === 'solid') ? BW[i % BW.length] : DASH[fn.dash];
       if (dash && dash !== 'solid') style.push(dash);
-      const lo = Math.max(b.xMin, isFinite(fn.lo) ? fn.lo : -Infinity), hi = Math.min(b.xMax, isFinite(fn.hi) ? fn.hi : Infinity);
-      style.push(`domain=${this.num(lo)}:${this.num(hi)}`, 'samples=400', 'smooth');
-      style.push(`restrict y to domain=${this.num(b.yMin - yPad)}:${this.num(b.yMax + yPad)}`);
-      if (!opts.legend) style.push('forget plot');
-      L.push(`    \\addplot[${style.join(', ')}] {${expr}};`);
-      if (opts.legend) L.push(`    \\addlegendentry{${fn.legend || '$' + (fn.letterTeX || fn.letter) + '(x)=' + MathParser.toTeX(fn.ast) + '$'}}`);
-      // Randpunkte des Definitionsbereichs
-      [[fn.lo, fn.loOpen], [fn.hi, fn.hiOpen]].forEach(([x, open]) => {
-        if (!isFinite(x) || x < b.xMin || x > b.xMax || !isFinite(fn.f0 ? fn.f0(x) : NaN)) return;
-        L.push(`    \\draw[${color}, ${open ? 'fill=white' : 'fill=' + color}] (axis cs:${this.num(x)},${this.num(fn.f0(x))}) circle (2.2pt);`);
+      const params = fn.params || opts.params || {};
+      const plots = [];
+      if (fn.coords) {
+        // abgetastete Kurve (numerisch berechnet oder gespiegelt)
+        fn.coords.forEach(seg => plots.push(`\\addplot[${[...style, 'smooth'].join(', ')}%] coordinates {${seg.map(([x, y]) => `(${this.num(x)},${this.num(y)})`).join(' ')}};`));
+      } else {
+        (fn.parts || [{ ast: fn.ast, lo: fn.lo, hi: fn.hi }]).forEach(pt => {
+          const lo = Math.max(b.xMin, isFinite(pt.lo) ? pt.lo : -Infinity), hi = Math.min(b.xMax, isFinite(pt.hi) ? pt.hi : Infinity);
+          if (!(hi > lo)) return;
+          const st = [...style, `domain=${this.num(lo)}:${this.num(hi)}`, 'samples=400', 'smooth',
+            `restrict y to domain=${this.num(b.yMin - yPad)}:${this.num(b.yMax + yPad)}`];
+          plots.push(`\\addplot[${st.join(', ')}%] {${MathParser.toPgf(pt.ast, params)}};`);
+        });
+      }
+      plots.forEach((pl, k) => L.push('    ' + pl.replace('%]', opts.legend && k === 0 ? ']' : ', forget plot]')));
+      if (opts.legend && plots.length && fn.ast) L.push(`    \\addlegendentry{${fn.legend || '$' + (fn.letterTeX || fn.letter) + '(x)=' + MathParser.toTeX(fn.ast) + '$'}}`);
+      // Randpunkte: Definitionsbereich und Sprungstellen
+      const dots = fn.dots || [[fn.lo, fn.f0 ? fn.f0(fn.lo) : NaN, fn.loOpen], [fn.hi, fn.f0 ? fn.f0(fn.hi) : NaN, fn.hiOpen]];
+      dots.forEach(([x, y, open]) => {
+        if (!isFinite(x) || !isFinite(y) || x < b.xMin || x > b.xMax) return;
+        L.push(`    \\draw[${color}, ${open ? 'fill=white' : 'fill=' + color}] (axis cs:${this.num(x)},${this.num(y)}) circle (2.2pt);`);
       });
-      if (fn.inlineLabel && isFinite(fn.lx)) L.push(`    \\node[${color}, anchor=south west, font=\\bfseries] at (axis cs:${this.num(fn.lx)},${this.num(fn.ly)}) {${fn.inlineLabel}};`);
+      if (fn.diag) L.push(`    \\node[${color}, anchor=north west, font=\\itshape] at (axis cs:${this.num(fn.lo + (fn.hi - fn.lo) * 0.88)},${this.num(fn.lo + (fn.hi - fn.lo) * 0.88)}) {$y = x$};`);
+      if (fn.inlineLabel && isFinite(fn.lx)) L.push(`    \\node[${color}, anchor=${fn.anchor || 'south west'}, font=\\bfseries] at (axis cs:${this.num(fn.lx)},${this.num(fn.ly)}) {${fn.inlineLabel}};`);
     });
 
     (opts.datasets || []).forEach(ds => {
@@ -92,6 +103,7 @@ const TikZ = {
     (opts.objects || []).forEach(o => {
       const col = opts.bw ? 'black' : `{rgb,255:red,${parseInt(this.hex(o.col).slice(0, 2), 16)};green,${parseInt(this.hex(o.col).slice(2, 4), 16)};blue,${parseInt(this.hex(o.col).slice(4, 6), 16)}}`;
       if (o.type === 'point') {
+        if (o.guides) L.push(`    \\draw[color=${col}, dashed, line width=0.5pt] (axis cs:${this.num(o.px)},0) -- (axis cs:${this.num(o.px)},${this.num(o.py)}) -- (axis cs:0,${this.num(o.py)});`);
         L.push(`    \\fill[color=${col}] (axis cs:${this.num(o.px)},${this.num(o.py)}) circle (2.2pt)` + (o.text ? ` node[anchor=south west, color=${col}] {${this.label(o.text)}}` : '') + ';');
       } else if (o.type === 'vline') {
         L.push(`    \\draw[color=${col}, ${o.dash === 'solid' ? '' : 'dashed, '}line width=0.8pt] (axis cs:${this.num(o.px)},${this.num(b.yMin)}) -- (axis cs:${this.num(o.px)},${this.num(b.yMax)});`);
