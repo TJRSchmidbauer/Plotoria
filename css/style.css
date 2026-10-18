@@ -705,3 +705,7 @@ kbd { font: 600 11px var(--font); border-radius: 5px; padding: 1px 6px; backgrou
   #print-root .page { break-after: page; border: none; }
   #print-root .page:last-child { break-after: auto; }
 }
+
+/* ── Rechtliches: Impressum und Datenschutz am Fuß der Seitenleiste ── */
+.sidebar-legal { padding: 8px 14px; border-top: 0.5px solid var(--separator); font-size: 11px; text-align: center; color: var(--label); opacity: 0.6; }
+.sidebar-legal a { color: inherit; }

@@ -1,6 +1,6 @@
 // Plotoria Service Worker: App-Dateien zwischenspeichern, damit Plotoria offline läuft.
 // Bei jeder Veröffentlichung CACHE erhöhen.
-const CACHE = 'plotoria-3.0.0';
+const CACHE = 'plotoria-3.0.1';
 const FILES = [
   './',
   'index.html',
