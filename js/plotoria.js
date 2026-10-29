@@ -1014,6 +1014,18 @@
         this._detailRow(det, 'Definiert', pair);
       }
 
+      // Stammfunktion als Schalter (nur für Ausgangsfunktionen)
+      if (!f.anti && !f.inv && f.f) {
+        const existing = this.fns.find(p => p.anti && p.anti.of === f.id);
+        const st = document.createElement('input'); st.type = 'checkbox'; st.className = 'switch'; st.checked = !!existing;
+        st.title = 'Stammfunktion F mit wählbarer Konstante C ein-/ausblenden';
+        st.addEventListener('change', () => {
+          if (st.checked) this.addAntiderivative(f);
+          else { const a = this.fns.find(p => p.anti && p.anti.of === f.id); if (a) this.rmFn(a.id); }
+        });
+        this._detailRow(det, 'Stammfunktion anzeigen', st);
+      }
+
       // Asymptoten
       const as = document.createElement('input'); as.type = 'checkbox'; as.className = 'switch'; as.checked = !!f.asym;
       as.addEventListener('change', () => { f.asym = as.checked; this.repaint(); this.commit(); });
@@ -1025,7 +1037,6 @@
         b.addEventListener('click', cb); acts.append(b); return b;
       };
       if (!f.inv && f.f) {
-        act('Stammfunktion', 'Stammfunktion F mit wählbarer Konstante C zeichnen', () => this.addAntiderivative(f));
         act('Umkehrfunktion', 'Graph an der Geraden y = x spiegeln', () => this.addInverse(f));
       }
       if (f.f && this.openDiscussion) act('Kurvendiskussion', 'Kurvendiskussion als Text (Word, LaTeX, Druckbogen)', () => this.openDiscussion(f));
@@ -2570,9 +2581,9 @@
 
     _download(blob, name) {
       const u = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = u; a.download = name;
+      const a = document.createElement('a'); a.href = u; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(u), 1000);
+      setTimeout(() => URL.revokeObjectURL(u), 30000);
     },
 
     _fileBase() {
