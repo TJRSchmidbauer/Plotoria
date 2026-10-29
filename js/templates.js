@@ -152,17 +152,20 @@
       $('lib-empty').hidden = list.length > 0;
       $('lib-count').textContent = list.length === TEMPLATES.length ? TEMPLATES.length + ' Vorlagen' : list.length + ' von ' + TEMPLATES.length;
       GRADES.forEach(g => {
-        const inGrade = list.filter(({ t }) => t.grade === g.id);
+        if (this._libGrade !== null && g.id !== this._libGrade) return;
+        // Vorlagen aus anderen Stufen, die auch hier erscheinen, stehen unter einem eigenen Thema
+        const topicOf = (t) => (t.grade === g.id ? t.topic : 'Aufgabenformate für jede Stufe');
+        const inGrade = list.filter(({ t }) => PlotoriaLibrary.inGrade(t, g.id));
         if (!inGrade.length) return;
         const sec = document.createElement('section'); sec.className = 'lib-grade';
         const h = document.createElement('h3'); h.className = 'lib-grade-title';
         h.innerHTML = g.id > 0 ? '<span class="grade-badge">' + g.label + '</span>Jahrgangsstufe ' + g.label : '<span class="grade-badge all">∗</span>Allgemein';
         sec.appendChild(h);
-        const topics = [...new Set(inGrade.map(({ t }) => t.topic))];
+        const topics = [...new Set(inGrade.map(({ t }) => topicOf(t)))];
         topics.forEach(topic => {
           const th = document.createElement('h4'); th.className = 'lib-topic'; th.textContent = topic;
           const grid = document.createElement('div'); grid.className = 'template-grid';
-          inGrade.filter(({ t }) => t.topic === topic).forEach(({ t, i }) => {
+          inGrade.filter(({ t }) => topicOf(t) === topic).forEach(({ t, i }) => {
             const b = document.createElement('button');
             b.className = 'template-card';
             const tags = (t.fns || []).some(f => f.sol) ? '<em class="tpl-tag">mit Lösung</em>' : '';
@@ -194,6 +197,7 @@
         objs: (t.objs || []).map(o => ({ ...o })),
         data: (t.data || []).map(d => ({ ...d, pts: d.pts.map(p => p.slice()) })),
         dists: (t.dists || []).map((d, i) => ({ col: cols[i % cols.length], ...d })),
+        table: t.table ? { ...t.table, blanks: t.table.blanks.slice() } : undefined,
       };
     },
 
@@ -334,7 +338,10 @@
         } catch (e) { /* Vorschau überspringen */ }
       });
       (t.data || []).forEach(ds => ds.pts.forEach(([x, y]) => { s += `<circle cx="${r1(sx(x))}" cy="${r1(sy(y))}" r="2" fill="${ds.col}"/>`; }));
-      (t.objs || []).filter(o => o.type === 'point').forEach(o => { s += `<circle cx="${r1(sx(+o.x))}" cy="${r1(sy(+o.y))}" r="2.5" fill="#FF3B30"/>`; });
+      (t.objs || []).filter(o => o.type === 'point').forEach(o => {
+        const x = MathParser.evalConst(o.x), y = MathParser.evalConst(o.y);
+        if (isFinite(x) && isFinite(y)) s += `<circle cx="${r1(sx(x))}" cy="${r1(sy(y))}" r="2.5" fill="#FF3B30"/>`;
+      });
       return s + '</svg>';
     },
   });

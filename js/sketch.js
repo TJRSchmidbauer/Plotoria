@@ -21,6 +21,13 @@
       }));
       $('sketch-undo').addEventListener('click', () => this.undoStroke());
       $('sketch-clear').addEventListener('click', () => this.clearSketches());
+      $('sketch-help').addEventListener('click', () => this.showSketchHelp());
+      $('sketch-intro-ok').addEventListener('click', () => { $('sketch-intro').hidden = true; });
+      $('sketch-intro-demo').addEventListener('click', () => {
+        $('sketch-intro').hidden = true;
+        const i = PlotoriaLibrary.TEMPLATES.findIndex(t => t.title === 'Graph skizzieren und prüfen');
+        if (i >= 0) { $('tpl-newtab').checked = true; this.applyTemplate(i); if (this.tool !== 'sketch') this.setTool('sketch'); else this._syncSketchCtl(); }
+      });
       E.solBtn.addEventListener('click', () => this.toggleReveal());
       document.addEventListener('keydown', (e) => {
         const tag = (e.target.tagName || '').toLowerCase();
@@ -31,12 +38,24 @@
       this._syncSolution();
     },
 
+    showSketchHelp() {
+      this.openSheet('help-modal');
+      const h = $('help-sketch');
+      if (h) setTimeout(() => h.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60);
+    },
+
     _penColor() { return this.penCol || (this._theme().dark ? '#F2F2F7' : '#1C1C1E'); },
 
     _syncSketchCtl() {
       const E = this.els;
       if (!E.sketchCtl) return;
-      E.sketchCtl.hidden = this.tool !== 'sketch';
+      const on = this.tool === 'sketch', sol = this.fns.some(f => f.sol);
+      E.sketchCtl.hidden = !on;
+      if (on) {
+        E.hintText.textContent = sol ? 'Skizzieren – danach „Lösung zeigen“ (L) zum Prüfen' : 'Skizzieren mit Maus, Stift oder Finger';
+        // beim ersten Mal kurz erklären, wie Skizzieren und Prüfen zusammenspielen
+        if (!sol && !this._sketchIntroShown) { this._sketchIntroShown = true; $('sketch-intro').hidden = false; }
+      } else $('sketch-intro').hidden = true;
       E.sketchCtl.querySelectorAll('[data-pen]').forEach(b => b.classList.toggle('active', (b.dataset.pen === 'auto' ? null : b.dataset.pen) === this.penCol));
       $('sketch-undo').disabled = $('sketch-clear').disabled = !this.sketches.length;
     },

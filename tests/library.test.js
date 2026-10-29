@@ -24,6 +24,7 @@ test('Alle Funktionsterme der Vorlagen sind gültig und im Fenster auswertbar', 
   L.TEMPLATES.forEach(t => {
     const P = {};
     Object.entries(t.params || {}).forEach(([k, p]) => { P[k] = p.v; });
+    const ctx = {};   // Funktionsverweise wie g(x) = a·f(x − b) + c
     t.fns.forEach((f, i) => {
       if (!f.s) {
         const ref = f.d ? f.d[0] : f.i !== undefined ? f.i : f.a[0];
@@ -31,7 +32,8 @@ test('Alle Funktionsterme der Vorlagen sind gültig und im Fenster auswertbar', 
         return;
       }
       const d = MP.parseDefinition(f.s);
-      const ast = MP.parseFunction(d, { variable: d.variable });
+      const ast = MP.parseFunction(d, { variable: d.variable, functions: ctx });
+      if (d.letter && /^[a-zA-Z]$/.test(d.letter)) ctx[d.letter] = { ast };
       if (d.family) P[d.family.p] = d.family.vals[0];
       const g = MP.compile(ast, P, { deg: !!t.deg });
       let ok = 0;
@@ -42,7 +44,8 @@ test('Alle Funktionsterme der Vorlagen sind gültig und im Fenster auswertbar', 
       assert.ok(ok > 10, t.title + ': ' + f.s + ' kaum sichtbar (' + ok + ')');
     });
     (t.objs || []).filter(o => o.type === 'point').forEach(o => {
-      assert.ok(+o.x >= t.view[0] && +o.x <= t.view[1] && +o.y >= t.view[2] && +o.y <= t.view[3], t.title + ': Punkt ' + o.name + ' außerhalb');
+      const x = MP.evalConst(o.x), y = MP.evalConst(o.y);
+      assert.ok(x >= t.view[0] && x <= t.view[1] && y >= t.view[2] && y <= t.view[3], t.title + ': Punkt ' + o.name + ' außerhalb');
     });
   });
 });
@@ -64,6 +67,12 @@ test('Punkte liegen auf den Graphen, wo sie es sollen', () => {
   on('Sekante und Tangente', 'f(x) = 0.5x^2', 3, 4.5);
   on('Sekante und Tangente', 's(x) = 2x - 1.5', 3, 4.5);
   on('Sekante und Tangente', 's(x) = 2x - 1.5', 1, 0.5);
+  on('Geradengleichung aufstellen', 'f(x) = 0.5x - 0.5', -1, -1);
+  on('Geradengleichung aufstellen', 'f(x) = 0.5x - 0.5', 3, 1);
+  on('Nullstelle einer Geraden', 'f(x) = -0.5x + 2', 4, 0);
+  ['0|-1', '2|-1', '3|2'].forEach(s => { const [x, y] = s.split('|').map(Number); on('Parabel durch drei Punkte', 'f(x) = x^2 - 2x - 1', x, y); });
+  on('Zinseszins', 'K(t) = 1000*1.03^t', Math.log(2) / Math.log(1.03), 2000);
+  assert.ok(Math.abs(Math.log(2) / Math.log(1.03) - 23.45) < 0.01);
   // Wurfparabel: Ende des Definitionsbereichs nahe der Nullstelle
   const h = MP.compile(MP.parseFunction(MP.parseDefinition('h(t) = -5t^2 + 10t + 1.5'), { variable: 't' }), {});
   assert.ok(Math.abs(h(2.14)) < 0.05);
@@ -72,6 +81,8 @@ test('Punkte liegen auf den Graphen, wo sie es sollen', () => {
 test('Stochastik-Vorlagen: Kennwerte und Ablehnungsbereich', () => {
   const t = L.TEMPLATES.find(v => v.title === 'Hypothesentest: Ablehnungsbereich');
   const d = t.dists[0];
+  const l = L.TEMPLATES.find(v => v.title === 'Linksseitiger Test').dists[0];
+  assert.ok(N.binomProb(l.n, l.p, null, l.b) <= 0.05 && N.binomProb(l.n, l.p, null, l.b + 1) > 0.05);
   // kleinster Ablehnungsbereich {k; …; n} mit P(X ≥ k) ≤ 5 %
   assert.ok(N.binomProb(d.n, d.p, d.a, null) <= 0.05);
   assert.ok(N.binomProb(d.n, d.p, d.a - 1, null) > 0.05);
@@ -86,7 +97,14 @@ test('Suche und Filter', () => {
   const find = (q, g) => L.TEMPLATES.filter(t => L.matches(t, q, g)).map(t => t.title);
   assert.ok(find('tangente').includes('Sekante und Tangente'));
   assert.ok(find('Hypothesentest').length >= 1);
-  assert.ok(find('wurzel', 9).includes('Wurzelfunktion als Umkehrfunktion'));
+  assert.ok(find('wurzel', 9).includes('Umkehrfunktion'));
+  // die 18 Vorlagen aus Version 3.0 sind alle noch da
+  ['Graph ablesen', 'Graphen zuordnen', 'Ableitungsgraph skizzieren', 'Steigungsdreieck', 'Kurvendiskussion', 'Gebrochen-rationale Funktion',
+    'Fläche unter dem Graphen', 'Sinus im Gradmaß', 'Trigonometrie im Bogenmaß', 'Wachstum (Sachaufgabe)', 'Leeres Koordinatensystem',
+    'Messwerte & Ausgleichsgerade', 'Parabel mit Parametern', 'Abschnittsweise definiert', 'Funktionsschar', 'Ober- und Untersumme',
+    'Umkehrfunktion', 'Stammfunktionen'].forEach(n => assert.ok(L.TEMPLATES.some(t => t.title === n), n));
+  // universelle Formate stehen auch unter „Allgemein“
+  ['Graphen zuordnen', 'Graph ablesen', 'Ableitungsgraph skizzieren', 'Steigungsdreieck'].forEach(n => assert.ok(find(n, 0).includes(n), n + ' in Allgemein'));
   assert.strictEqual(find('', 8).length, L.TEMPLATES.filter(t => t.grade === 8).length);
   assert.ok(find('ableitung skizzieren').includes('Ableitungsgraph skizzieren'));
   assert.ok(find('Gebrochen').length >= 2);

@@ -61,7 +61,7 @@
       const n = Math.floor((b - a) / step + 1e-9) + 1;
       if (n > 200) return { error: 'Höchstens 200 Werte – Schrittweite vergrößern' };
       // Scharen: eine Spalte je Parameterwert
-      const fns = this.fns.filter(f => this._isShown(f) && f.f).flatMap(f => (f.members
+      const fns = this.fns.filter(f => f.vis && f.f).flatMap(f => (f.members
         ? f.members.map(m => ({ letter: f.letter + '=' + m.v, head: f.letter + '(x), ' + f.family.p + ' = ' + fmtDE(m.v, 4), f: m.f }))
         : [f]));
       const xs = [];

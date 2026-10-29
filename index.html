@@ -79,11 +79,24 @@
             </span>
             <button class="hud-btn" id="sketch-undo" title="Letzten Strich entfernen"><i data-icon="undo"></i></button>
             <button class="hud-btn" id="sketch-clear" title="Alle Skizzen löschen"><i data-icon="trash"></i></button>
+            <button class="hud-btn" id="sketch-help" title="So funktioniert Skizzieren und Prüfen"><i data-icon="help"></i></button>
           </span>
           <button id="tool-hint-close" class="hud-close" title="Beenden (Esc)"><i data-icon="close"></i></button>
         </div>
         <button id="sol-toggle" class="hud sol-toggle" hidden aria-pressed="false" title="Als Lösung verborgene Graphen ein- oder ausblenden (L)"><i data-icon="eye"></i><span id="sol-toggle-text">Lösung zeigen</span></button>
         <div id="check-result" class="hud check-result" hidden role="status"></div>
+        <div id="sketch-intro" class="sketch-intro" hidden role="dialog" aria-labelledby="sketch-intro-title">
+          <h3 id="sketch-intro-title"><i data-icon="pen"></i>Skizzieren und prüfen</h3>
+          <ol>
+            <li><strong>Lösung festlegen:</strong> Funktion eingeben, in der Liste auf <b>›</b> tippen und <em>Als Lösung verbergen</em> einschalten – der Graph verschwindet.</li>
+            <li><strong>Skizzieren:</strong> mit Maus, Stift oder Finger in das Koordinatensystem zeichnen.</li>
+            <li><strong>Prüfen:</strong> oben rechts <em>Lösung zeigen</em> (Taste <kbd>L</kbd>) – ein grüner Schlauch zeigt, wo die Skizze passt.</li>
+          </ol>
+          <div class="sketch-intro-actions">
+            <button class="btn btn-tinted btn-sm" id="sketch-intro-demo">Beispiel ausprobieren</button>
+            <button class="btn btn-filled btn-sm" id="sketch-intro-ok">Verstanden</button>
+          </div>
+        </div>
         <div class="tool-capsule" role="toolbar" aria-label="Werkzeuge">
           <div class="segmented segmented-tools" id="tool-seg" role="radiogroup" aria-label="Werkzeug">
             <button role="radio" data-tool="move" class="active" title="Verschieben &amp; Zoomen (V)"><i data-icon="move"></i></button>
@@ -487,6 +500,13 @@
         <tr><td><code>sqrt</code> <code>|x|</code> <code>ln</code> <code>lg</code> <code>log(b, x)</code> <code>root(x, n)</code></td><td>Funktionen (ln = log, lg = Zehnerlogarithmus)</td></tr>
         <tr><td><code>pi</code>, <code>π</code>, <code>e</code>, <code>30°</code></td><td>Konstanten, Grad im Bogenmaß</td></tr>
         <tr><td><code>0,5x</code>, <code>\frac{1}{x}</code></td><td>Dezimalkomma und einfaches LaTeX</td></tr>
+      </table>
+      <h3 id="help-sketch">Skizzieren und prüfen</h3>
+      <table>
+        <tr><td>1. Lösung festlegen</td><td>Funktion eingeben (z. B. <code>f(x) = x^2 - 2</code> oder <code>f'</code>), in der Liste auf › tippen, <em>Als Lösung verbergen</em> einschalten. Der Graph ist jetzt unsichtbar und trägt das Etikett „Lösung“. Schneller: Vorlage „Graph skizzieren und prüfen“ oder „Ableitungsgraph skizzieren“.</td></tr>
+        <tr><td>2. Skizzieren</td><td>Stift-Werkzeug (<kbd>S</kbd>, unten in der Leiste) wählen und zeichnen. Oben: Stiftfarbe, letzten Strich entfernen, alles löschen. Zurück zum Verschieben mit <kbd>V</kbd> oder <kbd>Esc</kbd>.</td></tr>
+        <tr><td>3. Prüfen</td><td><em>Lösung zeigen</em> oben rechts oder <kbd>L</kbd>: Die Lösung erscheint mit grünem Toleranzschlauch, die Skizze wird grün (passt) bzw. rot (daneben) gefärbt, dazu der Anteil der Treffer.</td></tr>
+        <tr><td>Arbeitsblatt</td><td>Im Export <em>Lösungen einblenden</em> aus- bzw. einschalten – so entstehen Aufgabe und Lösung aus demselben Graphen.</td></tr>
       </table>
       <h3>Werkzeuge</h3>
       <table>

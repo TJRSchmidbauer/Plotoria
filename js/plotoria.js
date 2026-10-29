@@ -1046,7 +1046,7 @@
       const so = document.createElement('input'); so.type = 'checkbox'; so.className = 'switch'; so.checked = !!f.sol;
       so.title = 'Graph bleibt verborgen, bis „Lösung zeigen“ gewählt wird – z. B. f′ zum Skizzieren';
       so.addEventListener('change', () => { f.sol = so.checked; this.sync(); this.repaint(); if (this._syncSolution) this._syncSolution(); this.commit(); });
-      this._detailRow(det, 'Als Lösung verbergen', so);
+      this._detailRow(det, 'Als Lösung verbergen (zum Skizzieren)', so);
 
       // Asymptoten
       const as = document.createElement('input'); as.type = 'checkbox'; as.className = 'switch'; as.checked = !!f.asym;

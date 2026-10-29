@@ -835,3 +835,18 @@ details.own-templates > summary small { font-weight: 500; color: var(--label-2);
 details.own-templates .group-body { background: var(--fill); }
 details.own-templates .template-card { background: var(--bg); }
 @media (max-width: 720px) { .lib-bar-row { flex-direction: column; align-items: stretch; } }
+
+/* Erklärung beim ersten Skizzieren */
+.sketch-intro {
+  position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
+  width: min(420px, calc(100% - 24px)); z-index: 6;
+  padding: 16px 18px 14px; border-radius: var(--r-lg);
+  background: var(--surface); box-shadow: var(--shadow-sheet); border: 0.5px solid var(--separator);
+  font-size: 13px; line-height: 1.45;
+  animation: hint-in var(--t-med) var(--spring);
+}
+.sketch-intro h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 650; margin-bottom: 8px; }
+.sketch-intro h3 .icon { width: 20px; height: 20px; color: var(--accent); }
+.sketch-intro ol { margin: 0 0 12px 20px; display: flex; flex-direction: column; gap: 6px; }
+.sketch-intro em { font-style: normal; font-weight: 600; color: var(--accent); }
+.sketch-intro-actions { display: flex; justify-content: flex-end; gap: 8px; }
