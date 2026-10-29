@@ -1,4 +1,4 @@
-# 📈 Plotoria 3.0
+# 📈 Plotoria 3.1
 
 **Graphen für Arbeitsblätter und Prüfungen – maßstabsgetreu, druckfertig, auch offline.** ✨
 
@@ -11,12 +11,18 @@ Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrk
 ## 📚 Dokumentation
 
 * 📘 **[Bedienungsanleitung & Tipps für den Unterricht (ANLEITUNG.md)](ANLEITUNG.md)**
-* 📝 **[Änderungsprotokoll (CHANGELOG.md)](CHANGELOG.md)** – was in Version 3.0 neu ist
+* 📝 **[Änderungsprotokoll (CHANGELOG.md)](CHANGELOG.md)** – was in Version 3.1 neu ist
 * 🤖 **[KI-Entwicklung (AI_DEVELOPMENT.md)](AI_DEVELOPMENT.md)**
 
 ---
 
 ## ✨ Hauptfunktionen
+
+### Neu in Version 3.1
+* 🗂️ **Tabs:** mehrere Graphen gleichzeitig bearbeiten, jeder mit eigenem Rückgängig-Verlauf – der Druckbogen sammelt aus allen Tabs.
+* 📚 **Aufgabenbibliothek Jgst. 8–13:** 53 Vorlagen nach Jahrgangsstufe und Thema (orientiert am LehrplanPLUS Gymnasium Bayern), mit Suche und Filter.
+* 🎲 **Stochastik:** Binomialverteilung (Histogramm) und Normalverteilung (Glockenkurve) mit markiertem Bereich, P(X ≤ k), μ ± σ und Tabelle – `X ~ B(20; 0,3); P(X ≤ 4)`.
+* ✍️ **Skizzieren und prüfen:** Freihandskizzen mit Stift oder Finger; als Lösung verborgene Graphen mit „Lösung zeigen“ (L) samt Toleranzschlauch und Auswertung. Export wahlweise mit oder ohne Lösungen.
 
 ### Neu in Version 3.0
 * 🧱 **Abschnittsweise definierte Funktionen:** `f(x) = x² für x < 1; 2x − 1 für x ≥ 1` – Sprungstellen mit gefülltem ● und offenem ○ Randpunkt.
@@ -77,7 +83,11 @@ Projektaufbau:
 | `js/objects.js` | Punkte, Texte, Pfeile, senkrechte Geraden |
 | `js/data.js` | Wertetabelle mit Lücken, Messreihen |
 | `js/export.js` | Export in cm, Druckbogen, Projektdateien |
-| `js/templates.js` | Aufgabenvorlagen und eigene Vorlagen |
+| `js/library.js` | Aufgabenbibliothek (Vorlagen nach Jahrgangsstufe, reine Daten) |
+| `js/templates.js` | Bibliotheks-Fenster und eigene Vorlagen |
+| `js/tabs.js` | Tabs: mehrere Graphen, Speichern der Tabs |
+| `js/stochastik.js` | Binomial- und Normalverteilung |
+| `js/sketch.js` | Skizzen, Lösung zeigen, Auswertung |
 | `js/discussion.js` | Kurvendiskussion als Text (Word, LaTeX, Druckbogen) |
 | `js/tikz.js` | TikZ-Export und -Import |
 | `sw.js`, `manifest.webmanifest` | Offline-Betrieb und App-Installation |

@@ -1,5 +1,19 @@
 # Änderungsprotokoll
 
+## Version 3.1 – für die Unterrichtsplanung
+
+### Neu
+- **Tabs:** Mehrere Graphen gleichzeitig bearbeiten. Die Tab-Leiste steht zwischen Titel und Vorlagen: **+** für einen neuen Tab, **×** oder Mittelklick zum Schließen (mit „Wiederherstellen“), Umsortieren per Ziehen, Pfeiltasten zum Wechseln. Jeder Tab hat seinen eigenen Rückgängig-Verlauf; Integral und Tangente bleiben beim Wechsel erhalten. Mit Zustimmung zum Speichern werden alle Tabs gespeichert. Geteilte Links und geöffnete Projektdateien kommen als zusätzlicher Tab dazu, statt die Arbeit zu ersetzen.
+- **Aufgabenbibliothek Jgst. 8–13:** 53 Vorlagen, geordnet nach Jahrgangsstufe und Thema (orientiert am LehrplanPLUS Gymnasium Bayern), mit Suche, Stufenfilter und Schalter „In neuem Tab öffnen“. 35 neue Vorlagen, u. a. Proportionalität, y = mx + t, Gleichungssysteme, Normalparabeln, Diskriminante, Wurfparabel, Potenz-, Exponential- und Logarithmusfunktionen, Halbwertszeit, allgemeine Sinusfunktion, Symmetrie, Sekante und Tangente, f aus f′, e-Funktion, Abkühlung, Änderungsrate und Bestand, Binomialverteilung, Hypothesentest, Normalverteilung, Glockenkurve.
+- **Stochastik:** Binomialverteilung als Histogramm und Normalverteilung als Glockenkurve, mit markiertem Bereich und Wahrscheinlichkeit (z. B. „P(X ≤ 4) ≈ 0,2375“), μ ± σ, Normalverteilung als Näherung, Werte beim Überfahren und Tabelle P(X = k) / P(X ≤ k) für Word und Druckbogen. Eingabe auch als `X ~ B(20; 0,3); P(X ≤ 4)` oder `X ~ N(100; 15)`. TikZ-Export mit Histogramm, Fläche und Beschriftung.
+- **Skizzen- und Prüfmodus:** Stift-Werkzeug (`S`) für Freihandskizzen mit Maus, Stift oder Finger. Funktionen lassen sich **als Lösung verbergen**; **Lösung zeigen** (`L`) blendet sie mit einem Toleranzschlauch ein, färbt die Skizze grün bzw. rot und zeigt, wie gut sie passt. Im Export: „Lösungen einblenden“ (Aufgaben- und Lösungsblatt aus einem Graphen) und „Skizzen“.
+- **Stammfunktion als Schalter:** „Stammfunktion anzeigen“ in den Einstellungen jeder Funktion blendet F ein und aus.
+
+### Fehlerbehebungen
+- **Projekt sichern:** Der Offline-Speicher (Service Worker) fing den Download ab; im neuen Tab erschien dann ein Fehler. Downloads werden jetzt nicht mehr abgefangen.
+- Bei „Gleichen Einheiten“ schnitten Vorlagen je nach Bildschirmformat oben und unten ab (z. B. „Fläche unter dem Graphen“). Jetzt wird der ganze y-Bereich gezeigt und dafür der x-Bereich verbreitert.
+- Termbeschriftungen verwenden die Variable der Definition: `h(t) = −5t² + …` statt `h(x) = …`.
+
 ## Version 3.0 – mehr Mathematik für Arbeitsblätter
 
 ### Funktionen

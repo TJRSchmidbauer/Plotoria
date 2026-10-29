@@ -20,7 +20,7 @@ const TikZ = {
   label(s) {
     const t = String(s);
     if (/_/.test(t)) return '$' + t.replace(/_(\{[^}]*\}|\S)/g, (m, g) => '_{' + g.replace(/^\{|\}$/g, '') + '}').replace(/ /g, '\\ ') + '$';
-    return this.escape(t).replace(/−/g, '$-$').replace(/π/g, '$\\pi$').replace(/√/g, '$\\surd$').replace(/\|/g, '$|$');
+    return this.escape(t).replace(/−/g, '$-$').replace(/π/g, '$\\pi$').replace(/φ/g, '$\\varphi$').replace(/√/g, '$\\surd$').replace(/\|/g, '$|$');
   },
 
   // functions: [{ letter, ast, col, strokeWidth, dash, lo, hi, labelText, labelMode }]
@@ -33,6 +33,7 @@ const TikZ = {
     const BW = ['solid', 'dashed', 'dotted', 'dashdotted'];
     L.push('% Plotoria ' + (opts.version || '') + ' – benötigt: \\usepackage{pgfplots} \\pgfplotsset{compat=1.18}');
     if (!opts.bw) functions.forEach((fn, i) => L.push(`\\definecolor{plotoria${i}}{HTML}{${this.hex(fn.col)}}`));
+    if (!opts.bw) (opts.dists || []).forEach((d, i) => L.push(`\\definecolor{plotoriaV${i}}{HTML}{${this.hex(d.col)}}`));
     L.push('\\begin{tikzpicture}');
     L.push('  \\begin{axis}[');
     if (opts.title) L.push(`    title={${this.escape(opts.title)}},`);
@@ -100,6 +101,42 @@ const TikZ = {
       L.push(`    \\addplot[only marks, mark=x, mark size=3pt, ${opts.bw ? 'black' : 'color={rgb,255:red,' + parseInt(this.hex(ds.col).slice(0, 2), 16) + ';green,' + parseInt(this.hex(ds.col).slice(2, 4), 16) + ';blue,' + parseInt(this.hex(ds.col).slice(4, 6), 16) + '}'}, forget plot] coordinates {${coords}};`);
     });
 
+    // Verteilungen: Histogramm der Binomialverteilung, Dichte der Normalverteilung
+    (opts.dists || []).forEach((d, i) => {
+      const name = 'plotoriaV' + i;
+      const c = opts.bw ? 'black' : name;
+      const pdf = (mu, s) => `exp(-((x-(${this.num(mu)}))^2)/(2*${this.num(s)}^2))/(${this.num(s)}*sqrt(2*pi))`;
+      const marked = d.a != null || d.b != null;
+      if (d.type === 'binom') {
+        d.bars.forEach(r => {
+          const fill = opts.bw ? (r.on ? 'fill=black!30' : 'fill=white') : `fill=${c}, fill opacity=${r.on ? 0.6 : (marked ? 0.13 : 0.38)}`;
+          L.push(`    \\draw[draw=${c}, ${fill}] (axis cs:${this.num(r.k - 0.5)},0) rectangle (axis cs:${this.num(r.k + 0.5)},${this.num(r.p)});`);
+        });
+        if (d.approx && d.sigma > 0) L.push(`    \\addplot[color=${opts.bw ? 'black' : 'red'}, dashed, line width=0.9pt, domain=${this.num(b.xMin)}:${this.num(b.xMax)}, samples=300, smooth, forget plot] {${pdf(d.mu, d.sigma)}};`);
+      } else {
+        if (marked) {
+          const lo = Math.max(b.xMin, d.a == null ? -Infinity : d.a), hi = Math.min(b.xMax, d.b == null ? Infinity : d.b);
+          if (hi > lo) L.push(`    \\addplot[draw=none, ${opts.bw ? 'fill=black!20' : 'fill=' + c + ', fill opacity=0.28'}, domain=${this.num(lo)}:${this.num(hi)}, samples=150, forget plot] {${pdf(d.mu, d.sigma)}} \\closedcycle;`);
+        }
+        L.push(`    \\addplot[color=${c}, line width=1pt, domain=${this.num(b.xMin)}:${this.num(b.xMax)}, samples=300, smooth, forget plot] {${pdf(d.mu, d.sigma)}};`);
+      }
+      if (d.sigmaLines && d.sigma > 0) {
+        [[d.mu, '\\mu'], [d.mu - d.sigma, '\\mu-\\sigma'], [d.mu + d.sigma, '\\mu+\\sigma']].forEach(([x, lab], k) => {
+          const h = d.type === 'normal' ? Math.exp(-0.5 * ((x - d.mu) / d.sigma) ** 2) / (d.sigma * Math.sqrt(2 * Math.PI)) : d.peak * 1.08;
+          L.push(`    \\draw[gray${k ? ', dashed' : ''}] (axis cs:${this.num(x)},0) -- (axis cs:${this.num(x)},${this.num(h)}) node[above, font=\\small] {$${lab}$};`);
+        });
+      }
+      if (d.label) L.push(`    \\node[${c}, anchor=south, font=\\bfseries] at (axis cs:${this.num(d.label.x)},${this.num(d.label.y)}) {${this.probLabel(d.label.text)}};`);
+    });
+
+    // Freihand-Skizzen
+    (opts.sketches || []).forEach(sk => {
+      const col = opts.bw ? 'black' : `{rgb,255:red,${parseInt(this.hex(sk.c).slice(0, 2), 16)};green,${parseInt(this.hex(sk.c).slice(2, 4), 16)};blue,${parseInt(this.hex(sk.c).slice(4, 6), 16)}}`;
+      const pts = [];
+      for (let k = 0; k + 1 < sk.p.length; k += 2) pts.push(`(axis cs:${this.num(sk.p[k])},${this.num(sk.p[k + 1])})`);
+      if (pts.length > 1) L.push(`    \\draw[color=${col}, line width=${this.num((sk.w || 3) * 0.35)}pt, line cap=round, line join=round] ${pts.join(' -- ')};`);
+    });
+
     (opts.objects || []).forEach(o => {
       const col = opts.bw ? 'black' : `{rgb,255:red,${parseInt(this.hex(o.col).slice(0, 2), 16)};green,${parseInt(this.hex(o.col).slice(2, 4), 16)};blue,${parseInt(this.hex(o.col).slice(4, 6), 16)}}`;
       if (o.type === 'point') {
@@ -117,6 +154,11 @@ const TikZ = {
     L.push('  \\end{axis}');
     L.push('\\end{tikzpicture}');
     return L.join('\n');
+  },
+
+  // „P(X ≤ 4) ≈ 0,2375“ → $P(X \le 4) \approx 0{,}2375$
+  probLabel(t) {
+    return '$' + String(t).replace(/\s*≤\s*/g, ' \\le ').replace(/\s*≥\s*/g, ' \\ge ').replace(/≈/g, '\\approx').replace(/−/g, '-').replace(/(\d),(\d)/g, '$1{,}$2') + '$';
   },
 
   // Achsentitel: einzelner Buchstabe kursiv in Mathe, sonst Text („t in s“)

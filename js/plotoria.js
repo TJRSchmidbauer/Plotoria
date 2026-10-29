@@ -1,10 +1,10 @@
-// Plotoria 3.0 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
+// Plotoria 3.1 – Kern: Zustand, Funktionen, Zeichnen, Werkzeuge
 // Module (objects.js, data.js, export.js, templates.js) erweitern dieses Objekt per Object.assign.
 (() => {
   const $ = id => document.getElementById(id);
   const MP = MathParser;
 
-  const VERSION = '3.0';
+  const VERSION = '3.1';
   const COLORS = ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FF2D55', '#5856D6'];
   const STORAGE_KEY = 'plotoria-state-v1';
   const DEFAULT_VIEW = { xMin: -4, xMax: 5, yMin: -10, yMax: 10 };
@@ -73,14 +73,14 @@
   }
 
   window.Plotoria = {
-    VERSION, COLORS, CM, STORAGE_KEY, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf, bisect,
+    VERSION, COLORS, CM, STORAGE_KEY, DEFAULT_STYLE, DEFAULT_VIEW, storageOK: false, fmtDE, esc, clamp, niceStep, letterTeX, decimalsOf, bisect,
     fns: [], objs: [], datasets: [], ci: 0, nextId: 1,
     ...DEFAULT_VIEW,
     home: { ...DEFAULT_VIEW },
     pad: { l: 55, r: 35, t: 35, b: 55 },
     style: { ...DEFAULT_STYLE },
     params: {}, paramMeta: {},
-    integral: null, smartLabels: false, selectionRect: null,
+    integral: null, smartLabels: false, selectionRect: null, reveal: false,
     proportional: true, graphTitle: '', tangent: null, tool: 'move',
     deg: false, theme: 'auto', labelOffsets: {}, selected: null,
     hist: [], histPos: -1,
@@ -88,6 +88,9 @@
     rc: null,
 
     get selectionMode() { return this.tool === 'select'; },
+
+    // Wird die Funktion gezeichnet? Als Lösung markierte erst nach „Lösung zeigen“
+    _isShown(f) { return !!f.vis && (!f.sol || (this.rc ? !!this.rc.reveal : this.reveal)); },
     get tangentMode() { return this.tool === 'tangent'; },
 
     init() {
@@ -210,6 +213,7 @@
       svgNode.addEventListener('pointermove', (e) => {
         this._lastPointer = this._localPoint(e);
         if (this.tool === 'select') this._selMove(e);
+        else if (this.tool === 'sketch') this._sketchMove(e);
         else if (this._toolMove) this._toolMove(e);
         this._refreshHover();
       });
@@ -219,13 +223,16 @@
         if (ae && ae !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) ae.blur();
         if (e.button !== 0) return;
         if (this.tool === 'tangent') { this._tangentClick(e); return; }
+        if (this.tool === 'sketch') { if (this._sketchDown(e)) svgNode.setPointerCapture(e.pointerId); return; }
         if (this.tool === 'select') { svgNode.setPointerCapture(e.pointerId); this._selDown(e); return; }
         if (this._toolDown && this._toolDown(e)) svgNode.setPointerCapture(e.pointerId);
       });
       svgNode.addEventListener('pointerup', (e) => {
         if (this.tool === 'select') this._selUp();
+        else if (this.tool === 'sketch') this._sketchUp(e);
         else if (this._toolUp) this._toolUp(e);
       });
+      svgNode.addEventListener('pointercancel', (e) => { if (this.tool === 'sketch') this._sketchUp(e); });
       svgNode.addEventListener('pointerleave', () => {
         this._lastPointer = null;
         this.overlay.selectAll('*').remove();
@@ -244,7 +251,7 @@
       }
 
       // Module
-      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion'].forEach(n => this[n] && this[n]());
+      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion', 'initTabs', 'initDists', 'initSketch'].forEach(n => this[n] && this[n]());
 
       const st = this._loadStartupState();
       requestAnimationFrame(() => {
@@ -331,6 +338,7 @@
           if (f.labelMode && f.labelMode !== 'name') o.lm = f.labelMode;
           if (f.labelText) o.lt = f.labelText;
           if (f.asym) o.as = 1;
+          if (f.sol) o.sol = 1;
           if (f.labelX != null) o.lp = [+f.labelX.toPrecision(6), +f.labelY.toPrecision(6)];
           return o;
         }),
@@ -369,7 +377,7 @@
           id, letter: o.l, def: o.s, deriv: o.d ? { of: o.d[0], order: o.d[1] } : null,
           anti: o.a ? { of: o.a[0], c: o.a[1] } : null, inv: o.i !== undefined ? { of: o.i } : null, diag: o.dg !== 0,
           col: o.c || COLORS[i % COLORS.length], strokeWidth: o.w || 3, vis: !o.h,
-          dash: o.ds === 1 ? 'dash' : (o.ds || 'solid'), labelMode: o.lm || 'name', labelText: o.lt || '', asym: !!o.as,
+          dash: o.ds === 1 ? 'dash' : (o.ds || 'solid'), labelMode: o.lm || 'name', labelText: o.lt || '', asym: !!o.as, sol: !!o.sol,
           labelX: o.lp ? o.lp[0] : null, labelY: o.lp ? o.lp[1] : null,
         };
       });
@@ -391,6 +399,9 @@
       this.syncParams();
       if (this.syncObjects) this.syncObjects();
       if (this.syncData) this.syncData();
+      if (this.syncDists) this.syncDists();
+      if (this._syncSolution) this._syncSolution();
+      if (this.renderTabs) this.renderTabs();
       this.repaint();
     },
 
@@ -454,6 +465,7 @@
       clearTimeout(this._st);
       this._st = setTimeout(() => {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.serialize())); } catch (e) { /* voll oder gesperrt */ }
+        if (this._saveTabs) this._saveTabs();
       }, 400);
     },
 
@@ -486,6 +498,7 @@
     _usedLetters(except) { return this.fns.filter(f => f !== except).map(f => f.letter); },
 
     _check(raw, self) {
+      if (this.checkDistDef) { const dc = this.checkDistDef(raw); if (dc) return dc; }
       let d;
       try { d = MP.parseDefinition(raw); } catch (e) { return { error: e.message }; }
       if (d.kind === 'point' || d.kind === 'vline') {
@@ -517,6 +530,7 @@
     _addDef(raw) {
       const c = this._check(raw);
       if (c.error) return c;
+      if (c.dist) return this.addDistDef(c);
       if (c.obj) return this.addObjectDef(c);
       if (c.d.kind === 'derivative') {
         const letter = c.d.of + "'".repeat(c.d.order);
@@ -538,7 +552,7 @@
     _pushFn(o) {
       this.fns.push({
         id: this.nextId++, vis: true, strokeWidth: 3, dash: 'solid', labelMode: 'name', labelText: '', asym: false,
-        labelX: null, labelY: null, col: COLORS[this.ci++ % COLORS.length], def: null, deriv: null, anti: null, inv: null, diag: true, ...o,
+        labelX: null, labelY: null, col: COLORS[this.ci++ % COLORS.length], def: null, deriv: null, anti: null, inv: null, diag: true, sol: false, ...o,
       });
       this._afterFnChange();
     },
@@ -561,7 +575,7 @@
     _editFunc(fn, raw) {
       const c = this._check(raw, fn);
       if (c.error) { this._toast(c.error); return false; }
-      if (c.obj) { this._toast('Hier bitte einen Funktionsterm eingeben'); return false; }
+      if (c.obj || c.dist) { this._toast('Hier bitte einen Funktionsterm eingeben'); return false; }
       if (c.d.kind === 'derivative') {
         if (c.parent === fn) { this._toast('Eine Funktion kann nicht ihre eigene Ableitung sein'); return false; }
         fn.deriv = { of: c.parent.id, order: c.d.order };
@@ -650,6 +664,7 @@
           const d = MP.parseDefinition(fn.def);
           const ctx = { variable: d.variable, functions: this._fnContext(fn.letter), self: fn.letter };
           fn.ast = MP.parseFunction(d, ctx);
+          fn.variable = d.variable;
           fn.f0 = MP.compile(fn.ast, this.params, { deg: this.deg });
           fn.domain = d.domain || null;
           if (d.family) {
@@ -905,6 +920,7 @@
         this._renderTeX(t, tex, f.letter + '(x) = ' + MP.toPlain(f.ast));
       } else if (f.numeric) this._renderTeX(t, name + '\\text{numerisch}', f.letter + '(x) (numerisch)');
       else t.textContent = f.letter + ': ' + (f.def || '');
+      if (f.sol) { const bd = document.createElement('span'); bd.className = 'sol-badge' + (this.reveal ? ' shown' : ''); bd.textContent = 'Lösung'; bd.title = this.reveal ? 'Lösung wird gezeigt' : 'Verborgen bis „Lösung zeigen“'; t.prepend(bd); }
       main.appendChild(t);
       if (sub && !f.error) { const sd = document.createElement('div'); sd.className = 'item-sub'; sd.textContent = sub; main.appendChild(sd); }
       if (f.error) { const er = document.createElement('div'); er.className = 'item-error'; er.textContent = f.error; main.appendChild(er); }
@@ -1014,6 +1030,24 @@
         this._detailRow(det, 'Definiert', pair);
       }
 
+      // Stammfunktion als Schalter (nur für Ausgangsfunktionen)
+      if (!f.anti && !f.inv && f.f) {
+        const existing = this.fns.find(p => p.anti && p.anti.of === f.id);
+        const st = document.createElement('input'); st.type = 'checkbox'; st.className = 'switch'; st.checked = !!existing;
+        st.title = 'Stammfunktion F mit wählbarer Konstante C ein-/ausblenden';
+        st.addEventListener('change', () => {
+          if (st.checked) this.addAntiderivative(f);
+          else { const a = this.fns.find(p => p.anti && p.anti.of === f.id); if (a) this.rmFn(a.id); }
+        });
+        this._detailRow(det, 'Stammfunktion anzeigen', st);
+      }
+
+      // Als Lösung verbergen: erst mit „Lösung zeigen“ sichtbar
+      const so = document.createElement('input'); so.type = 'checkbox'; so.className = 'switch'; so.checked = !!f.sol;
+      so.title = 'Graph bleibt verborgen, bis „Lösung zeigen“ gewählt wird – z. B. f′ zum Skizzieren';
+      so.addEventListener('change', () => { f.sol = so.checked; this.sync(); this.repaint(); if (this._syncSolution) this._syncSolution(); this.commit(); });
+      this._detailRow(det, 'Als Lösung verbergen', so);
+
       // Asymptoten
       const as = document.createElement('input'); as.type = 'checkbox'; as.className = 'switch'; as.checked = !!f.asym;
       as.addEventListener('change', () => { f.asym = as.checked; this.repaint(); this.commit(); });
@@ -1025,7 +1059,6 @@
         b.addEventListener('click', cb); acts.append(b); return b;
       };
       if (!f.inv && f.f) {
-        act('Stammfunktion', 'Stammfunktion F mit wählbarer Konstante C zeichnen', () => this.addAntiderivative(f));
         act('Umkehrfunktion', 'Graph an der Geraden y = x spiegeln', () => this.addInverse(f));
       }
       if (f.f && this.openDiscussion) act('Kurvendiskussion', 'Kurvendiskussion als Text (Word, LaTeX, Druckbogen)', () => this.openDiscussion(f));
@@ -1437,7 +1470,7 @@
       let kind = fn.dash || 'solid';
       const bw = this.rc ? this.rc.bw : this.style.bw;
       if (bw && kind === 'solid') {
-        const vis = this.fns.filter(f => f.vis && f.f);
+        const vis = this.fns.filter(f => this._isShown(f) && f.f);
         kind = BW_DASHES[Math.max(0, vis.indexOf(fn)) % BW_DASHES.length];
       }
       const dash = 4.5 * sw + 4, gap = 2.5 * sw + 3;
@@ -1500,15 +1533,18 @@
         return;
       }
       this.paintIntegral();
+      if (this.paintDists) this.paintDists();
+      if (this.paintSketchBand) this.paintSketchBand();
       if (this.paintData) this.paintData();
       this.paintAsymptotes();
       this.paintFuncs();
       if (this.paintObjects) this.paintObjects();
+      if (this.paintSketch) this.paintSketch();
       if (!this.rc) this.paintSelectionRect();
       if (c.smart) this.paintSmartLabels();
       if (this.tangent) {
         const fn = this.fns.find(f => f.id === this.tangent.fnId);
-        if (fn && fn.f && fn.vis) this.paintTangent(this.root, this._tangentAt(fn, this.tangent.x));
+        if (fn && fn.f && this._isShown(fn)) this.paintTangent(this.root, this._tangentAt(fn, this.tangent.x));
       }
       if (c.title) this.paintTitle();
       if (c.mark) this.paintWatermark();
@@ -1753,7 +1789,7 @@
     },
 
     paintFuncs() {
-      const vis = this.fns.filter(f => f.vis && f.f);
+      const vis = this.fns.filter(f => this._isShown(f) && f.f);
       if (!vis.length) return;
       const g = this.root.append('g').attr('clip-path', this._clipUrl());
       const lg = this.root.append('g');
@@ -1865,7 +1901,12 @@
     },
 
     _labelText(fn) {
-      if (fn.labelMode === 'term') return fn.ast ? fn.letter + '(x) = ' + MP.toNice(fn.ast) : fn.letter;
+      if (fn.labelMode === 'term') {
+        if (!fn.ast) return fn.letter;
+        // Variable aus der Definition übernehmen: h(t) = −5t² + …
+        const v = fn.def && !fn.deriv ? (fn.variable || 'x') : 'x', nice = MP.toNice(fn.ast);
+        return fn.letter + '(' + v + ') = ' + (v === 'x' ? nice : nice.replace(/\bx\b/g, v));
+      }
       if (fn.labelMode === 'custom') return fn.labelText || '';
       return null;   // Name G_f
     },
@@ -1971,7 +2012,7 @@
     },
 
     paintSmartLabels() {
-      const vis = this.fns.filter(f => f.vis && f.f && !f.members);   // Scharen: zu viele Punkte
+      const vis = this.fns.filter(f => this._isShown(f) && f.f && !f.members);   // Scharen: zu viele Punkte
       if (!vis.length) return;
       const g = this.root.append('g').attr('class', 'smart-labels');
       const fs = Math.max(11, this.style.fontSize * 0.8);
@@ -2068,7 +2109,7 @@
     },
 
     paintAsymptotes() {
-      const vis = this.fns.filter(f => f.vis && f.f && f.asym);
+      const vis = this.fns.filter(f => this._isShown(f) && f.f && f.asym);
       if (!vis.length) return;
       const g = this.root.append('g').attr('clip-path', this._clipUrl());
       const fs = Math.max(11, this.style.fontSize * 0.8);
@@ -2123,6 +2164,7 @@
       arrow: 'Pfeil zeichnen: von Start nach Ziel ziehen',
       select: 'Bereich aufziehen – Export nutzt ihn, Doppelklick zoomt hinein',
       tangent: 'Über einen Graphen fahren – Klick hält die Tangente fest',
+      sketch: 'Skizzieren: mit Maus, Stift oder Finger zeichnen',
     },
 
     setTool(tool) {
@@ -2130,13 +2172,16 @@
       if (this.tool === 'tangent' && tool !== 'tangent') this.tangent = null;
       if (this.tool === 'select' && tool !== 'select') this.selectionRect = null;
       if (this._toolCancel) this._toolCancel();
+      if (this._sketchCancel) this._sketchCancel();
       this.tool = tool;
       this.setSegmented(this.els.toolSeg, tool);
       this.svg.classed('mode-cross', ['point', 'arrow', 'select', 'tangent'].includes(tool));
       this.svg.classed('mode-text', tool === 'text');
+      this.svg.classed('mode-pen', tool === 'sketch');
       const hint = this.TOOL_HINTS[tool];
       this.els.hint.hidden = !hint;
       if (hint) this.els.hintText.textContent = hint;
+      if (this._syncSketchCtl) this._syncSketchCtl();
       this.repaint();
     },
 
@@ -2155,7 +2200,7 @@
       const x = this.xs.invert(mx);
       let best = null;
       this.fns.forEach(fn => {
-        if (!fn.vis || !fn.f) return;
+        if (!this._isShown(fn) || !fn.f) return;
         const y = fn.f(x);
         if (!isFinite(y)) return;
         const d = Math.abs(this.ys(y) - my);
@@ -2181,6 +2226,7 @@
         text = 'x = ' + fmtDE(this.xs.invert(mx)) + '   y = ' + fmtDE(this.ys.invert(my));
       }
       if (this._hoverExtra) { const t = this._hoverExtra(mx, my); if (t) text = t; }
+      if (!near && this._hoverDist && this.tool !== 'text' && this.tool !== 'arrow') { const t = this._hoverDist(mx, my); if (t) text = t; }
       this.els.crd.textContent = text;
       this.els.crd.classList.add('visible');
     },
@@ -2393,6 +2439,7 @@
       if (!this.integral) return;
       const fn = this.fns.find(f => f.id === this.integral.fnId);
       if (!fn || !fn.f) { this.integral = null; return; }
+      if (!this._isShown(fn)) return;
       const { a, b } = this.integral;
       const xs = this.xs, ys = this.ys, bw = this._ctx().bw, col = this._col(fn);
       const g = this.root.append('g').attr('class', 'integral-group');
@@ -2543,7 +2590,7 @@
         return;
       }
       if (typing || e.altKey || anyDialog) return;
-      const tools = { v: 'move', p: 'point', t: 'text', a: 'arrow', b: 'select', n: 'tangent' };
+      const tools = { v: 'move', p: 'point', t: 'text', a: 'arrow', b: 'select', n: 'tangent', s: 'sketch' };
       const k = e.key.toLowerCase();
       if (tools[k] && !e.shiftKey) { e.preventDefault(); this.setTool(tools[k]); }
       else if (e.key === 'Home') { e.preventDefault(); this.resetView(); }
@@ -2570,21 +2617,32 @@
 
     _download(blob, name) {
       const u = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = u; a.download = name;
+      const a = document.createElement('a'); a.href = u; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(u), 1000);
+      setTimeout(() => URL.revokeObjectURL(u), 30000);
     },
 
+    // Dateiname aus dem Titel – nur ASCII: Mit Umlauten ignorieren manche Browser den Namen und speichern „download“
     _fileBase() {
-      return (this.graphTitle || 'plotoria-graph').replace(/[^a-zA-Z0-9äöüÄÖÜß \-]/g, '').trim().replace(/\s+/g, '-') || 'plotoria-graph';
+      const t = (this.graphTitle || 'plotoria-graph')
+        .replace(/[äöüÄÖÜß]/g, c => ({ ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue', ß: 'ss' })[c]);
+      return t.replace(/[^a-zA-Z0-9 \-]/g, '').trim().replace(/\s+/g, '-') || 'plotoria-graph';
     },
 
-    _toast(msg) {
+    // Mitteilung; action = { label, run } zeigt eine Schaltfläche (z. B. „Wiederherstellen“)
+    _toast(msg, action) {
       const old = document.querySelector('.toast'); if (old) old.remove();
       const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+      const hide = () => { t.classList.remove('visible'); setTimeout(() => t.remove(), 400); };
+      if (action) {
+        t.classList.add('has-action');
+        const b = document.createElement('button'); b.className = 'toast-action'; b.textContent = action.label;
+        b.addEventListener('click', () => { hide(); action.run(); });
+        t.appendChild(b);
+      }
       document.body.appendChild(t);
       requestAnimationFrame(() => t.classList.add('visible'));
-      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 400); }, 2600);
+      setTimeout(hide, action ? 6000 : 2600);
     },
 
     _shake(el) {

@@ -1,4 +1,4 @@
-// Plotoria 3.0 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
+// Plotoria 3.1 – Start: Module verknüpfen, App starten, Offline-Betrieb aktivieren
 (() => {
   const P = window.Plotoria;
 
@@ -7,11 +7,15 @@
     if (this.objs.length) o.objs = this._serializeObjs();
     if (this.datasets.length) o.data = this.datasets.map(({ id, ...d }) => d);
     if (this.table) o.table = { ...this.table, blanks: Object.keys(this.table.blanks) };
+    if (this.dists && this.dists.length) o.dists = this.dists.map(({ id, _pmf, _pmfKey, ...d }) => d);
+    if (this.sketches && this.sketches.length) o.sk = this.sketches.map(s => ({ c: s.c, w: s.w, p: s.p }));
   };
 
   P._loadExtra = function (st) {
     this.objs = (st.objs || []).map(o => ({ vis: true, ...o, id: this.nextId++ }));
     this.datasets = (st.data || []).map(d => ({ vis: true, ...d, id: this.nextId++ }));
+    this.dists = (st.dists || []).map(d => ({ ...this._distDefaults(d), id: this.nextId++ }));
+    this.sketches = (st.sk || []).filter(s => Array.isArray(s.p)).map(s => ({ c: s.c || '#FF2D55', w: s.w || 3, p: s.p.slice() }));
     if (st.table) {
       const blanks = {};
       (st.table.blanks || []).forEach(k => { blanks[k] = 1; });
@@ -43,12 +47,19 @@
 
   P._allowStorage = function () {
     this.storageOK = true;
-    if (!this._fromLink) {
+    const tabs = this._readStoredTabs && this._readStoredTabs();
+    if (tabs) {
+      // Tabs wiederherstellen; ein geöffneter Link kommt als zusätzlicher Tab dazu
+      if (this.restoreTabs(tabs, this._fromLink) && !this._fromLink) {
+        this._toast(tabs.docs.length > 1 ? 'Letzter Arbeitsstand wiederhergestellt (' + tabs.docs.length + ' Tabs)' : 'Letzter Arbeitsstand wiederhergestellt');
+      }
+    } else if (!this._fromLink) {
       const st = this._readStoredState();
       if (st) {
         this.load(st);
         this.hist = []; this.histPos = -1;
         this.commit();
+        if (this.renderTabs) this.renderTabs();
         this._toast('Letzter Arbeitsstand wiederhergestellt');
       }
     }
@@ -65,7 +76,7 @@
     this.storageOK = false;
     clearTimeout(this._st);
     // Bereits gespeicherte Plotoria-Daten entfernen
-    try { [this.STORAGE_KEY, this.PRINT_KEY, this.TEMPLATE_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) { /* nicht verfügbar */ }
+    try { [this.STORAGE_KEY, this.PRINT_KEY, this.TEMPLATE_KEY, this.TABS_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) { /* nicht verfügbar */ }
     if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
       navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
     }

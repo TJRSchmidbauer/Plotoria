@@ -1,4 +1,4 @@
-// Plotoria 3.0 – Export (maßstabsgetreu), Druckbogen DIN A4, Projektdateien
+// Plotoria 3.1 – Export (maßstabsgetreu), Druckbogen DIN A4, Projektdateien
 (() => {
   const P = window.Plotoria;
   const { esc, fmtDE, CM } = P;
@@ -10,7 +10,7 @@
 
   Object.assign(P, {
     initExport() {
-      this.exp = { format: 'png', sizeMode: 'scale', ux: 1, uy: 1, w: 12, h: 8, range: 'view', dpi: 300, title: false, labels: true, smart: false, bw: false, white: true, mark: false, empty: false };
+      this.exp = { format: 'png', sizeMode: 'scale', ux: 1, uy: 1, w: 12, h: 8, range: 'view', dpi: 300, title: false, labels: true, smart: false, bw: false, white: true, mark: false, empty: false, reveal: false, sketch: true };
       this.printItems = [];
       this.printOpts = { header: true, heading: '', numbers: true };
 
@@ -18,7 +18,7 @@
       Object.assign(E, {
         expSheet: $('export-sheet'), expPreview: $('exp-preview'), expSize: $('exp-size'), expFormat: $('exp-format'), expSizeMode: $('exp-size-mode'),
         expUx: $('exp-ux'), expUy: $('exp-uy'), expW: $('exp-w'), expH: $('exp-h'), expRange: $('exp-range'), expDpi: $('exp-dpi'),
-        expEmpty: $('exp-empty'), expTitle: $('exp-title'), expLabels: $('exp-labels'), expSmart: $('exp-smart'), expBw: $('exp-bw'), expWhite: $('exp-white'), expMark: $('exp-mark'),
+        expEmpty: $('exp-empty'), expTitle: $('exp-title'), expLabels: $('exp-labels'), expSmart: $('exp-smart'), expBw: $('exp-bw'), expWhite: $('exp-white'), expMark: $('exp-mark'), expReveal: $('exp-reveal'), expSketch: $('exp-sketch'),
         printSheet: $('print-sheet'), printItems: $('print-items'), printPreview: $('print-preview'), printEmpty: $('print-empty'), printCount: $('print-count'),
         prHeader: $('pr-header'), prHeading: $('pr-heading'), prNumbers: $('pr-numbers'),
         tza: $('tikz-area'), fileInput: $('file-input'),
@@ -49,7 +49,7 @@
       bind(E.expH, 'h', v => Math.max(2, +v || 8));
       bind(E.expRange, 'range', v => v);
       bind(E.expDpi, 'dpi', v => +v);
-      ['Empty', 'Title', 'Labels', 'Smart', 'Bw', 'White', 'Mark'].forEach(k => bind(E['exp' + k], k.toLowerCase(), v => v));
+      ['Empty', 'Title', 'Labels', 'Smart', 'Bw', 'White', 'Mark', 'Reveal', 'Sketch'].forEach(k => bind(E['exp' + k], k.toLowerCase(), v => v));
 
       const optBind = (el, key) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
         this.printOpts[key] = el.type === 'checkbox' ? el.checked : el.value; this._savePrint(); this.renderPrintPreview();
@@ -83,12 +83,19 @@
       x.bw = this.style.bw;
       x.title = !!this.graphTitle;
       x.range = this.selectionRect ? 'selection' : 'view';
+      x.reveal = this.reveal;
       if (this.style.gridMode === 'karo') { x.sizeMode = 'scale'; x.ux = x.uy = this.style.karo * 0.5; }
+      // Verteilungen: Achsen in ganz verschiedenen Größenordnungen (k bis 100, P bis 0,1) – feste Größe statt Maßstab
+      else if (this.dists && this.dists.some(d => d.vis)) { if (x.sizeMode === 'scale') { x.sizeMode = 'fixed'; x.autoFixed = true; } }
+      else if (x.autoFixed) { x.sizeMode = 'scale'; x.autoFixed = false; }
       E.expUx.value = x.ux; E.expUy.value = x.uy; E.expW.value = x.w; E.expH.value = x.h;
       E.expRange.value = x.range; E.expRange.querySelector('[value="selection"]').disabled = !this.selectionRect;
       E.expDpi.value = String(x.dpi);
       E.expTitle.checked = x.title; E.expLabels.checked = x.labels; E.expSmart.checked = x.smart;
       E.expBw.checked = x.bw; E.expWhite.checked = x.white; E.expMark.checked = x.mark; E.expEmpty.checked = x.empty;
+      E.expReveal.checked = x.reveal; E.expSketch.checked = x.sketch;
+      E.expReveal.closest('.row').hidden = !this.fns.some(f => f.sol);
+      E.expSketch.closest('.row').hidden = !(this.sketches && this.sketches.length);
       this.setSegmented(E.expFormat, x.format);
       this.setSegmented(E.expSizeMode, x.sizeMode);
       this.openSheet('export-sheet');
@@ -168,7 +175,7 @@
         this._setFrame();
         this.rc = {
           labels: x.labels, smart: x.smart && !x.empty, title: x.title, mark: x.mark, bw: x.bw, empty: x.empty,
-          bg: x.white ? '#FFFFFF' : this._theme().plotBg, lightOverride: x.white && dark,
+          bg: x.white ? '#FFFFFF' : this._theme().plotBg, lightOverride: x.white && dark, reveal: !!x.reveal, sketch: x.sketch !== false,
         };
         this.repaint();
       } finally {
@@ -215,7 +222,8 @@
     _tikz(r) {
       const x = this.exp;
       const b = r ? r.bounds : this._exportBounds(x);
-      const deg = this.deg && !this.fns.some(f => f.vis && f.rad);
+      const shown = (f) => f.vis && (!f.sol || x.reveal);
+      const deg = this.deg && !this.fns.some(f => shown(f) && f.rad);
       const rad = (f, a) => (this.deg && !deg && !f.rad ? MathParser.radianize(a) : a);
       // Kurve abtasten (für numerische Funktionen und Spiegelbilder)
       const sample = (fn, f, param) => {
@@ -231,7 +239,7 @@
         return out;
       };
       const fns = [];
-      if (!x.empty) this.fns.filter(f => f.vis && f.f).forEach(f => {
+      if (!x.empty) this.fns.filter(f => shown(f) && f.f).forEach(f => {
         const bd = f.bounds ? f.bounds() : null;
         const members = f.members || [null];
         members.forEach((m, i) => {
@@ -296,6 +304,7 @@
         karo: this.style.gridMode === 'karo' ? this.style.karo : 0, grid: this.style.gridMode !== 'none',
         xStep: this.style.xStep ? MathParser.evalConst(this.style.xStep) : 0, yStep: this.style.yStep ? MathParser.evalConst(this.style.yStep) : 0,
         objects, datasets: x.empty ? [] : this.datasets.filter(d => d.vis), legend: false,
+        dists: x.empty || !this._tikzDists ? [] : this._tikzDists(b), sketches: x.empty || x.sketch === false || !this._tikzSketches ? [] : this._tikzSketches(),
       });
     },
 
@@ -334,7 +343,7 @@
 
     // Schnellkopie aus der Werkzeugleiste: wie am Bildschirm, ohne Wasserzeichen
     copyImage() {
-      const r = this.renderExport(this.exp, { sizeMode: 'screen', range: this.selectionRect ? 'selection' : 'view', smart: this.smartLabels, bw: this.style.bw, title: !!this.graphTitle });
+      const r = this.renderExport(this.exp, { sizeMode: 'screen', range: this.selectionRect ? 'selection' : 'view', smart: this.smartLabels, bw: this.style.bw, title: !!this.graphTitle, reveal: this.reveal, sketch: true });
       if (r.error) { this._toast(r.error); return; }
       this._copyPng(r, 192);
     },
@@ -516,9 +525,8 @@
           const st = JSON.parse(rd.result);
           if (!st || !Array.isArray(st.fns)) throw new Error();
           if (st.print && Array.isArray(st.print.items)) { this.printItems = st.print.items; Object.assign(this.printOpts, st.print.opts || {}); this._savePrint(); }
-          this.load(st);
-          this.commit();
-          this._toast('„' + file.name + '“ geöffnet');
+          const tab = this.openState ? this.openState(st) : (this.load(st), this.commit(), false);
+          this._toast('„' + file.name + '“ geöffnet' + (tab ? ' – in einem neuen Tab' : ''));
         } catch (e) {
           this._toast('Keine gültige Plotoria-Datei');
         }
