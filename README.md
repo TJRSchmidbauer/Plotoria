@@ -20,7 +20,7 @@ Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrk
 
 ### Neu in Version 3.1
 * 🗂️ **Tabs:** mehrere Graphen gleichzeitig bearbeiten, jeder mit eigenem Rückgängig-Verlauf – der Druckbogen sammelt aus allen Tabs.
-* 📚 **Aufgabenbibliothek Jgst. 8–13:** 53 Vorlagen nach Jahrgangsstufe und Thema (orientiert am LehrplanPLUS Gymnasium Bayern), mit Suche und Filter.
+* 📚 **Aufgabenbibliothek Jgst. 8–13:** 77 Vorlagen nach Jahrgangsstufe und Lernbereich (LehrplanPLUS Gymnasium Bayern), mit Suche und Filter; universelle Formate zusätzlich unter „Allgemein“.
 * 🎲 **Stochastik:** Binomialverteilung (Histogramm) und Normalverteilung (Glockenkurve) mit markiertem Bereich, P(X ≤ k), μ ± σ und Tabelle – `X ~ B(20; 0,3); P(X ≤ 4)`.
 * ✍️ **Skizzieren und prüfen:** Freihandskizzen mit Stift oder Finger; als Lösung verborgene Graphen mit „Lösung zeigen“ (L) samt Toleranzschlauch und Auswertung. Export wahlweise mit oder ohne Lösungen.
 
