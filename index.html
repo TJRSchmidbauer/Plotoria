@@ -452,6 +452,11 @@
       </div>
     </div>
     <div class="sheet-body lib-body">
+      <button class="gen-banner" id="gen-open">
+        <span class="gen-banner-icon"><i data-icon="wand"></i></span>
+        <span class="gen-banner-text"><strong>Graph-Generator</strong><span>Kurvendiskussion rückwärts: Funktionstyp wählen, Nullstellen, Extrema, Wendepunkte oder Punkte vorgeben – Plotoria bestimmt den Term.</span></span>
+        <span class="gen-banner-go">Öffnen</span>
+      </button>
       <details class="own-templates" id="own-templates">
         <summary><span>Eigene Vorlagen</span><small id="own-count"></small></summary>
         <div class="group-body form">
@@ -469,6 +474,57 @@
       <div id="template-grid"></div>
       <p class="hint lib-empty" id="lib-empty" hidden>Keine passende Vorlage – anderen Suchbegriff oder „Alle“ wählen.</p>
       <p class="hint">Die Zuordnung zu Jahrgangsstufen orientiert sich am LehrplanPLUS Mathematik für das bayerische Gymnasium. Mit „Lösung“ gekennzeichnete Vorlagen enthalten verborgene Graphen, die „Lösung zeigen“ (L) einblendet.</p>
+    </div>
+  </dialog>
+
+  <!-- ── Graph-Generator ── -->
+  <dialog class="sheet sheet-wide" id="gen-sheet" aria-labelledby="gen-title">
+    <div class="sheet-head">
+      <button class="link-btn" id="gen-back">‹ Vorlagen</button>
+      <h2 id="gen-title">Graph-Generator</h2>
+      <button class="link-btn link-strong" id="gen-apply">Übernehmen</button>
+    </div>
+    <div class="sheet-body gen-layout">
+      <div class="gen-left">
+        <section class="group">
+          <div class="group-head"><h3>Funktionstyp</h3></div>
+          <div class="segmented gen-types" id="gen-types" role="radiogroup" aria-label="Funktionstyp"></div>
+          <div class="group-body form gen-opts" id="gen-opts"></div>
+        </section>
+        <section class="group">
+          <div class="group-head"><h3>Vorgaben</h3>
+            <button class="btn btn-tinted btn-sm" id="gen-dice" title="Zufällige Vorgaben mit schönen Zahlen für den gewählten Typ"><i data-icon="dice"></i>Schöne Aufgabe würfeln</button></div>
+          <div class="group-body gen-conds" id="gen-conds"></div>
+          <div class="gen-add" id="gen-add"></div>
+          <p class="hint">Brüche wie <code>3/2</code> oder <code>-0,5</code> gehen; beim Sinus auch <code>pi/2</code>. Bei Hoch-, Tief- und Wendepunkten darf y leer bleiben (nur die Stelle ist vorgegeben).</p>
+        </section>
+      </div>
+      <div class="gen-right">
+        <div class="gen-preview" id="gen-preview"></div>
+        <div class="gen-term" id="gen-term" aria-live="polite"></div>
+        <section class="gen-free" id="gen-free" hidden>
+          <div class="gen-free-head"><strong>Freie Wahl</strong><button class="link-btn" id="gen-reset-free">Schönste Wahl</button></div>
+          <div id="gen-free-list"></div>
+          <p class="hint" id="gen-free-hint"></p>
+        </section>
+        <div class="gen-checks" id="gen-checks"></div>
+        <section class="group gen-out">
+          <div class="group-head"><h3>Übernehmen</h3><span class="gen-time" id="gen-time"></span></div>
+          <div class="group-body form">
+            <div class="row"><label for="gen-name">Name der Funktion</label><input type="text" id="gen-name" class="field field-mono" value="f" maxlength="1" style="width:48px"></div>
+            <div class="row"><label for="gen-label">Beschriftung des Graphen</label>
+              <select id="gen-label" class="field"><option value="name">G_f</option><option value="term">Funktionsterm</option><option value="none">keine</option></select></div>
+            <div class="row"><label for="gen-points">Punkte im Graphen</label>
+              <select id="gen-points" class="field"><option value="conds">Vorgaben (N, H, T, W …)</option><option value="smart">Kurvendiskussion (alle)</option><option value="none">keine</option></select></div>
+            <div class="row"><label for="gen-coords">Koordinaten anzeigen</label><input type="checkbox" class="switch" id="gen-coords" checked></div>
+            <div class="row"><label for="gen-asym-show">Asymptoten einzeichnen</label><input type="checkbox" class="switch" id="gen-asym-show" checked></div>
+            <div class="row"><label for="gen-karo">Karopapier</label><input type="checkbox" class="switch" id="gen-karo"></div>
+            <div class="row"><label>Ziel</label>
+              <div class="segmented segmented-sm" id="gen-target"><button data-value="tab" class="active">Neuer Tab</button><button data-value="here">Aktueller Tab</button><button data-value="add" title="Zum aktuellen Graphen hinzufügen">Hinzufügen</button></div></div>
+          </div>
+          <button class="btn btn-filled gen-apply-big" id="gen-apply-2"><i data-icon="check"></i>In Plotoria übernehmen</button>
+        </section>
+      </div>
     </div>
   </dialog>
 
@@ -490,6 +546,7 @@
         <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
         <tr><td>Funktion › <em>Stammfunktion anzeigen</em> / <em>Umkehrfunktion</em></td><td>F mit Konstante C (auch mehrere: <code>−1; 0; 1</code>) bzw. Spiegelung an y = x</td></tr>
         <tr><td>Funktion › <em>Als Lösung verbergen</em></td><td>Graph erst mit „Lösung zeigen“ (<kbd>L</kbd>) sichtbar</td></tr>
+        <tr><td>Vorlagen › <em>Graph-Generator</em></td><td>Funktionstyp und markante Punkte vorgeben (Nullstellen, Extrema, Wendepunkte, Polstellen …) – Plotoria bestimmt den Term</td></tr>
         <tr><td><code>X ~ B(20; 0,3)</code>, <code>X ~ N(100; 15)</code></td><td>Binomial- bzw. Normalverteilung; mit Bereich: <code>X ~ B(20; 0,3); P(X ≤ 4)</code></td></tr>
         <tr><td>Funktion › <em>Kurvendiskussion</em></td><td>Lösung als Text für Word, LaTeX oder den Druckbogen</td></tr>
         <tr><td>Integral-Symbol ∫</td><td>Fläche, Unter-, Ober- oder Mittelsumme mit n Rechtecken</td></tr>
@@ -568,11 +625,13 @@
   <script src="js/data.js"></script>
   <script src="js/export.js"></script>
   <script src="js/library.js"></script>
+  <script src="js/generator-math.js"></script>
   <script src="js/templates.js"></script>
   <script src="js/discussion.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/stochastik.js"></script>
   <script src="js/sketch.js"></script>
+  <script src="js/generator.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

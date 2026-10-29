@@ -1,6 +1,6 @@
 // Plotoria Service Worker: App-Dateien zwischenspeichern, damit Plotoria offline läuft.
 // Bei jeder Veröffentlichung CACHE erhöhen.
-const CACHE = 'plotoria-3.1.1';
+const CACHE = 'plotoria-3.1.2';
 const FILES = [
   './',
   'index.html',
@@ -14,6 +14,8 @@ const FILES = [
   "js/data.js",
   "js/discussion.js",
   "js/export.js",
+  "js/generator-math.js",
+  "js/generator.js",
   "js/icons.js",
   "js/library.js",
   "js/main.js",

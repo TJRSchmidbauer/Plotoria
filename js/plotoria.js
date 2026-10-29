@@ -251,7 +251,7 @@
       }
 
       // Module
-      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion', 'initTabs', 'initDists', 'initSketch'].forEach(n => this[n] && this[n]());
+      ['initObjects', 'initData', 'initExport', 'initTemplates', 'initDiscussion', 'initTabs', 'initDists', 'initSketch', 'initGenerator'].forEach(n => this[n] && this[n]());
 
       const st = this._loadStartupState();
       requestAnimationFrame(() => {
