@@ -34,6 +34,8 @@ const Icons = (() => {
     pen: '<path d="M14.5 5.5l4 4L8.5 19.5 3.5 20.5l1-5z"/><path d="M12.5 7.5l4 4"/>',
     search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    wand: '<path d="M4 20 15 9"/><path d="M14.5 4.5v2M18.5 8.5h2M17.3 5.7l1.4-1.4M13 9l2 2"/><path d="M8.5 4l.6 1.4L10.5 6l-1.4.6L8.5 8l-.6-1.4L6.5 6l1.4-.6zM19 13l.5 1.2 1.2.5-1.2.5L19 16.4l-.5-1.2-1.2-.5 1.2-.5z" fill="currentColor" stroke="none"/>',
+    dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
     integral: '<path d="M15.5 4.5c-1.5-1.5-4-.5-4 2v11c0 2.5-2.5 3.5-4 2"/>',
     derive: '<path d="M4 18c3 0 4-12 8-12s5 12 8 12"/><path d="M15 4l2 2 3-3" />',
     data: '<path d="M4 4v16h16"/><circle cx="8.5" cy="14.5" r="1.4" fill="currentColor"/><circle cx="12" cy="11" r="1.4" fill="currentColor"/><circle cx="16" cy="9.5" r="1.4" fill="currentColor"/><circle cx="18.5" cy="6" r="1.4" fill="currentColor"/>',

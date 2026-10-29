@@ -19,6 +19,7 @@ Plotoria ist ein webbasierter Funktionsplotter für Schule und Unterricht. Lehrk
 ## ✨ Hauptfunktionen
 
 ### Neu in Version 3.1
+* 🪄 **Graph-Generator:** Kurvendiskussion rückwärts – Funktionstyp wählen, Nullstellen, Extrema, Wende- und Terrassenpunkte, Polstellen oder Punkte vorgeben; Plotoria bestimmt den Term exakt, prüft die Vorgaben und schlägt schöne Varianten vor.
 * 🗂️ **Tabs:** mehrere Graphen gleichzeitig bearbeiten, jeder mit eigenem Rückgängig-Verlauf – der Druckbogen sammelt aus allen Tabs.
 * 📚 **Aufgabenbibliothek Jgst. 8–13:** 77 Vorlagen nach Jahrgangsstufe und Lernbereich (LehrplanPLUS Gymnasium Bayern), mit Suche und Filter; universelle Formate zusätzlich unter „Allgemein“.
 * 🎲 **Stochastik:** Binomialverteilung (Histogramm) und Normalverteilung (Glockenkurve) mit markiertem Bereich, P(X ≤ k), μ ± σ und Tabelle – `X ~ B(20; 0,3); P(X ≤ 4)`.
@@ -83,6 +84,8 @@ Projektaufbau:
 | `js/objects.js` | Punkte, Texte, Pfeile, senkrechte Geraden |
 | `js/data.js` | Wertetabelle mit Lücken, Messreihen |
 | `js/export.js` | Export in cm, Druckbogen, Projektdateien |
+| `js/generator-math.js` | Graph-Generator: Steckbriefaufgaben exakt lösen, prüfen, schöne Varianten (reine Mathematik) |
+| `js/generator.js` | Graph-Generator: Fenster, Vorschau, Übernehmen |
 | `js/library.js` | Aufgabenbibliothek (Vorlagen nach Jahrgangsstufe, reine Daten) |
 | `js/templates.js` | Bibliotheks-Fenster und eigene Vorlagen |
 | `js/tabs.js` | Tabs: mehrere Graphen, Speichern der Tabs |
