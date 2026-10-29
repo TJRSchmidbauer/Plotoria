@@ -72,3 +72,27 @@ test('PNG-Auflösung (pHYs)', () => {
   assert.strictEqual(Buffer.from(N.pngWithDpi(out, 150)).length, out.length);
   assert.strictEqual(N.crc32(Buffer.from('IEND')), 0xAE426082);
 });
+
+test('Normalverteilung: Φ und Dichte', () => {
+  const c = (a, b, e = 1e-9) => assert.ok(Math.abs(a - b) < e, `${a} ≉ ${b}`);
+  c(N.normCdf(0), 0.5);
+  c(N.normCdf(1) - N.normCdf(-1), 0.6826894921370859);
+  c(N.normCdf(2) - N.normCdf(-2), 0.9544997361036416);
+  c(N.normCdf(1.96), 0.9750021048517795);
+  c(N.normCdf(115, 100, 15), N.normCdf(1));
+  c(N.normCdf(-12), 0); c(N.normCdf(12), 1);
+  c(N.normPdf(0), 0.3989422804014327);
+  c(N.normPdf(100, 100, 15), 0.3989422804014327 / 15);
+});
+
+test('Binomialverteilung: Wahrscheinlichkeiten', () => {
+  const c = (a, b, e = 1e-9) => assert.ok(Math.abs(a - b) < e, `${a} ≉ ${b}`);
+  const pmf = N.binomPmf(10, 0.5);
+  c(pmf[5], 0.24609375);
+  c(pmf.reduce((s, v) => s + v, 0), 1);
+  c(N.binomProb(20, 0.3, null, 4), 0.2375077788776);
+  c(N.binomProb(20, 0.3, 4, 4), N.binomPmf(20, 0.3)[4]);
+  c(N.binomProb(100, 0.5, 40, 60), 0.9647997997822952, 1e-9);
+  c(N.binomProb(5, 0, 0, 0), 1); c(N.binomProb(5, 1, 5, null), 1);
+  c(N.binomPmf(1000, 0.3).reduce((s, v) => s + v, 0), 1, 1e-9);
+});

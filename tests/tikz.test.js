@@ -48,3 +48,23 @@ test('Import', () => {
   assert.strictEqual(r.degMode, false);
   assert.strictEqual(TikZ.parse('\\addplot {sin(x)};').degMode, true);   // pgfplots-Standard: Grad
 });
+
+test('TikZ: Verteilungen und Skizzen', () => {
+  const b = { xMin: -1, xMax: 21, yMin: -0.02, yMax: 0.25 };
+  const code = TikZ.generate([], b, {
+    dists: [
+      { type: 'binom', col: '#007AFF', mu: 6, sigma: 2.05, a: null, b: 4, bars: [{ k: 3, p: 0.07, on: true }, { k: 5, p: 0.18, on: false }], peak: 0.19, label: { x: 2, y: 0.15, text: 'P(X ≤ 4) ≈ 0,2375' } },
+      { type: 'normal', col: '#FF3B30', mu: 10, sigma: 2, a: 8, b: 12, sigmaLines: true, peak: 0.2 },
+    ],
+    sketches: [{ c: '#FF2D55', w: 3, p: [0, 0, 1, 0.1, 2, 0.05] }],
+  });
+  assert.match(code, /\\definecolor\{plotoriaV0\}\{HTML\}\{007AFF\}/);
+  assert.match(code, /\(axis cs:2\.5,0\) rectangle \(axis cs:3\.5,0\.07\)/);
+  assert.match(code, /fill opacity=0\.6\] \(axis cs:2\.5/);
+  assert.match(code, /\$P\(X \\le 4\) \\approx 0\{,\}2375\$/);
+  assert.match(code, /domain=8:12.*\\closedcycle/);
+  assert.match(code, /\$\\mu-\\sigma\$/);
+  assert.match(code, /line cap=round.*\(axis cs:0,0\) -- \(axis cs:1,0\.1\) -- \(axis cs:2,0\.05\)/);
+  assert.strictEqual(code.indexOf('\\definecolor{plotoriaV0}') < code.indexOf('\\begin{tikzpicture}'), true);
+  assert.strictEqual(TikZ.label('φ(x)'), '$\\varphi$(x)');
+});

@@ -26,10 +26,13 @@
       <div class="toolbar-brand">
         <img src="icons/icon.svg" alt="" class="brand-icon" width="26" height="26">
         <span class="brand-name">Plotoria</span>
-        <span class="brand-version">3.0</span>
+        <span class="brand-version">3.1</span>
       </div>
       <input type="text" id="header-title" class="title-field" placeholder="Titel der Grafik" maxlength="100" aria-label="Titel der Grafik">
-      <div class="toolbar-spacer"></div>
+      <div class="doc-tabs" id="doc-tabs">
+        <div class="doc-tab-list" id="doc-tab-list" role="tablist" aria-label="Geöffnete Graphen"></div>
+        <button class="doc-tab-add" id="doc-tab-add" title="Neuer Tab – weiterer Graph" aria-label="Neuer Tab"><i data-icon="plus"></i></button>
+      </div>
       <div class="toolbar-group">
         <button class="tb-btn" id="templates-btn" title="Aufgabenvorlagen"><i data-icon="templates"></i><span class="tb-label">Vorlagen</span></button>
         <button class="tb-btn" id="open-btn" title="Projekt öffnen (Strg+O)"><i data-icon="folder"></i></button>
@@ -68,8 +71,19 @@
               <button class="hud-step" id="int-n-plus" aria-label="Mehr Rechtecke">+</button>
             </span>
           </span>
+          <span id="sketch-ctl" class="sketch-ctl" hidden>
+            <span class="pen-swatches" role="radiogroup" aria-label="Stiftfarbe">
+              <button data-pen="auto" class="pen-swatch pen-auto active" title="Schwarz" aria-label="Schwarz"></button>
+              <button data-pen="#FF2D55" class="pen-swatch" style="--pen:#FF2D55" title="Rot" aria-label="Rot"></button>
+              <button data-pen="#007AFF" class="pen-swatch" style="--pen:#007AFF" title="Blau" aria-label="Blau"></button>
+            </span>
+            <button class="hud-btn" id="sketch-undo" title="Letzten Strich entfernen"><i data-icon="undo"></i></button>
+            <button class="hud-btn" id="sketch-clear" title="Alle Skizzen löschen"><i data-icon="trash"></i></button>
+          </span>
           <button id="tool-hint-close" class="hud-close" title="Beenden (Esc)"><i data-icon="close"></i></button>
         </div>
+        <button id="sol-toggle" class="hud sol-toggle" hidden aria-pressed="false" title="Als Lösung verborgene Graphen ein- oder ausblenden (L)"><i data-icon="eye"></i><span id="sol-toggle-text">Lösung zeigen</span></button>
+        <div id="check-result" class="hud check-result" hidden role="status"></div>
         <div class="tool-capsule" role="toolbar" aria-label="Werkzeuge">
           <div class="segmented segmented-tools" id="tool-seg" role="radiogroup" aria-label="Werkzeug">
             <button role="radio" data-tool="move" class="active" title="Verschieben &amp; Zoomen (V)"><i data-icon="move"></i></button>
@@ -78,6 +92,7 @@
             <button role="radio" data-tool="arrow" title="Pfeil zeichnen (A)"><i data-icon="arrow"></i></button>
             <button role="radio" data-tool="select" title="Bereich auswählen (B)"><i data-icon="select"></i></button>
             <button role="radio" data-tool="tangent" title="Tangente &amp; Normale (N)"><i data-icon="tangent"></i></button>
+            <button role="radio" data-tool="sketch" title="Skizzieren mit Stift oder Finger (S)"><i data-icon="pen"></i></button>
           </div>
           <span class="capsule-sep"></span>
           <button class="cap-btn" id="zoom-out" title="Herauszoomen (−)"><i data-icon="minus"></i></button>
@@ -148,6 +163,11 @@
               <div class="group-body list" id="obj-list"></div>
             </section>
 
+            <section class="group" id="dist-group" hidden>
+              <div class="group-head"><h3>Verteilungen</h3></div>
+              <div class="group-body list" id="dist-list"></div>
+            </section>
+
             <section class="group" id="data-group" hidden>
               <div class="group-head"><h3>Messreihen</h3></div>
               <div class="group-body list" id="data-list"></div>
@@ -180,6 +200,19 @@
               <button class="btn btn-tinted btn-sm" id="tbl-csv"><i data-icon="table"></i>CSV</button>
               <button class="btn btn-tinted btn-sm" id="tbl-print"><i data-icon="print"></i>Zum Druckbogen</button>
             </div>
+
+            <section class="group">
+              <div class="group-head"><h3>Wahrscheinlichkeitsverteilung</h3></div>
+              <div class="group-body form">
+                <div class="segmented" id="dn-type"><button data-value="binom" class="active">Binomial B(n; p)</button><button data-value="normal">Normal N(μ; σ)</button></div>
+                <div class="row" data-dist="binom"><label for="dn-n">n (Anzahl der Versuche)</label><input type="text" id="dn-n" class="field field-mono" value="20" inputmode="numeric"></div>
+                <div class="row" data-dist="binom"><label for="dn-p">p (Trefferwahrscheinlichkeit)</label><input type="text" id="dn-p" class="field field-mono" value="0,3" inputmode="decimal"></div>
+                <div class="row" data-dist="normal" hidden><label for="dn-mu">μ (Erwartungswert)</label><input type="text" id="dn-mu" class="field field-mono" value="100" inputmode="decimal"></div>
+                <div class="row" data-dist="normal" hidden><label for="dn-sigma">σ (Standardabweichung)</label><input type="text" id="dn-sigma" class="field field-mono" value="15" inputmode="decimal"></div>
+                <button class="btn btn-tinted" id="dn-add"><i data-icon="chart"></i>Ins Koordinatensystem</button>
+                <p class="hint">Auch in der Eingabezeile: <code>X ~ B(20; 0,3)</code>, <code>X ~ N(100; 15)</code> oder mit Bereich <code>X ~ B(20; 0,3); P(X ≤ 4)</code>.</p>
+              </div>
+            </section>
 
             <section class="group">
               <div class="group-head"><h3>Messwerte</h3></div>
@@ -307,6 +340,8 @@
             <div class="row"><label for="exp-bw">Schwarz-Weiß</label><input type="checkbox" class="switch" id="exp-bw"></div>
             <div class="row"><label for="exp-white">Weißer Hintergrund</label><input type="checkbox" class="switch" id="exp-white" checked></div>
             <div class="row"><label for="exp-mark">Wasserzeichen</label><input type="checkbox" class="switch" id="exp-mark"></div>
+            <div class="row"><label for="exp-reveal">Lösungen einblenden<small class="row-note">als Lösung verborgene Graphen – für das Lösungsblatt</small></label><input type="checkbox" class="switch" id="exp-reveal"></div>
+            <div class="row"><label for="exp-sketch">Skizzen</label><input type="checkbox" class="switch" id="exp-sketch" checked></div>
           </div>
         </section>
 
@@ -389,31 +424,38 @@
     </div>
   </dialog>
 
-  <!-- ── Vorlagen-Sheet ── -->
-  <dialog class="sheet" id="templates-sheet" aria-labelledby="tpl-title">
+  <!-- ── Vorlagen-Sheet: Aufgabenbibliothek ── -->
+  <dialog class="sheet sheet-wide" id="templates-sheet" aria-labelledby="tpl-title">
     <div class="sheet-head">
       <button class="link-btn" data-close>Abbrechen</button>
-      <h2 id="tpl-title">Aufgabenvorlagen</h2>
-      <span></span>
+      <h2 id="tpl-title">Aufgabenbibliothek</h2>
+      <span class="lib-count" id="lib-count"></span>
     </div>
-    <div class="sheet-body">
-      <p class="hint">Eine Vorlage ersetzt die aktuelle Zeichnung. Mit Rückgängig (Strg+Z) kommst du zurück.</p>
-      <section class="group own-templates">
-        <div class="group-head"><h3>Eigene Vorlagen</h3></div>
+    <div class="lib-bar">
+      <label class="lib-search"><i data-icon="search"></i><input type="search" id="lib-search" placeholder="Suchen – z. B. Parabel, Tangente, Hypothesentest" aria-label="Vorlagen durchsuchen" autocomplete="off"></label>
+      <div class="lib-bar-row">
+        <div class="segmented segmented-sm lib-grades" id="lib-grades" role="radiogroup" aria-label="Jahrgangsstufe"></div>
+        <label class="switch-label" title="Vorlage in einem neuen Tab öffnen – der aktuelle Graph bleibt erhalten"><span>In neuem Tab öffnen</span><input type="checkbox" class="switch" id="tpl-newtab" checked></label>
+      </div>
+    </div>
+    <div class="sheet-body lib-body">
+      <details class="own-templates" id="own-templates">
+        <summary><span>Eigene Vorlagen</span><small id="own-count"></small></summary>
         <div class="group-body form">
           <div class="row"><input type="text" id="tpl-name" class="field" placeholder="Name, z. B. „Parabel 9b – Schulaufgabe“" aria-label="Name der Vorlage">
             <button class="btn btn-tinted btn-sm" id="tpl-save">Aktuellen Stand sichern</button></div>
         </div>
-      </section>
-      <p class="hint" id="tpl-storage-hint"></p>
-      <div class="template-grid" id="own-template-grid"></div>
-      <div class="btn-row btn-row-wrap">
-        <button class="btn btn-gray btn-sm" id="tpl-export" title="Alle eigenen Vorlagen als Datei sichern, z. B. für Kolleginnen und Kollegen">Als Datei sichern</button>
-        <button class="btn btn-gray btn-sm" id="tpl-import">Aus Datei laden</button>
-        <input type="file" id="tpl-file" accept=".json,.plotoria-vorlagen,application/json" hidden>
-      </div>
-      <h3 class="section-title">Mitgelieferte Vorlagen</h3>
-      <div class="template-grid" id="template-grid"></div>
+        <p class="hint" id="tpl-storage-hint"></p>
+        <div class="template-grid" id="own-template-grid"></div>
+        <div class="btn-row btn-row-wrap">
+          <button class="btn btn-gray btn-sm" id="tpl-export" title="Alle eigenen Vorlagen als Datei sichern, z. B. für Kolleginnen und Kollegen">Als Datei sichern</button>
+          <button class="btn btn-gray btn-sm" id="tpl-import">Aus Datei laden</button>
+          <input type="file" id="tpl-file" accept=".json,.plotoria-vorlagen,application/json" hidden>
+        </div>
+      </details>
+      <div id="template-grid"></div>
+      <p class="hint lib-empty" id="lib-empty" hidden>Keine passende Vorlage – anderen Suchbegriff oder „Alle“ wählen.</p>
+      <p class="hint">Die Zuordnung zu Jahrgangsstufen orientiert sich am LehrplanPLUS Mathematik für das bayerische Gymnasium. Mit „Lösung“ gekennzeichnete Vorlagen enthalten verborgene Graphen, die „Lösung zeigen“ (L) einblendet.</p>
     </div>
   </dialog>
 
@@ -433,7 +475,9 @@
         <tr><td><code>f(x) = x^2 für x &lt; 1; 2x − 1 für x ≥ 1</code></td><td>Abschnittsweise definiert (auch <code>…; 3 sonst</code>), Sprungstellen mit ● / ○</td></tr>
         <tr><td><code>f_a(x) = a·x^2 für a = 1, 2, 3</code></td><td>Funktionsschar (auch <code>a ∈ {−1; 0; 1}</code>, <code>a = −2 … 2</code>)</td></tr>
         <tr><td><code>f'</code>, <code>f''</code></td><td>1. / 2. Ableitung von f (wird mitgeführt)</td></tr>
-        <tr><td>Funktion › <em>Stammfunktion</em> / <em>Umkehrfunktion</em></td><td>F mit Konstante C (auch mehrere: <code>−1; 0; 1</code>) bzw. Spiegelung an y = x</td></tr>
+        <tr><td>Funktion › <em>Stammfunktion anzeigen</em> / <em>Umkehrfunktion</em></td><td>F mit Konstante C (auch mehrere: <code>−1; 0; 1</code>) bzw. Spiegelung an y = x</td></tr>
+        <tr><td>Funktion › <em>Als Lösung verbergen</em></td><td>Graph erst mit „Lösung zeigen“ (<kbd>L</kbd>) sichtbar</td></tr>
+        <tr><td><code>X ~ B(20; 0,3)</code>, <code>X ~ N(100; 15)</code></td><td>Binomial- bzw. Normalverteilung; mit Bereich: <code>X ~ B(20; 0,3); P(X ≤ 4)</code></td></tr>
         <tr><td>Funktion › <em>Kurvendiskussion</em></td><td>Lösung als Text für Word, LaTeX oder den Druckbogen</td></tr>
         <tr><td>Integral-Symbol ∫</td><td>Fläche, Unter-, Ober- oder Mittelsumme mit n Rechtecken</td></tr>
         <tr><td><code>g(x) = f(x - 2) + 1</code></td><td>Andere Funktionen verwenden</td></tr>
@@ -446,7 +490,8 @@
       </table>
       <h3>Werkzeuge</h3>
       <table>
-        <tr><td><kbd>V</kbd> <kbd>P</kbd> <kbd>T</kbd> <kbd>A</kbd> <kbd>B</kbd> <kbd>N</kbd></td><td>Verschieben, Punkt, Text, Pfeil, Bereich, Tangente</td></tr>
+        <tr><td><kbd>V</kbd> <kbd>P</kbd> <kbd>T</kbd> <kbd>A</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>S</kbd></td><td>Verschieben, Punkt, Text, Pfeil, Bereich, Tangente, Skizze</td></tr>
+        <tr><td><kbd>L</kbd></td><td>Lösung zeigen / verbergen – mit Toleranzschlauch zur Skizze</td></tr>
         <tr><td>Doppelklick auf Text</td><td>Text bearbeiten</td></tr>
         <tr><td>Ziehen mit <kbd>Alt</kbd></td><td>Ohne Einrasten am Raster</td></tr>
       </table>
@@ -458,11 +503,12 @@
         <tr><td><kbd>Pos1</kbd>, <kbd>+</kbd> / <kbd>−</kbd></td><td>Ansicht zurücksetzen, Zoomen</td></tr>
         <tr><td><kbd>Entf</kbd></td><td>Ausgewähltes Objekt löschen</td></tr>
         <tr><td><kbd>?</kbd>, <kbd>Esc</kbd></td><td>Hilfe, Werkzeug / Dialog beenden</td></tr>
+        <tr><td>Tab: <kbd>+</kbd>, Mittelklick, <kbd>←</kbd> <kbd>→</kbd></td><td>Neuer Tab, Tab schließen, Tab wechseln (Tab-Leiste fokussiert)</td></tr>
       </table>
       <h3>Datenschutz</h3>
       <p class="hint">Plotoria verwendet keine Cookies und sendet keine Daten an Dritte. Beim Start fragt Plotoria, ob Arbeitsstand, Druckbogen, eigene Vorlagen und Offline-Dateien lokal in diesem Browser gespeichert werden dürfen. Ohne Zustimmung wird nichts gelesen oder gespeichert. Die Entscheidung gilt bis zum nächsten Start: <span id="consent-status"></span></p>
       <p class="hint"><a href="https://schmidbauer.io/impressum/" target="_blank" rel="noopener">Impressum</a> · <a href="https://schmidbauer.io/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a></p>
-      <p class="hint">Plotoria 3.0 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
+      <p class="hint">Plotoria 3.1 · Tobias Schmidbauer · CC BY-NC 4.0 · Mitgelieferte Bibliotheken: d3 (ISC), KaTeX (MIT), nerdamer (MIT) mit big.js (MIT) und BigInteger.js (Unlicense). Funktioniert auch offline, wenn die Seite einmal geöffnet wurde.</p>
     </div>
   </dialog>
 
@@ -501,8 +547,12 @@
   <script src="js/objects.js"></script>
   <script src="js/data.js"></script>
   <script src="js/export.js"></script>
+  <script src="js/library.js"></script>
   <script src="js/templates.js"></script>
   <script src="js/discussion.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/stochastik.js"></script>
+  <script src="js/sketch.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

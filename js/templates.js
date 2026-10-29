@@ -1,135 +1,9 @@
-// Plotoria 3.0 – Aufgabenvorlagen für Arbeitsblätter und Prüfungen
+// Plotoria 3.1 – Aufgabenbibliothek (Daten in library.js) und eigene Vorlagen
 (() => {
   const P = window.Plotoria;
   const $ = id => document.getElementById(id);
 
-  // fn(def, extra): Kurzschreibweise für Funktionen in Vorlagen
-  const fn = (s, extra) => ({ s, ...(extra || {}) });
-
-  const TEMPLATES = [
-    {
-      title: 'Graph ablesen',
-      text: 'Parabel auf Karopapier – Werte ablesen, Scheitel bestimmen.',
-      view: [-4, 4, -3, 5], style: { gridMode: 'karo', karo: 2 },
-      fns: [fn('f(x) = 0.5x^2 - 2')],
-    },
-    {
-      title: 'Graphen zuordnen',
-      text: 'Vier Graphen mit den Buchstaben A–D, ohne Funktionsterme.',
-      view: [-4, 4, -4, 4],
-      fns: [fn('f(x) = 0.5x + 1', { lm: 'custom', lt: 'A' }), fn('g(x) = -x^2 + 3', { lm: 'custom', lt: 'B' }),
-        fn('h(x) = 2^x - 3', { lm: 'custom', lt: 'C' }), fn('k(x) = 1/(x + 2)', { lm: 'custom', lt: 'D' })],
-    },
-    {
-      title: 'Ableitungsgraph skizzieren',
-      text: 'Graph von f gegeben; f′ ist als Lösung ausgeblendet hinterlegt.',
-      view: [-3, 3, -3, 3],
-      fns: [fn('f(x) = x^3/3 - x'), { d: [0, 1], h: 1, ds: 'dash' }],
-    },
-    {
-      title: 'Steigungsdreieck',
-      text: 'Gerade mit Steigungsdreieck zwischen zwei Gitterpunkten.',
-      view: [-2, 5, -1, 4], style: { gridMode: 'karo', karo: 2 },
-      fns: [fn('f(x) = 0.5x + 1')],
-      objs: [
-        { type: 'point', name: 'P', x: '0', y: '1', showCoords: true, showName: true, off: [-60, -10], col: '#FF3B30', vis: true },
-        { type: 'point', name: 'Q', x: '2', y: '2', showCoords: true, showName: true, off: [8, -10], col: '#FF3B30', vis: true },
-        { type: 'arrow', x1: 0, y1: 1, x2: 2, y2: 1, col: '#1C1C1E', vis: true, width: 1.5 },
-        { type: 'arrow', x1: 2, y1: 1, x2: 2, y2: 2, col: '#1C1C1E', vis: true, width: 1.5 },
-        { type: 'text', x: 0.7, y: 0.6, text: 'Δx = 2', col: '#1C1C1E', vis: true },
-        { type: 'text', x: 2.15, y: 1.4, text: 'Δy = 1', col: '#1C1C1E', vis: true },
-      ],
-    },
-    {
-      title: 'Kurvendiskussion',
-      text: 'Polynom 3. Grades mit Nullstellen, Extrema und Wendepunkt (exakt).',
-      view: [-3, 3, -3, 3], smart: true, style: { exact: true },
-      fns: [fn('f(x) = x^3 - 3x')],
-    },
-    {
-      title: 'Gebrochen-rationale Funktion',
-      text: 'Polstelle und schiefe Asymptote eingezeichnet.',
-      view: [-5, 7, -6, 10], smart: false,
-      fns: [fn('f(x) = (x^2 + 1)/(x - 1)', { as: 1 })],
-    },
-    {
-      title: 'Fläche unter dem Graphen',
-      text: 'Integral von 0 bis 2 als schraffierte Fläche.',
-      view: [-1, 3, -1, 5],
-      fns: [fn('f(x) = -x^2 + 4')],
-      after: (P) => { P._showIntegral(P.fns[0]); P.integral.a = 0; P.integral.b = 2; P.repaint(); },
-    },
-    {
-      title: 'Sinus im Gradmaß',
-      text: 'sin(x) von 0° bis 360°, x-Achse in 90°-Schritten.',
-      view: [-20, 380, -1.5, 1.5], deg: true, prop: false, style: { xStep: '90', yStep: '0.5' },
-      fns: [fn('f(x) = sin(x)')],
-    },
-    {
-      title: 'Trigonometrie im Bogenmaß',
-      text: 'sin und cos mit Achsenbeschriftung in Vielfachen von π.',
-      view: [-0.5, 7, -1.6, 1.6], prop: false, style: { xFmt: 'pi', xStep: 'pi/2', yStep: '0.5' },
-      fns: [fn('f(x) = sin(x)'), fn('g(x) = cos(x)', { ds: 'dash' })],
-    },
-    {
-      title: 'Wachstum (Sachaufgabe)',
-      text: 'Exponentielles Wachstum mit Einheiten an den Achsen und Definitionsbereich.',
-      view: [-0.8, 8.5, -5, 55], prop: false, style: { xLabel: 't in h', yLabel: 'N in Tausend', xStep: '1', yStep: '10' },
-      fns: [fn('N(t) = 2*1.5^t für 0 ≤ t ≤ 8', { lm: 'term' })],
-    },
-    {
-      title: 'Leeres Koordinatensystem',
-      text: 'Karopapier von −6 bis 6 – zum Selbstzeichnen.',
-      view: [-6, 6, -4, 4], style: { gridMode: 'karo', karo: 2 },
-      fns: [],
-    },
-    {
-      title: 'Messwerte & Ausgleichsgerade',
-      text: 'Messreihe mit linearer Regression – Werte im Daten-Tab ändern.',
-      view: [-0.5, 6.5, -1, 14], prop: false,
-      fns: [],
-      data: [{ name: 'Messreihe 1', pts: [[0, 1.1], [1, 3.2], [2, 4.8], [3, 7.1], [4, 8.9], [5, 11.2], [6, 12.8]], col: '#FF9500', vis: true, reg: 'linear' }],
-      after: (P) => { P.addRegression(P.datasets[0]); },
-    },
-    {
-      title: 'Parabel mit Parametern',
-      text: 'Scheitelpunktform mit Schiebereglern für a, b, c.',
-      view: [-5, 5, -4, 6],
-      fns: [fn('f(x) = a*(x - b)^2 + c', { lm: 'term' })],
-      params: { a: { v: 1, min: -3, max: 3 }, b: { v: 1, min: -4, max: 4 }, c: { v: -2, min: -4, max: 4 } },
-    },
-    {
-      title: 'Abschnittsweise definiert',
-      text: 'Funktion mit Sprungstelle – Randpunkte gefüllt bzw. offen.',
-      view: [-3, 4, -3, 4], style: { gridMode: 'karo', karo: 2 },
-      fns: [fn('f(x) = 0.5x^2 + 1 für x < 1; x - 2 für x ≥ 1')],
-    },
-    {
-      title: 'Funktionsschar',
-      text: 'f_a(x) = a·x² − 2 für mehrere a, jede Kurve beschriftet.',
-      view: [-3, 3, -3, 5],
-      fns: [fn('f_a(x) = a*x^2 - 2 für a = 0.5; 1; 2')],
-    },
-    {
-      title: 'Ober- und Untersumme',
-      text: 'Fläche mit Rechtecken annähern – Anzahl einstellbar.',
-      view: [-1, 5, -1, 6],
-      fns: [fn('f(x) = 0.25x^2 + 1')],
-      after: (P) => { P._showIntegral(P.fns[0]); Object.assign(P.integral, { a: 0, b: 4, mode: 'lower', n: 8 }); P._syncIntegralCtl(); P.repaint(); },
-    },
-    {
-      title: 'Umkehrfunktion',
-      text: 'Graph an y = x spiegeln; f⁻¹ gestrichelt.',
-      view: [-1, 5, -1, 5],
-      fns: [fn('f(x) = 0.5x^2 für x ≥ 0'), { i: 0, ds: 'dash' }],
-    },
-    {
-      title: 'Stammfunktionen',
-      text: 'Schar von Stammfunktionen F mit C = −1, 0, 1.',
-      view: [-3, 3, -3, 3],
-      fns: [fn('f(x) = x^2 - 1'), { a: [0, [-1, 0, 1]], ds: 'dash' }],
-    },
-  ];
+  const { TEMPLATES, GRADES } = PlotoriaLibrary;
 
   const TEMPLATE_KEY = 'plotoria-templates-v1';
 
@@ -164,7 +38,7 @@
     saveOwnTemplate() {
       const inp = $('tpl-name');
       const title = inp.value.trim() || this.graphTitle || 'Eigene Vorlage ' + (this.ownTemplates.length + 1);
-      if (!this.fns.length && !this.objs.length && !this.datasets.length) { this._toast('Noch nichts gezeichnet'); return; }
+      if (this.currentDocEmpty ? this.currentDocEmpty() : !this.fns.length) { this._toast('Noch nichts gezeichnet'); return; }
       const st = this.serialize();
       delete st.print;
       // kleine Vorschau
@@ -179,10 +53,11 @@
     },
 
     applyOwnTemplate(t) {
-      this.load(JSON.parse(JSON.stringify(t.state)));
+      const tab = this._openTemplateState(JSON.parse(JSON.stringify(t.state)));
       this.commit();
+      if (this.renderTabs) this.renderTabs();
       $('templates-sheet').close();
-      this._toast('Vorlage „' + t.title + '“ geladen – Strg+Z macht das rückgängig');
+      this._toast('Vorlage „' + t.title + '“ ' + (tab ? 'in neuem Tab geöffnet' : 'geladen – Strg+Z macht das rückgängig'));
     },
 
     removeOwnTemplate(id) {
@@ -198,6 +73,8 @@
         ? 'Eigene Vorlagen werden in diesem Browser gespeichert. Mit „Als Datei sichern“ lassen sie sich weitergeben oder auf einem anderen Gerät öffnen.'
         : 'Speichern ist abgelehnt: Eigene Vorlagen bleiben nur bis zum Schließen erhalten – bitte „Als Datei sichern“.';
       $('tpl-export').disabled = !this.ownTemplates.length;
+      $('own-count').textContent = this.ownTemplates.length ? String(this.ownTemplates.length) : 'sichern & weitergeben';
+      if (this.ownTemplates.length && !this._ownOpened) { $('own-templates').open = true; this._ownOpened = true; }
       this.ownTemplates.forEach((t) => {
         const c = document.createElement('div');
         c.className = 'template-card own'; c.tabIndex = 0; c.setAttribute('role', 'button');
@@ -242,17 +119,68 @@
 
     openTemplates() {
       this._renderOwnTemplates();
-      const grid = $('template-grid');
-      if (!grid.childElementCount) {
-        TEMPLATES.forEach((t, i) => {
+      $('tpl-newtab').checked = !this.currentDocEmpty();
+      if (!this._libInit) {
+        this._libInit = true;
+        this._libGrade = null;
+        const chips = $('lib-grades');
+        [{ id: null, label: 'Alle' }].concat(GRADES).forEach(g => {
           const b = document.createElement('button');
-          b.className = 'template-card';
-          b.innerHTML = this._templateThumb(t) + '<strong>' + P.esc(t.title) + '</strong><span>' + P.esc(t.text) + '</span>';
-          b.addEventListener('click', () => this.applyTemplate(i));
-          grid.appendChild(b);
+          b.dataset.value = g.id === null ? 'all' : String(g.id);
+          b.textContent = g.id > 0 ? g.label : g.label;
+          b.title = g.id > 0 ? 'Jahrgangsstufe ' + g.label : g.id === 0 ? 'Für alle Jahrgangsstufen' : 'Alle Vorlagen';
+          chips.appendChild(b);
+        });
+        this.setSegmented(chips, 'all');
+        this.segmented(chips, (v) => { this._libGrade = v === 'all' ? null : +v; this._renderLibrary(); });
+        $('lib-search').addEventListener('input', () => { clearTimeout(this._libT); this._libT = setTimeout(() => this._renderLibrary(), 80); });
+        $('lib-search').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { const c = $('template-grid').querySelector('.template-card'); if (c) { e.preventDefault(); c.click(); } }
         });
       }
+      this._renderLibrary();
       this.openSheet('templates-sheet');
+      if (window.matchMedia && !window.matchMedia('(pointer: coarse)').matches) setTimeout(() => $('lib-search').focus(), 50);
+    },
+
+    // Bibliothek nach Jahrgangsstufe und Thema gruppiert, gefiltert nach Suche und Stufe
+    _renderLibrary() {
+      const host = $('template-grid');
+      host.innerHTML = '';
+      const q = $('lib-search').value;
+      const list = TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => PlotoriaLibrary.matches(t, q, this._libGrade));
+      $('lib-empty').hidden = list.length > 0;
+      $('lib-count').textContent = list.length === TEMPLATES.length ? TEMPLATES.length + ' Vorlagen' : list.length + ' von ' + TEMPLATES.length;
+      GRADES.forEach(g => {
+        const inGrade = list.filter(({ t }) => t.grade === g.id);
+        if (!inGrade.length) return;
+        const sec = document.createElement('section'); sec.className = 'lib-grade';
+        const h = document.createElement('h3'); h.className = 'lib-grade-title';
+        h.innerHTML = g.id > 0 ? '<span class="grade-badge">' + g.label + '</span>Jahrgangsstufe ' + g.label : '<span class="grade-badge all">∗</span>Allgemein';
+        sec.appendChild(h);
+        const topics = [...new Set(inGrade.map(({ t }) => t.topic))];
+        topics.forEach(topic => {
+          const th = document.createElement('h4'); th.className = 'lib-topic'; th.textContent = topic;
+          const grid = document.createElement('div'); grid.className = 'template-grid';
+          inGrade.filter(({ t }) => t.topic === topic).forEach(({ t, i }) => {
+            const b = document.createElement('button');
+            b.className = 'template-card';
+            const tags = (t.fns || []).some(f => f.sol) ? '<em class="tpl-tag">mit Lösung</em>' : '';
+            b.innerHTML = this._templateThumb(t) + '<strong>' + P.esc(t.title) + '</strong><span>' + P.esc(t.text) + '</span>' + tags;
+            b.addEventListener('click', () => this.applyTemplate(i));
+            grid.appendChild(b);
+          });
+          sec.append(th, grid);
+        });
+        host.appendChild(sec);
+      });
+    },
+
+    // Vorlage laden: in neuem Tab (Schalter) oder im aktuellen
+    _openTemplateState(st) {
+      if ($('tpl-newtab').checked && this.newDoc && !this.currentDocEmpty()) { this.newDoc(st); return true; }
+      this.load(st);
+      return false;
     },
 
     _templateState(t) {
@@ -265,6 +193,7 @@
         fns: t.fns.map((f, i) => ({ l: f.d ? null : undefined, c: f.i !== undefined || f.a ? cols[(f.i ?? f.a[0]) % cols.length] : cols[i % cols.length], w: 3, ...f })),
         objs: (t.objs || []).map(o => ({ ...o })),
         data: (t.data || []).map(d => ({ ...d, pts: d.pts.map(p => p.slice()) })),
+        dists: (t.dists || []).map((d, i) => ({ col: cols[i % cols.length], ...d })),
       };
     },
 
@@ -278,48 +207,134 @@
       st.fns.forEach(f => {
         if (f.d) f.l = st.fns[f.d[0]].l + "'".repeat(f.d[1]);
         if (f.i !== undefined) f.l = st.fns[f.i].l + '⁻¹';
-        if (f.a) f.l = st.fns[f.a[0]].l.toUpperCase();
+        if (f.a) f.l = st.fns[f.a[0]].l.replace(/_[a-z]$/, '').toUpperCase();
       });
-      this.load(st);
+      if (!st.view) {   // Verteilungen: Fenster wird passend gewählt
+        st.view = [-1, 1, -1, 1]; st.home = st.view; st.prop = false;
+      }
+      const tab = this._openTemplateState(st);
+      if (!t.view && this.dists.length) this.fitDist(this.dists[this.dists.length - 1], true);
+      else if (t.view && st.prop) this._fitTemplateView(t.view);
       if (t.after) t.after(this);
+      if (this.toggleReveal) this.toggleReveal(false); else this.repaint();
       this.commit();
+      if (this.renderTabs) this.renderTabs();
       $('templates-sheet').close();
-      this._toast('Vorlage „' + t.title + '“ geladen – Strg+Z macht das rückgängig');
+      const sol = t.fns.some(f => f.sol) ? ' – Lösung mit „Lösung zeigen“ (L) einblenden' : ' – Strg+Z macht das rückgängig';
+      this._toast('„' + t.title + '“ ' + (tab ? 'in neuem Tab geöffnet' : 'geladen') + sol);
     },
 
-    // Kleine Vorschau als SVG (160 × 100)
+    // Gleiche Einheiten: ganzen y-Bereich der Vorlage zeigen und dafür den x-Bereich verbreitern
+    _fitTemplateView(v) {
+      const pw = this.W - this.pad.l - this.pad.r, ph = this.H - this.pad.t - this.pad.b;
+      if (!(pw > 0 && ph > 0)) return;
+      let [x0, x1] = v;
+      const [, , y0, y1] = v;
+      const need = (y1 - y0) * pw / ph;
+      if (need <= x1 - x0) return;
+      const m = (x0 + x1) / 2;
+      x0 = m - need / 2; x1 = m + need / 2;
+      this.setView({ xMin: x0, xMax: x1, yMin: y0, yMax: y1 }, { home: true });
+    },
+
+    // Kleine Vorschau als SVG (160 × 100); als Lösung verborgene Graphen werden nicht gezeigt
     _templateThumb(t) {
-      const W = 160, H = 100, [x0, x1, y0, y1] = t.view;
-      const sx = (x) => (x - x0) / (x1 - x0) * W, sy = (y) => H - (y - y0) / (y1 - y0) * H;
+      const W = 160, H = 100;
       const cols = this.themes.standard.colors;
+      let [x0, x1, y0, y1] = t.view || [-1, 1, 0, 1];
+      // Verteilungen: Bereich aus μ und σ
+      const dists = (t.dists || []).map(d => {
+        const mu = d.type === 'binom' ? d.n * d.p : d.mu, sg = d.type === 'binom' ? Math.sqrt(d.n * d.p * (1 - d.p)) : d.sigma;
+        return { ...d, mu, sg, pmf: d.type === 'binom' ? Numerics.binomPmf(d.n, d.p) : null };
+      });
+      if (!t.view && dists.length) {
+        x0 = Math.min(...dists.map(d => d.mu - 4 * d.sg)); x1 = Math.max(...dists.map(d => d.mu + 4 * d.sg));
+        y1 = Math.max(...dists.map(d => d.pmf ? Math.max(...d.pmf) : Numerics.normPdf(d.mu, d.mu, d.sg))) * 1.25; y0 = -y1 * 0.06;
+      }
+      const sx = (x) => (x - x0) / (x1 - x0) * W, sy = (y) => H - (y - y0) / (y1 - y0) * H;
+      const r1 = (v) => Math.round(v * 10) / 10;
       let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
       if (t.style && t.style.gridMode === 'karo') {
         for (let i = 0; i <= W; i += 8) s += `<line x1="${i}" y1="0" x2="${i}" y2="${H}" stroke="#C9D8E8" stroke-width="0.6"/>`;
         for (let i = 0; i <= H; i += 8) s += `<line x1="0" y1="${i}" x2="${W}" y2="${i}" stroke="#C9D8E8" stroke-width="0.6"/>`;
       }
-      s += `<line x1="0" y1="${sy(0)}" x2="${W}" y2="${sy(0)}" stroke="#1C1C1E" stroke-width="1"/><line x1="${sx(0)}" y1="0" x2="${sx(0)}" y2="${H}" stroke="#1C1C1E" stroke-width="1"/>`;
-      t.fns.forEach((f, i) => {
-        if (!f.s) return;
-        try {
-          const d = MathParser.parseDefinition(f.s);
-          const P0 = {};
-          Object.entries(t.params || {}).forEach(([k, p]) => { P0[k] = p.v; });
-          if (d.family) P0[d.family.p] = d.family.vals[d.family.vals.length - 1];
-          const g = MathParser.compile(MathParser.parseFunction(d, { variable: d.variable }), P0, { deg: !!t.deg });
-          const lo = d.domain && d.domain.min !== null ? MathParser.evalConst(d.domain.min) : -Infinity;
-          const hi = d.domain && d.domain.max !== null ? MathParser.evalConst(d.domain.max) : Infinity;
-          let path = '', pen = false;
-          for (let k = 0; k <= 160; k++) {
-            const x = x0 + (x1 - x0) * k / 160, y = g(x);
-            if (!isFinite(y) || x < lo || x > hi || y < y0 - (y1 - y0) || y > y1 + (y1 - y0)) { pen = false; continue; }
-            path += (pen ? 'L' : 'M') + sx(x).toFixed(1) + ',' + sy(y).toFixed(1);
-            pen = true;
+      const ax = Math.min(W, Math.max(0, sx(0))), ay = Math.min(H, Math.max(0, sy(0)));
+      s += `<line x1="0" y1="${r1(ay)}" x2="${W}" y2="${r1(ay)}" stroke="#1C1C1E" stroke-width="1"/><line x1="${r1(ax)}" y1="0" x2="${r1(ax)}" y2="${H}" stroke="#1C1C1E" stroke-width="1"/>`;
+      dists.forEach((d, i) => {
+        const col = cols[i % cols.length];
+        const on = (k) => (d.a != null || d.b != null) && (d.a == null || k >= d.a) && (d.b == null || k <= d.b);
+        if (d.pmf) {
+          const w = sx(1) - sx(0);
+          d.pmf.forEach((p, k) => {
+            if (k < x0 - 1 || k > x1 + 1) return;
+            s += `<rect x="${r1(sx(k - 0.5))}" y="${r1(sy(p))}" width="${r1(w)}" height="${r1(sy(0) - sy(p))}" fill="${col}" fill-opacity="${on(k) ? 0.75 : 0.22}"/>`;
+          });
+        } else {
+          let path = '';
+          for (let k = 0; k <= 80; k++) { const x = x0 + (x1 - x0) * k / 80; path += (k ? 'L' : 'M') + r1(sx(x)) + ',' + r1(sy(Numerics.normPdf(x, d.mu, d.sg))); }
+          if (d.a != null || d.b != null) {
+            const a = Math.max(x0, d.a == null ? -Infinity : d.a), b = Math.min(x1, d.b == null ? Infinity : d.b);
+            let area = `M${r1(sx(a))},${r1(sy(0))}`;
+            for (let k = 0; k <= 40; k++) { const x = a + (b - a) * k / 40; area += 'L' + r1(sx(x)) + ',' + r1(sy(Numerics.normPdf(x, d.mu, d.sg))); }
+            s += `<path d="${area}L${r1(sx(b))},${r1(sy(0))}Z" fill="${col}" fill-opacity="0.3"/>`;
           }
-          s += `<path d="${path}" fill="none" stroke="${cols[i % cols.length]}" stroke-width="2"${f.ds ? ' stroke-dasharray="4,3"' : ''}/>`;
+          s += `<path d="${path}" fill="none" stroke="${col}" stroke-width="2"/>`;
+        }
+      });
+      // Funktionen (auch Ableitungen und Spiegelungen), ohne verborgene Lösungen
+      const P0 = {};
+      Object.entries(t.params || {}).forEach(([k, p]) => { P0[k] = p.v; });
+      const asts = [];
+      const draw = (g, col, dash, swap) => {
+        let path = '', pen = false;
+        const lo = swap ? y0 : x0, hi = swap ? y1 : x1;
+        for (let k = 0; k <= 160; k++) {
+          const u = lo + (hi - lo) * k / 160, v = g(u);
+          const x = swap ? v : u, y = swap ? u : v;
+          if (!isFinite(v) || y < y0 - (y1 - y0) || y > y1 + (y1 - y0)) { pen = false; continue; }
+          path += (pen ? 'L' : 'M') + r1(sx(x)) + ',' + r1(sy(y));
+          pen = true;
+        }
+        s += `<path d="${path}" fill="none" stroke="${col}" stroke-width="2"${dash ? ' stroke-dasharray="4,3"' : ''}/>`;
+      };
+      t.fns.forEach((f, i) => {
+        try {
+          if (f.s) {
+            const d = MathParser.parseDefinition(f.s);
+            const ast = MathParser.parseFunction(d, { variable: d.variable });
+            asts[i] = { ast, d };
+            if (f.sol || f.h) return;
+            const vals = d.family ? d.family.vals : [null];
+            vals.forEach(v => {
+              const P1 = { ...P0 };
+              if (d.family) P1[d.family.p] = v;
+              const g0 = MathParser.compile(ast, P1, { deg: !!t.deg });
+              const lo = d.domain && d.domain.min !== null ? MathParser.evalConst(d.domain.min) : -Infinity;
+              const hi = d.domain && d.domain.max !== null ? MathParser.evalConst(d.domain.max) : Infinity;
+              draw((x) => (x < lo || x > hi ? NaN : g0(x)), cols[i % cols.length], !!f.ds);
+            });
+          } else if (!f.sol && !f.h && f.d && asts[f.d[0]]) {
+            let a = asts[f.d[0]].ast;
+            for (let k = 0; k < f.d[1] && a; k++) a = MathParser.derivative(a);
+            if (a) draw(MathParser.compile(a, P0, { deg: !!t.deg }), cols[i % cols.length], !!f.ds);
+          } else if (!f.sol && !f.h && f.i !== undefined && asts[f.i]) {
+            const { ast, d } = asts[f.i];
+            const g0 = MathParser.compile(ast, P0, { deg: !!t.deg });
+            const lo = d.domain && d.domain.min !== null ? MathParser.evalConst(d.domain.min) : -Infinity;
+            // Spiegelbild an y = x: Punkte (f(u) | u)
+            const N = 400, a0 = Math.max(lo, Math.min(x0, y0) - (x1 - x0)), a1 = Math.max(x1, y1) + (x1 - x0);
+            let path = '', pen = false;
+            for (let k = 0; k <= N; k++) {
+              const u = a0 + (a1 - a0) * k / N, X = g0(u), Y = u;
+              if (!isFinite(X) || X < x0 - 1 || X > x1 + 1 || Y < y0 - 1 || Y > y1 + 1) { pen = false; continue; }
+              path += (pen ? 'L' : 'M') + r1(sx(X)) + ',' + r1(sy(Y)); pen = true;
+            }
+            s += `<path d="${path}" fill="none" stroke="${cols[f.i % cols.length]}" stroke-width="2" stroke-dasharray="4,3"/>`;
+          }
         } catch (e) { /* Vorschau überspringen */ }
       });
-      (t.data || []).forEach(ds => ds.pts.forEach(([x, y]) => { s += `<circle cx="${sx(x)}" cy="${sy(y)}" r="2" fill="${ds.col}"/>`; }));
-      (t.objs || []).filter(o => o.type === 'point').forEach(o => { s += `<circle cx="${sx(+o.x)}" cy="${sy(+o.y)}" r="2.5" fill="#FF3B30"/>`; });
+      (t.data || []).forEach(ds => ds.pts.forEach(([x, y]) => { s += `<circle cx="${r1(sx(x))}" cy="${r1(sy(y))}" r="2" fill="${ds.col}"/>`; }));
+      (t.objs || []).filter(o => o.type === 'point').forEach(o => { s += `<circle cx="${r1(sx(+o.x))}" cy="${r1(sy(+o.y))}" r="2.5" fill="#FF3B30"/>`; });
       return s + '</svg>';
     },
   });

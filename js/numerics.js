@@ -365,7 +365,52 @@ const Numerics = (() => {
     return res;
   }
 
-  return { exact, rational, simpson, antiderivative, polyfit, regression, parseData, obliqueAsymptote, verticalAsymptotes, pngWithDpi, crc32 };
+  // ── Stochastik: Binomial- und Normalverteilung ──
+  // Φ(z) über die Reihe von Marsaglia (absolut genau auf etwa 1e-15)
+  function normCdf(z, mu = 0, sigma = 1) {
+    z = (z - mu) / sigma;
+    if (!isFinite(z)) return z > 0 ? 1 : z < 0 ? 0 : NaN;
+    if (z < -9) return 0;
+    if (z > 9) return 1;
+    let s = z, t = z;
+    const b = z * z;
+    for (let i = 3; i < 1000; i += 2) {
+      t = t * b / i;
+      s += t;
+      if (Math.abs(t) < 1e-17 * Math.abs(s)) break;
+    }
+    return Math.min(1, Math.max(0, 0.5 + s * Math.exp(-0.5 * b - 0.91893853320467274178)));
+  }
+
+  function normPdf(x, mu = 0, sigma = 1) {
+    const z = (x - mu) / sigma;
+    return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+  }
+
+  // P(X = k) für k = 0 … n, über Logarithmen (auch für große n stabil)
+  function binomPmf(n, p) {
+    n = Math.round(n);
+    const out = new Array(n + 1).fill(0);
+    if (!(n >= 0) || !(p >= 0 && p <= 1)) return out;
+    if (p === 0) { out[0] = 1; return out; }
+    if (p === 1) { out[n] = 1; return out; }
+    const lf = [0];
+    for (let i = 1; i <= n; i++) lf[i] = lf[i - 1] + Math.log(i);
+    const lp = Math.log(p), lq = Math.log(1 - p);
+    for (let k = 0; k <= n; k++) out[k] = Math.exp(lf[n] - lf[k] - lf[n - k] + k * lp + (n - k) * lq);
+    return out;
+  }
+
+  // P(a ≤ X ≤ b) einer B(n; p)-verteilten Zufallsgröße (a, b ganzzahlig, null = offen)
+  function binomProb(n, p, a, b) {
+    const pmf = binomPmf(n, p);
+    const lo = Math.max(0, a == null ? 0 : Math.ceil(a - 1e-9)), hi = Math.min(n, b == null ? n : Math.floor(b + 1e-9));
+    let s = 0;
+    for (let k = lo; k <= hi; k++) s += pmf[k];
+    return Math.min(1, s);
+  }
+
+  return { normCdf, normPdf, binomPmf, binomProb, exact, rational, simpson, antiderivative, polyfit, regression, parseData, obliqueAsymptote, verticalAsymptotes, pngWithDpi, crc32 };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = Numerics;
