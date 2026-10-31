@@ -12,6 +12,7 @@
 - **Stammfunktion als Schalter:** „Stammfunktion anzeigen“ in den Einstellungen jeder Funktion blendet F ein und aus.
 
 ### Fehlerbehebungen
+- **Hinweis zur Speicherung:** nennt jetzt, dass Plotoria über GitHub Pages ausgeliefert wird und dafür die Datenschutzbestimmungen von GitHub gelten (auch in der Hilfe). Externe Links geben keine Herkunftsadresse (Referrer) mehr weiter.
 - **Projekt sichern:** Der Offline-Speicher (Service Worker) fing den Download ab; im neuen Tab erschien dann ein Fehler. Downloads werden jetzt nicht mehr abgefangen.
 - Bei „Gleichen Einheiten“ schnitten Vorlagen je nach Bildschirmformat oben und unten ab (z. B. „Fläche unter dem Graphen“). Jetzt wird der ganze y-Bereich gezeigt und dafür der x-Bereich verbreitert.
 - Termbeschriftungen verwenden die Variable der Definition: `h(t) = −5t² + …` statt `h(x) = …`.
