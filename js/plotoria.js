@@ -5,11 +5,11 @@
   const MP = MathParser;
 
   const VERSION = '3.1';
-  const COLORS = ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FF2D55', '#5856D6'];
+  const COLORS = ['#A0502C', '#2F6B8A', '#5E7F2E', '#B27A12', '#7A4E9A', '#2E8B83', '#B8405E', '#5B5F97'];
   const STORAGE_KEY = 'plotoria-state-v1';
   const DEFAULT_VIEW = { xMin: -4, xMax: 5, yMin: -10, yMax: 10 };
   const DEFAULT_STYLE = {
-    gridWidth: 1, gridColor: '#D1D1D6', axisWidth: 2, axisColor: '#1C1C1E', fontSize: 14, labelSize: 18,
+    gridWidth: 1, gridColor: '#DDD3C8', axisWidth: 2, axisColor: '#2E2A28', fontSize: 14, labelSize: 18,
     xLabel: 'x', yLabel: 'y', xStep: '', yStep: '', xFmt: 'dec', yFmt: 'dec', sub: 'auto',
     gridMode: 'grid', karo: 2, bw: false, exact: false,
   };
@@ -1380,8 +1380,8 @@
       }
       // Klammer über der ersten Einheit
       const x1 = 12, x2 = 12 + k * box;
-      g += `<path d="M${x1},${y0 + 24}V${y0 + 28}H${x2}V${y0 + 24}" fill="none" stroke="#007AFF" stroke-width="1.5"/>`;
-      g += `<text x="${12}" y="${y0 + 42}" font-size="11.5" fill="#007AFF">von 0 bis 1: ${k} ${k === 1 ? 'Kästchen' : 'Kästchen'} = ${cm} cm</text>`;
+      g += `<path d="M${x1},${y0 + 24}V${y0 + 28}H${x2}V${y0 + 24}" fill="none" style="stroke:var(--accent)" stroke-width="1.5"/>`;
+      g += `<text x="${12}" y="${y0 + 42}" font-size="11.5" style="fill:var(--accent)">von 0 bis 1: ${k} ${k === 1 ? 'Kästchen' : 'Kästchen'} = ${cm} cm</text>`;
       el.innerHTML = `<svg viewBox="0 0 ${W} ${y0 + 48}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, sans-serif">${g}</svg>`;
     },
 
@@ -1607,7 +1607,7 @@
       const karoDefault = s.gridMode === 'karo' && s.gridColor === this._theme().style.gridColor;
       if (c.bw) return { axis: '#000000', grid: s.gridMode === 'karo' ? '#9DB0C4' : '#BDBDBD' };
       // Export mit weißem Hintergrund im dunklen Thema: helle Achsenfarben wären unsichtbar
-      if (this.rc && this.rc.lightOverride) return { axis: '#1C1C1E', grid: s.gridMode === 'karo' ? '#A9C1DA' : '#D1D1D6' };
+      if (this.rc && this.rc.lightOverride) return { axis: '#2E2A28', grid: s.gridMode === 'karo' ? '#A9C1DA' : '#DDD3C8' };
       if (karoDefault) return { axis: s.axisColor, grid: this._theme().dark ? '#33475E' : '#A9C1DA' };
       return { axis: s.axisColor, grid: s.gridColor };
     },
@@ -1800,7 +1800,7 @@
         const [y0, y1] = this.ys.domain();
         const a = Math.max(x0, Math.min(y0, y1)), b = Math.min(x1, Math.max(y0, y1));
         if (b > a) {
-          const col = this._ctx().bw ? '#000' : '#8E8E93';
+          const col = this._ctx().bw ? '#000' : '#8C8279';
           g.append('line').attr('x1', this.xs(a)).attr('y1', this.ys(a)).attr('x2', this.xs(b)).attr('y2', this.ys(b))
             .attr('stroke', col).attr('stroke-width', 1.5).attr('stroke-dasharray', '6,5');
           const m = a + (b - a) * 0.88, lx = this.xs(m) + 6, ly = this.ys(m) + 6;
@@ -2018,7 +2018,7 @@
       const fs = Math.max(11, this.style.fontSize * 0.8);
       const inside = (px, py) => px >= this.PL && px <= this.PR && py >= this.PT && py <= this.PB;
       const bw = this._ctx().bw;
-      const W_COLOR = bw ? '#000' : '#AF52DE';
+      const W_COLOR = bw ? '#000' : (this._theme().dark ? '#C3A2DB' : '#7A4E9A');
       const below = { Min: 1, W: 1 };
       const draw = (key, x, y, col, parts, type) => {
         const px = this.xs(x), py = this.ys(y);
@@ -2069,7 +2069,7 @@
 
       const [x0, x1] = this.xs.domain();
       const N = 600, dx = (x1 - x0) / N;
-      const sc = bw ? '#000' : '#8E8E93';
+      const sc = bw ? '#000' : '#8C8279';
       for (let i = 0; i < vis.length; i++) {
         for (let j = i + 1; j < vis.length; j++) {
           const fi = vis[i].f, fj = vis[j].f;
@@ -2146,7 +2146,7 @@
       const w = Math.abs(s.x1 - s.x0), h = Math.abs(s.y1 - s.y0);
       if (w < 1 || h < 1) return;
       this.root.append('rect').attr('x', x).attr('y', y).attr('width', w).attr('height', h).attr('rx', 4)
-        .attr('fill', '#007AFF').attr('fill-opacity', 0.08).attr('stroke', '#007AFF').attr('stroke-width', 1.5).attr('stroke-dasharray', '6,4');
+        .attr('fill', this._selCol()).attr('fill-opacity', 0.1).attr('stroke', this._selCol()).attr('stroke-width', 1.5).attr('stroke-dasharray', '6,4');
     },
 
     paintTitle() {
@@ -2517,25 +2517,27 @@
     themes: {
       auto: {},
       standard: {
-        colors: ['#007AFF', '#FF3B30', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FF2D55', '#5856D6'],
-        plotBg: '#FFFFFF', title: '#1C1C1E',
-        style: { axisColor: '#1C1C1E', gridColor: '#D1D1D6', axisWidth: 2, gridWidth: 1 },
+        colors: ['#A0502C', '#2F6B8A', '#5E7F2E', '#B27A12', '#7A4E9A', '#2E8B83', '#B8405E', '#5B5F97'],
+        plotBg: '#FFFFFF', title: '#2E2A28',
+        style: { axisColor: '#2E2A28', gridColor: '#DDD3C8', axisWidth: 2, gridWidth: 1 },
       },
       projektor: {
-        colors: ['#0040DD', '#D70015', '#248A3D', '#C93400', '#8944AB', '#0071A4', '#D30F45', '#3634A3'],
+        colors: ['#8A3A1C', '#1F5673', '#476B1F', '#8F5F00', '#633A82', '#1B6F68', '#A02848', '#454A86'],
         plotBg: '#FFFFFF', title: '#000000',
-        style: { axisColor: '#000000', gridColor: '#AEAEB2', axisWidth: 3, gridWidth: 1.5 },
+        style: { axisColor: '#000000', gridColor: '#B5ABA0', axisWidth: 3, gridWidth: 1.5 },
       },
       dunkel: {
-        colors: ['#0A84FF', '#FF453A', '#30D158', '#FF9F0A', '#BF5AF2', '#64D2FF', '#FF375F', '#5E5CE6'],
-        plotBg: '#1C1C1E', title: '#F2F2F7', dark: true,
-        style: { axisColor: '#E5E5EA', gridColor: '#3A3A3C', axisWidth: 2, gridWidth: 1 },
+        colors: ['#F6B48F', '#7FB7D0', '#E8836B', '#B5CC7A', '#C3A2DB', '#E6C26A', '#86CBC4', '#E58FB0'],
+        plotBg: '#2E2A28', title: '#FBF4EC', dark: true,
+        style: { axisColor: '#FBF4EC', gridColor: '#4A443F', axisWidth: 2, gridWidth: 1 },
       },
     },
 
     _systemDark() { return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); },
     _themeKey(name) { return name === 'auto' ? (this._systemDark() ? 'dunkel' : 'standard') : name; },
     _theme() { return this.themes[this._themeKey(this.theme)] || this.themes.standard; },
+    // Auswahl-/Hilfsfarbe im Plot: Text-Akzent (hell) bzw. Apricot (dunkel)
+    _selCol() { return this._theme().dark ? '#F6B48F' : '#A0502C'; },
 
     _applyThemeColors(name) {
       const t = this.themes[this._themeKey(name)];

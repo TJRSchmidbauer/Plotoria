@@ -332,7 +332,7 @@
       const isPi = r && r.piAxis && spec.type === 'sine';
       const xs = isPi ? Math.PI / 2 : step(x1 - x0, W - pad.l - pad.r), ys = step(y1 - y0, H - pad.t - pad.b);
       const dark = this._theme().dark;
-      const C = { grid: dark ? '#3A3A3C' : '#E5E5EA', axis: dark ? '#E5E5EA' : '#1C1C1E', text: dark ? '#AEAEB2' : '#636366', curve: '#007AFF', ok: '#34C759', warn: '#FF9500', extra: dark ? '#8E8E93' : '#8E8E93' };
+      const C = { grid: dark ? '#4A443F' : '#E6DDD3', axis: dark ? '#FBF4EC' : '#2E2A28', text: dark ? '#CFC3B7' : '#6B625B', curve: dark ? '#F6B48F' : '#A0502C', ok: '#34C759', warn: '#FF9500', extra: '#8C8279' };
       let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif" font-size="11">`;
       s += `<defs><clipPath id="gen-clip"><rect x="${pad.l}" y="${pad.t}" width="${W - pad.l - pad.r}" height="${H - pad.t - pad.b}"/></clipPath></defs>`;
       const ax = Math.min(Math.max(sx(0), pad.l), W - pad.r), ay = Math.min(Math.max(sy(0), pad.t), H - pad.b);
@@ -378,13 +378,13 @@
         const x = G.num(c.x), y = c.kind === 'zero' ? 0 : c.y === '' || c.y == null ? r.model.f(x) : G.num(c.y);
         if (!isFinite(x) || !isFinite(y) || x < x0 || x > x1 || y < y0 || y > y1) return;
         const col = it.ok ? C.curve : C.warn;
-        s += `<circle cx="${sx(x)}" cy="${sy(y)}" r="5" fill="${col}" stroke="${dark ? '#1C1C1E' : '#fff'}" stroke-width="1.6"/>`;
+        s += `<circle cx="${sx(x)}" cy="${sy(y)}" r="5" fill="${col}" stroke="${dark ? '#2E2A28' : '#fff'}" stroke-width="1.6"/>`;
         const lab = { max: 'H', min: 'T', vertex: 'S', inflect: 'W', terrace: 'TP', zero: '', point: '' }[c.kind];
         if (lab) s += `<text x="${sx(x) + 7}" y="${sy(y) - 7}" fill="${col}" font-weight="700" font-size="12">${lab}</text>`;
       });
       r.checks.filter(it => it.c.kind === 'hole').forEach(it => {
         const x = G.num(it.c.x), y = this._holeY(r, x);
-        if (isFinite(y)) s += `<circle cx="${sx(x)}" cy="${sy(y)}" r="4.5" fill="${dark ? '#1C1C1E' : '#fff'}" stroke="${C.curve}" stroke-width="2"/>`;
+        if (isFinite(y)) s += `<circle cx="${sx(x)}" cy="${sy(y)}" r="4.5" fill="${dark ? '#2E2A28' : '#fff'}" stroke="${C.curve}" stroke-width="2"/>`;
       });
       return s + '</svg>';
     },

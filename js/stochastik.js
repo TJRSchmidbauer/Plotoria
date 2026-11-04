@@ -114,7 +114,7 @@
     addDistDef(c) { this.addDist(c.dist); return {}; },
 
     _distDefaults(o) {
-      return { name: 'X', a: null, b: null, showP: true, sigmaLines: false, approx: false, vis: true, col: '#007AFF', n: 10, p: 0.5, mu: 0, sigma: 1, ...o };
+      return { name: 'X', a: null, b: null, showP: true, sigmaLines: false, approx: false, vis: true, col: '#A0502C', n: 10, p: 0.5, mu: 0, sigma: 1, ...o };
     },
 
     addDist(o) {
@@ -242,7 +242,7 @@
           if (reg.length) regionX = (reg[0] + reg[reg.length - 1]) / 2;
           if (d.approx && sigma > 0) {
             const pts = curve(mu, sigma, -Infinity, Infinity);
-            if (pts) clip.append('path').attr('d', path(pts)).attr('fill', 'none').attr('stroke', bw ? '#000' : (d.col.toUpperCase() === '#FF3B30' ? '#007AFF' : '#FF3B30'))
+            if (pts) clip.append('path').attr('d', path(pts)).attr('fill', 'none').attr('stroke', bw ? '#000' : (d.col.toUpperCase() === '#FF3B30' ? '#2F6B8A' : '#FF3B30'))
               .attr('stroke-width', 2.2).attr('stroke-dasharray', '7,5');
           }
         } else {
@@ -273,7 +273,7 @@
           [[mu, 'μ', null], [mu - sigma, 'μ − σ', '5,4'], [mu + sigma, 'μ + σ', '5,4']].forEach(([x, lab, dash]) => {
             const yt = ys(h === null ? N.normPdf(x, mu, sigma) : h);
             clip.append('line').attr('x1', xs(x)).attr('x2', xs(x)).attr('y1', y0).attr('y2', yt)
-              .attr('stroke', bw ? '#000' : '#8E8E93').attr('stroke-width', 1.3).attr('stroke-dasharray', dash);
+              .attr('stroke', bw ? '#000' : '#8C8279').attr('stroke-width', 1.3).attr('stroke-dasharray', dash);
             if (xs(x) > this.PL && xs(x) < this.PR) this._halo(g.append('text').attr('x', xs(x)).attr('y', Math.max(this.PT + fs, yt - 6))
               .attr('text-anchor', 'middle').attr('font-size', fs * 0.85).attr('font-style', 'italic').attr('fill', bw ? '#000' : '#636366')).text(lab);
           });

@@ -285,7 +285,7 @@
         });
         if (f.inv && f.diag !== false) {
           const a = Math.max(b.xMin, b.yMin), c = Math.min(b.xMax, b.yMax);
-          if (c > a) fns.push({ letter: 'y=x', col: '#8E8E93', strokeWidth: 1.2, dash: 'dash', params: {}, ast: { t: 'var', n: 'x' }, lo: a, hi: c, dots: [], diag: true });
+          if (c > a) fns.push({ letter: 'y=x', col: '#8C8279', strokeWidth: 1.2, dash: 'dash', params: {}, ast: { t: 'var', n: 'x' }, lo: a, hi: c, dots: [], diag: true });
         }
       });
       const list = fns;

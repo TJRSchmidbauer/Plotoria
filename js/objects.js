@@ -76,10 +76,10 @@
     },
 
     addObj(o) {
-      const base = { id: this.nextId++, vis: true, col: this._theme().dark ? '#E5E5EA' : '#1C1C1E' };
+      const base = { id: this.nextId++, vis: true, col: this._theme().dark ? '#FBF4EC' : '#2E2A28' };
       if (o.type === 'point') Object.assign(base, { showCoords: true, showName: true, off: [8, -10], col: '#FF3B30' });
       if (o.type === 'text') Object.assign(base, { size: Math.round(this.style.fontSize * 1.15) });
-      if (o.type === 'vline') Object.assign(base, { dash: 'dash', showEq: true, col: '#8E8E93' });
+      if (o.type === 'vline') Object.assign(base, { dash: 'dash', showEq: true, col: '#8C8279' });
       const obj = Object.assign(base, o);
       if (obj.type === 'point' && !obj.name) obj.name = this._nextPointName();
       this.objs.push(obj);
@@ -180,7 +180,7 @@
     },
 
     _hoverExtra(mx, my) {
-      if (this._arrowDraft) this._drawArrow(this.overlay, this._arrowDraft, '#007AFF', 2.2, false, true);
+      if (this._arrowDraft) this._drawArrow(this.overlay, this._arrowDraft, this._selCol(), 2.2, false, true);
       if (this.tool === 'point') {
         const s = this._snap(mx, my, false);
         this.overlay.append('circle').attr('cx', this.xs(s.x)).attr('cy', this.ys(s.y)).attr('r', 5)
@@ -310,14 +310,14 @@
     },
 
     _selectionHalo(g, o, pos) {
-      const s = (sel) => sel.attr('fill', 'none').attr('stroke', '#007AFF').attr('stroke-width', 1.5).attr('stroke-dasharray', '4,3').attr('pointer-events', 'none');
+      const s = (sel) => sel.attr('fill', 'none').attr('stroke', this._selCol()).attr('stroke-width', 1.5).attr('stroke-dasharray', '4,3').attr('pointer-events', 'none');
       if (o.type === 'point') s(g.append('circle').attr('cx', this.xs(pos.x)).attr('cy', this.ys(pos.y)).attr('r', 10));
       if (o.type === 'arrow') {
         [['x1', 'y1'], ['x2', 'y2']].forEach(([kx, ky]) => {
           const hx = this.xs(o[kx]), hy = this.ys(o[ky]);
           if (hx < this.PL - 20 || hx > this.PR + 20 || hy < this.PT - 20 || hy > this.PB + 20) return;
           const h = g.append('circle').attr('cx', this.xs(o[kx])).attr('cy', this.ys(o[ky])).attr('r', 6)
-            .attr('fill', '#fff').attr('stroke', '#007AFF').attr('stroke-width', 2).attr('cursor', 'grab');
+            .attr('fill', '#fff').attr('stroke', this._selCol()).attr('stroke-width', 2).attr('cursor', 'grab');
           h.call(d3.drag().container(this.svg.node())
             .on('start', (ev) => ev.sourceEvent && ev.sourceEvent.stopPropagation())
             .on('drag', (ev) => { const sn = this._snap(ev.x, ev.y, ev.sourceEvent && ev.sourceEvent.altKey); o[kx] = sn.x; o[ky] = sn.y; this.repaint(); })

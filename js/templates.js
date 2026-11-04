@@ -263,7 +263,7 @@
         for (let i = 0; i <= H; i += 8) s += `<line x1="0" y1="${i}" x2="${W}" y2="${i}" stroke="#C9D8E8" stroke-width="0.6"/>`;
       }
       const ax = Math.min(W, Math.max(0, sx(0))), ay = Math.min(H, Math.max(0, sy(0)));
-      s += `<line x1="0" y1="${r1(ay)}" x2="${W}" y2="${r1(ay)}" stroke="#1C1C1E" stroke-width="1"/><line x1="${r1(ax)}" y1="0" x2="${r1(ax)}" y2="${H}" stroke="#1C1C1E" stroke-width="1"/>`;
+      s += `<line x1="0" y1="${r1(ay)}" x2="${W}" y2="${r1(ay)}" stroke="#2E2A28" stroke-width="1"/><line x1="${r1(ax)}" y1="0" x2="${r1(ax)}" y2="${H}" stroke="#2E2A28" stroke-width="1"/>`;
       dists.forEach((d, i) => {
         const col = cols[i % cols.length];
         const on = (k) => (d.a != null || d.b != null) && (d.a == null || k >= d.a) && (d.b == null || k <= d.b);
