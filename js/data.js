@@ -144,7 +144,7 @@
         h += '<tr>';
         row.forEach((v, c) => {
           const head = m.vertical ? r === 0 : c === 0;
-          h += head ? `<th style="${forPrint ? '' : cell + ';font-weight:bold;background:#f2f2f2'}">${esc(v)}</th>` : `<td style="${forPrint ? '' : cell}">${esc(v)}</td>`;
+          h += head ? `<th style="${forPrint ? '' : cell + ';font-weight:bold;background:#F3E9DD'}">${esc(v)}</th>` : `<td style="${forPrint ? '' : cell}">${esc(v)}</td>`;
         });
         h += '</tr>';
       });

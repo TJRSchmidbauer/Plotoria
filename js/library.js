@@ -6,7 +6,7 @@ const PlotoriaLibrary = (() => {
   // Kurzschreibweisen: fn(Definition, Zusätze), pt(Name, x, y, Zusätze)
   const fn = (s, extra) => ({ s, ...(extra || {}) });
   const pt = (name, x, y, extra) => ({ type: 'point', name, x: String(x), y: String(y), showCoords: true, showName: true, off: [8, -10], col: '#FF3B30', vis: true, ...(extra || {}) });
-  const txt = (x, y, text, extra) => ({ type: 'text', x, y, text, col: '#1C1C1E', vis: true, ...(extra || {}) });
+  const txt = (x, y, text, extra) => ({ type: 'text', x, y, text, col: '#2E2A28', vis: true, ...(extra || {}) });
 
   const GRADES = [
     { id: 0, label: 'Allgemein' },
@@ -48,8 +48,8 @@ const PlotoriaLibrary = (() => {
       fns: [fn('f(x) = 0.5x + 1')],
       objs: [
         pt('P', 0, 1, { off: [-60, -10] }), pt('Q', 2, 2),
-        { type: 'arrow', x1: 0, y1: 1, x2: 2, y2: 1, col: '#1C1C1E', vis: true, width: 1.5 },
-        { type: 'arrow', x1: 2, y1: 1, x2: 2, y2: 2, col: '#1C1C1E', vis: true, width: 1.5 },
+        { type: 'arrow', x1: 0, y1: 1, x2: 2, y2: 1, col: '#2E2A28', vis: true, width: 1.5 },
+        { type: 'arrow', x1: 2, y1: 1, x2: 2, y2: 2, col: '#2E2A28', vis: true, width: 1.5 },
         txt(0.7, 0.6, 'Δx = 2'), txt(2.15, 1.4, 'Δy = 1'),
       ],
     },
@@ -75,7 +75,7 @@ const PlotoriaLibrary = (() => {
       text: '0,5x + 1 > −x + 4 gilt rechts vom Schnittpunkt, also für x > 2.',
       view: [-2, 6, -2, 5], style: { gridMode: 'karo', karo: 2 },
       fns: [fn('f(x) = 0.5x + 1', { lm: 'term' }), fn('g(x) = -x + 4', { lm: 'term' })],
-      objs: [pt('S', 2, 2, { off: [10, -8] }), { type: 'vline', x: '2', dash: 'dash', showEq: true, col: '#8E8E93', vis: true }],
+      objs: [pt('S', 2, 2, { off: [10, -8] }), { type: 'vline', x: '2', dash: 'dash', showEq: true, col: '#8C8279', vis: true }],
     },
     {
       grade: 8, topic: 'Lineare Gleichungssysteme',
