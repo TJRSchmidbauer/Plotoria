@@ -55,3 +55,6 @@ Plotoria kombiniert moderne Webtechnologien mit agentischer KI-Unterstützung:
 
 * **Tobias Schmidbauer** – Idee, Architektur, didaktische Ausrichtung & Projektleitung
 * **Google Antigravity AI** – Autonomous Coding Agent & Performance Optimization (Google DeepMind)
+* **Claude** (Anthropic) – weitere Entwicklung nach Vorgaben von Tobias Schmidbauer, unter anderem Umstellung der Farben auf das Markenhandbuch von schmidbauer.io und die Dokumentation; in den Commits als Mitautor vermerkt
+
+Alle Änderungen gehen erst nach der Freigabe durch Tobias Schmidbauer in den Hauptzweig.
